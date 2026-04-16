@@ -1,0 +1,9 @@
+# Ignore application configuration, databases and metadata
+config/
+
+# Ignore environment variables file (if you create one later)
+.env
+
+# Ignore macOS/Linux system files
+.DS_Store
+Thumbs.db
