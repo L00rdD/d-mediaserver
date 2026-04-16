@@ -1,4 +1,3 @@
-```markdown
 # 🍿 Ultimate Home Media Server
 
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
@@ -113,4 +112,3 @@ Once Docker confirms all containers are `Started`, open your web browser and go 
 
 ---
 *Disclaimer: This repository and configuration are intended for managing personal, legally obtained media. Please respect the copyright laws of your country.*
-```
