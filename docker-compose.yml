@@ -1,20 +1,24 @@
 services:
-  transmission:
-    image: lscr.io/linuxserver/transmission:latest
-    container_name: transmission
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
     environment:
-      - PUID=1026 # Synology users often have different UIDs, check via SSH if needed
+      - PUID=1026
       - PGID=100
       - TZ=Europe/Paris
+      # Set the internal Web UI port
+      - WEBUI_PORT=8080
     volumes:
-      - ./config/transmission:/config
-      # Single unified download path for Synology
+      - ./config/qbittorrent:/config
+      # Unified download paths matching Radarr and Sonarr
       - /volume1/downloads/complete:/downloads/complete
       - /volume1/downloads/incomplete:/downloads/incomplete
     ports:
-      - 9091:9091
-      - 51413:51413
-      - 51413:51413/udp
+      # HTTP Web UI port
+      - 8080:8080
+      # Torrent traffic ports
+      - 6881:6881
+      - 6881:6881/udp
     restart: unless-stopped
 
   radarr:
@@ -26,9 +30,7 @@ services:
       - TZ=Europe/Paris
     volumes:
       - ./config/radarr:/config
-      # Temporary destination where Radarr prepares movies before manual move
       - /volume1/media/movies:/movies
-      # Must match Transmission exactly to grab downloaded files
       - /volume1/downloads/complete:/downloads/complete
     ports:
       - 7878:7878
@@ -43,9 +45,7 @@ services:
       - TZ=Europe/Paris
     volumes:
       - ./config/sonarr:/config
-      # Temporary destination where Sonarr prepares shows before manual move
       - /volume1/media/shows:/shows
-      # Must match Transmission exactly to grab downloaded files
       - /volume1/downloads/complete:/downloads/complete
     ports:
       - 8989:8989
