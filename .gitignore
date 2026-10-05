@@ -1,6 +1,9 @@
 # Ignore application configuration, databases and metadata
 config/
 
+# Ignore local media/downloads (when DATA_ROOT=./data)
+data/
+
 # Ignore environment variables file (if you create one later)
 .env
 

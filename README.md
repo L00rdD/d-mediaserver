@@ -4,18 +4,17 @@
 ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![Raspberry Pi](https://img.shields.io/badge/-RaspberryPi-C51A4A?style=for-the-badge&logo=Raspberry-Pi)
 
-Welcome to your fully automated, Dockerized home media server! This stack provides everything you need to request, download, manage, and stream your favorite movies and TV shows securely. It is specially configured to handle a **Dual-Drive Setup** (Internal/Primary + External/Expansion drives).
+Welcome to your fully automated, Dockerized home media server! This stack provides everything you need to request, download, manage, and stream your favorite movies and TV shows securely. It turns a Raspberry Pi 4 into a small **virtual NAS**: any number of USB drives are pooled into a single path (`/mnt/storage`) with [mergerfs](https://github.com/trapexit/mergerfs), used by every container and shared on the network over SMB.
 
 ---
 
 ## 🚀 The Stack
 
-This environment is powered by the *Arr* suite and dual streaming platforms to give you the best flexibility:
+This environment is powered by the *Arr* suite and Jellyfin:
 
 | Service | Description | Port |
 | :--- | :--- | :--- |
-| **[Plex](https://www.plex.tv/)** | The ultimate media streaming server (Host Network mode). | `32400` |
-| **[Jellyfin](https://jellyfin.org/)** | Open-source alternative for local VR & high-res streaming. | `8096` |
+| **[Jellyfin](https://jellyfin.org/)** | Open-source media streaming server. | `8096` |
 | **[Sonarr](https://sonarr.tv/)** | Smart PVR for automatic TV Show downloading and sorting. | `8989` |
 | **[Radarr](https://radarr.video/)** | Smart PVR for automatic Movie downloading and sorting. | `7878` |
 | **[Transmission](https://transmissionbt.com/)**| Fast, easy, and free BitTorrent client. | `9091` |
@@ -24,82 +23,163 @@ This environment is powered by the *Arr* suite and dual streaming platforms to g
 
 ---
 
-## 📁 Directory Structure
+## 📁 Storage Layout
 
-This setup requires your drives to be mounted to specific paths. The `docker-compose.yml` expects the following structure on your host machine:
+Each USB drive is mounted on its own under `/mnt/disks/`, and mergerfs merges them all into one pool. Apps, Docker and the network share only ever use the pool.
 
 ```text
 /mnt/
-├── media/               # Primary Drive (ext4)
-│   ├── complete/        # Finished downloads
-│   ├── incomplete/      # Active downloads
-│   ├── movies/          # Sorted movies
-│   └── shows/           # Sorted TV shows
-└── disk/                # Secondary Expansion Drive (exFAT)
-    ├── complete/
-    ├── incomplete/
-    ├── movies/
-    └── shows/
+├── disks/               # Physical drives (never used directly)
+│   ├── disk1/
+│   ├── disk2/
+│   └── ...
+└── storage/             # The pool = every disk merged (the only path you use)
+    ├── complete/        # Finished downloads
+    ├── incomplete/      # Active downloads
+    ├── movies/          # Sorted movies
+    └── shows/           # Sorted TV shows
 ```
 
-> **⚠️ CRITICAL:** You must create these folders **before** starting Docker to prevent "operation not permitted" permissions errors.
+Inside every container the pool is mounted at `/data` (`/data/movies`, `/data/shows`, `/data/complete`, `/data/incomplete`).
+
+Good to know:
+
+- **No RAID.** Files are stored whole on one of the drives. If a drive dies you only lose what was on that drive, and every drive stays readable on its own.
+- **Adding a drive** = mount it under `/mnt/disks/diskN` and remount the pool. Nothing to change in Docker.
+- **Prefer `ext4`** for every drive. `exFAT` works but has no permissions, no hardlinks and no journal.
+- **Power:** a Pi 4 can only feed about 1.2 A across all its USB ports. With more than one drive, use a powered USB hub or self-powered enclosures, plugged into the blue USB 3 ports.
 
 ---
 
 ## 🛠️ Installation & Deployment
 
-### 1. Prepare Your Drives (Mounting)
-Before touching Docker, your drives must be mounted correctly at the OS level so they survive reboots.
+### 1. Mount the Drives
 
 Find your drives' UUIDs:
 ```bash
 sudo blkid
 ```
 
-Open your `fstab` file:
+Create the mount points and install mergerfs:
 ```bash
-sudo nano /etc/fstab
+sudo apt install -y mergerfs
+sudo mkdir -p /mnt/disks/disk1 /mnt/disks/disk2 /mnt/storage
 ```
 
-**Add your drives based on their format:**
+Add one line per drive to `/etc/fstab`, then the pool line:
 
-*For the native Linux drive (`ext4`):*
 ```text
-UUID=YOUR-UUID-HERE /mnt/media ext4 defaults,auto,nofail,x-systemd.device-timeout=5 0 0
-```
-*For the expansion drive (`exfat` - requires specific UID/GID for Docker write access):*
-```text
-UUID=YOUR-UUID-HERE /mnt/disk exfat defaults,nofail,uid=1000,gid=1000,umask=000 0 0
+# Physical drives (ext4)
+UUID=YOUR-UUID-HERE /mnt/disks/disk1 ext4 defaults,noatime,nofail,x-systemd.device-timeout=10 0 2
+# Physical drives (exfat - needs uid/gid for Docker write access)
+UUID=YOUR-UUID-HERE /mnt/disks/disk2 exfat defaults,noatime,nofail,x-systemd.device-timeout=10,uid=1000,gid=1000,umask=002 0 0
+
+# The pool
+/mnt/disks/* /mnt/storage fuse.mergerfs allow_other,cache.files=partial,dropcacheonclose=true,category.create=mfs,moveonenospc=true,minfreespace=20G,fsname=storage,nofail,x-systemd.requires-mounts-for=/mnt/disks/disk1,x-systemd.requires-mounts-for=/mnt/disks/disk2 0 0
 ```
 
-Apply the mounts:
+> **⚠️ CRITICAL:** keep `nofail` on every line. Without it, a missing or unpowered drive drops the Pi into emergency mode at boot and it never joins the network.
+
+Apply the mounts and create the folders:
 ```bash
 sudo systemctl daemon-reload
 sudo mount -a
+sudo mkdir -p /mnt/storage/{movies,shows,complete,incomplete}
+sudo chown -R 1000:1000 /mnt/storage
 ```
 
-### 2. Create the Folder Structure
-Now that the drives are mounted, create the internal folders:
-
+Make Docker wait for the pool, so containers never write to the SD card when a drive is missing:
 ```bash
-# Primary Drive
-sudo mkdir -p /mnt/media/{movies,shows,complete,incomplete}
-sudo chown -R 1000:1000 /mnt/media/*
-
-# Secondary Drive (chown will fail here if exFAT, which is fine)
-sudo mkdir -p /mnt/disk/{movies,shows,complete,incomplete}
+sudo mkdir -p /etc/systemd/system/docker.service.d
+printf '[Unit]\nRequiresMountsFor=/mnt/storage\n' | sudo tee /etc/systemd/system/docker.service.d/wait-for-storage.conf
+sudo systemctl daemon-reload
 ```
 
-### 3. Deploy the Server
-Clone this repository (or create a folder) and place the `docker-compose.yml` inside.
+### 2. Share the Pool on the Network (SMB)
 
 ```bash
-mkdir mediaserver && cd mediaserver
-# Place your docker-compose.yml here
+sudo apt install -y samba
+sudo smbpasswd -a $USER
+```
 
-# Start the magic
+Append to `/etc/samba/smb.conf`:
+```ini
+[storage]
+   path = /mnt/storage
+   read only = no
+   valid users = YOUR-USER
+   force user = YOUR-USER
+   create mask = 0664
+   directory mask = 0775
+```
+
+And in its `[global]` section:
+```ini
+   server min protocol = SMB3
+   use sendfile = yes
+   aio read size = 1
+   aio write size = 1
+```
+
+```bash
+sudo systemctl restart smbd
+```
+
+The NAS is then reachable at `smb://<YOUR-SERVER-IP>/storage`.
+
+### 3. Network Tuning
+
+Plug the Pi in with an **Ethernet cable** (gigabit) and check the negotiated speed, it must say `1000Mb/s`:
+```bash
+ethtool eth0 | grep Speed
+```
+
+Enable BBR and larger TCP buffers:
+```bash
+echo tcp_bbr | sudo tee /etc/modules-load.d/bbr.conf
+sudo tee /etc/sysctl.d/99-nas-network.conf <<'CONF'
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.tcp_rmem = 4096 131072 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+CONF
+sudo modprobe tcp_bbr && sudo sysctl --system
+```
+
+Finally, give the Pi a fixed address with a DHCP reservation on your router.
+
+### 4. Deploy the Server
+
+```bash
+git clone <this-repo> mediaserver && cd mediaserver
 docker compose up -d
 ```
+
+To run the stack on another machine (a NAS, a PC), override the defaults with a `.env` file next to `docker-compose.yml`:
+
+```text
+# Folder that holds movies/, shows/, complete/ and incomplete/
+DATA_ROOT=/volume1/media
+# User and group that own that folder (run `id` on the machine)
+PUID=1026
+PGID=100
+TZ=Europe/Paris
+# No login for Radarr, Sonarr and Prowlarr on the home network (see Passwords)
+SKIP_LOCAL_LOGIN=1
+```
+
+Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/storage`, `1000:1000` and `Europe/Paris`.
+
+### 5. Point the Apps at `/data`
+
+| App | Setting | Value |
+| :--- | :--- | :--- |
+| Transmission | Download / incomplete directory | `/data/complete`, `/data/incomplete` |
+| Radarr | Root folder | `/data/movies` |
+| Sonarr | Root folder | `/data/shows` |
+| Jellyfin | Libraries | `/data/movies`, `/data/shows` |
 
 ---
 
@@ -109,6 +189,22 @@ Once Docker confirms all containers are `Started`, open your web browser and go 
 `http://<YOUR-SERVER-IP>:<PORT>`
 
 *Example:* To access Sonarr, type `http://192.168.1.33:8989`.
+
+---
+
+## 🔑 Passwords
+
+By default Radarr, Sonarr and Prowlarr each ask you to set up a login the first time you open them. If you would rather have no password to remember, add this line to your `.env` and run `docker compose up -d` again:
+
+```text
+SKIP_LOCAL_LOGIN=1
+```
+
+The three apps then open without a login from any device on your home network, even if a password was set before. To get the login back, delete the line (do not set it to `0` or `false`) and run `docker compose up -d`.
+
+> **⚠️ CRITICAL:** with this option, never forward these ports to the internet on your router. Anyone who can reach them controls the apps.
+
+Jellyfin is the only account to remember. If you lose its password, click **Forgot Password** on the Jellyfin login page from a device on your home network: Jellyfin writes a PIN to a file in its `config/jellyfin/` folder and tells you which one.
 
 ---
 *Disclaimer: This repository and configuration are intended for managing personal, legally obtained media. Please respect the copyright laws of your country.*

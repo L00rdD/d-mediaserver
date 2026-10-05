@@ -1,37 +1,22 @@
+# Every service sees the storage pool under the same path: /data
+# DATA_ROOT defaults to the mergerfs pool on the Pi; override it in .env
+# (e.g. DATA_ROOT=./data) to run the stack on another machine.
+# PUID/PGID/TZ can be overridden in .env too (a NAS rarely uses 1000:1000).
+# SKIP_LOCAL_LOGIN=1 in .env makes Radarr, Sonarr and Prowlarr skip the login
+# on the local network (no password to create or forget). Without it the
+# *__AUTH__* lines are empty and each app keeps its own login settings.
+# Never forward these ports to the internet.
 services:
-  plex:
-    image: lscr.io/linuxserver/plex:latest
-    container_name: plex
-    network_mode: host
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - VERSION=docker
-    volumes:
-      - ./config/plex:/config
-      # Media paths for Plex (Old drive)
-      - /mnt/media/movies:/data/movies
-      - /mnt/media/shows:/data/shows
-      # Media paths for Plex (New drive)
-      - /mnt/disk/movies:/data/disk_movies
-      - /mnt/disk/shows:/data/disk_shows
-    restart: unless-stopped
-
   transmission:
     image: lscr.io/linuxserver/transmission:latest
     container_name: transmission
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Paris
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Paris}
     volumes:
       - ./config/transmission:/config
-      # Unified download paths (Old drive)
-      - /mnt/media/complete:/downloads/complete
-      - /mnt/media/incomplete:/downloads/incomplete
-      # Unified download paths (New drive)
-      - /mnt/disk/complete:/downloads/disk_complete
-      - /mnt/disk/incomplete:/downloads/disk_incomplete
+      - ${DATA_ROOT:-/mnt/storage}:/data
     ports:
       - 9091:9091
       - 51413:51413
@@ -42,19 +27,14 @@ services:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Paris
+      - RADARR__AUTH__METHOD=${SKIP_LOCAL_LOGIN:+Forms}
+      - RADARR__AUTH__REQUIRED=${SKIP_LOCAL_LOGIN:+DisabledForLocalAddresses}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Paris}
     volumes:
       - ./config/radarr:/config
-      # Final destination for movies (Old drive)
-      - /mnt/media/movies:/movies
-      # Final destination for movies (New drive)
-      - /mnt/disk/movies:/disk_movies
-      # Unified path matching Transmission (Old drive)
-      - /mnt/media/complete:/downloads/complete
-      # Unified path matching Transmission (New drive)
-      - /mnt/disk/complete:/downloads/disk_complete
+      - ${DATA_ROOT:-/mnt/storage}:/data
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -63,9 +43,11 @@ services:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Paris
+      - PROWLARR__AUTH__METHOD=${SKIP_LOCAL_LOGIN:+Forms}
+      - PROWLARR__AUTH__REQUIRED=${SKIP_LOCAL_LOGIN:+DisabledForLocalAddresses}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Paris}
     volumes:
       - ./config/prowlarr:/config
     ports:
@@ -77,9 +59,9 @@ services:
     container_name: flaresolverr
     environment:
       - LOG_LEVEL=info
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Paris
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Paris}
     ports:
       - 8191:8191
     restart: unless-stopped
@@ -88,19 +70,14 @@ services:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Paris
+      - SONARR__AUTH__METHOD=${SKIP_LOCAL_LOGIN:+Forms}
+      - SONARR__AUTH__REQUIRED=${SKIP_LOCAL_LOGIN:+DisabledForLocalAddresses}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Paris}
     volumes:
       - ./config/sonarr:/config
-      # Final destination for TV shows (Old drive)
-      - /mnt/media/shows:/shows
-      # Final destination for TV shows (New drive)
-      - /mnt/disk/shows:/disk_shows
-      # Unified path matching Transmission (Old drive)
-      - /mnt/media/complete:/downloads/complete
-      # Unified path matching Transmission (New drive)
-      - /mnt/disk/complete:/downloads/disk_complete
+      - ${DATA_ROOT:-/mnt/storage}:/data
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -109,17 +86,12 @@ services:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Paris
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Paris}
     volumes:
       - ./config/jellyfin:/config
-      # Media paths for Jellyfin matching Plex structure (Old drive)
-      - /mnt/media/movies:/data/movies
-      - /mnt/media/shows:/data/shows
-      # Media paths for Jellyfin matching Plex structure (New drive)
-      - /mnt/disk/movies:/data/disk_movies
-      - /mnt/disk/shows:/data/disk_shows
+      - ${DATA_ROOT:-/mnt/storage}:/data
     ports:
       - 8096:8096
     restart: unless-stopped
