@@ -6,6 +6,8 @@
 
 Welcome to your fully automated, Dockerized home media server! This stack provides everything you need to request, download, manage, and stream your favorite movies and TV shows securely. It turns a Raspberry Pi 4 into a small **virtual NAS**: any number of USB drives are pooled into a single path (`/mnt/storage`) with [mergerfs](https://github.com/trapexit/mergerfs), used by every container and shared on the network over SMB.
 
+> **Not on a Raspberry Pi?** [DEPLOY.md](DEPLOY.md) is the short path for a NAS or any machine that already runs Docker.
+
 ---
 
 ## 🚀 The Stack
@@ -158,7 +160,7 @@ git clone <this-repo> mediaserver && cd mediaserver
 docker compose up -d
 ```
 
-To run the stack on another machine (a NAS, a PC), override the defaults with a `.env` file next to `docker-compose.yml`:
+To run the stack on another machine (a NAS, a PC), override the defaults with a `.env` file next to `docker-compose.yml`. Copy `.env.example` to start from; [DEPLOY.md](DEPLOY.md) walks through the whole install:
 
 ```text
 # Folder that holds movies/, shows/, complete/ and incomplete/
