@@ -195,6 +195,8 @@ Once Docker confirms all containers are `Started`, open your web browser and go 
 
 It is the only address to remember: it links to every app. It comes in two looks, *Reactor* and *Cyberpunk*; the switch at the top right changes it and each device remembers its own choice.
 
+The search bar sends what you type straight to the right app: **Watch** looks for it in your Jellyfin library, **+ Movie** opens Radarr and **+ TV show** opens Sonarr with the search already running, ready to add.
+
 The links point at `dpi.lan` by default. If your server answers to another name, set `HOME_HOST` in your `.env` (a name or an IP, without `http://`) and run `docker compose up -d` again. `HOME_HOST` does not create the name: it has to be one your network already resolves, usually the machine's hostname followed by your router's suffix (`.lan`, `.home`, `.local`).
 
 Each app is also reachable directly at `http://<YOUR-SERVER-IP>:<PORT>`. *Example:* To access Sonarr, type `http://192.168.1.33:8989`.

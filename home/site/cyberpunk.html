@@ -133,6 +133,63 @@
       padding: 36px 24px 56px;
     }
 
+    /* Search: one field, one button per app (see /search in the Caddyfile) */
+    .search {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      animation: slide 0.5s ease-out both;
+    }
+    .search input, .search button {
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      font-family: var(--mono);
+    }
+    .search input {
+      flex: 1 1 260px;
+      min-width: 0;
+      padding: 0 16px;
+      color: #fff;
+      background: var(--panel);
+      border-left: 6px solid var(--yellow);
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+    }
+    .search input::placeholder {
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .search input:focus { border-color: var(--yellow); }
+    .search button {
+      padding: 0 20px;
+      color: var(--cyan);
+      background: transparent;
+      border-color: var(--cyan);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .search button:first-of-type {
+      color: #000;
+      background: var(--yellow);
+      border-color: var(--yellow);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+    }
+    .search button:hover, .search button:focus-visible {
+      color: #000;
+      background: var(--cyan);
+      border-color: var(--cyan);
+    }
+
     /* Yellow slab = Jellyfin, the main action */
     .slab {
       position: relative;
@@ -289,6 +346,9 @@
       .slab { min-height: 260px; }
     }
     @media (max-width: 460px) {
+      .search input { flex-basis: 100%; }
+      .search input::placeholder { letter-spacing: 0.08em; }
+      .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       .cards { grid-template-columns: minmax(0, 1fr); }
       .card { min-height: 120px; }
     }
@@ -314,6 +374,14 @@
   </header>
 
   <main>
+    <form class="search" action="/search" role="search">
+      <input type="search" name="q" required autocomplete="off"
+             placeholder="Search a movie or a TV show" aria-label="Search a movie or a TV show">
+      <button name="in" value="jellyfin" title="Search in Jellyfin">▶ Watch</button>
+      <button name="in" value="radarr" title="Add a movie with Radarr">+ Movie</button>
+      <button name="in" value="sonarr" title="Add a TV show with Sonarr">+ TV show</button>
+    </form>
+
     <a class="slab" href="http://{{$host}}:8096">
       <span class="slab-tag">00 // Stream</span>
       <span class="slab-name">Jellyfin</span>

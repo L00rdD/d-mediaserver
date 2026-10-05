@@ -13,6 +13,20 @@
 		redir * / 303
 	}
 
+	# /search?q=<text>&in=<app> opens that app with the search already typed.
+	# The text is taken as typed in the URL (still encoded) and handed over.
+	@search {
+		path /search
+		vars_regexp q {http.request.uri.query} (^|&)q=([^&]*)
+	}
+	handle @search {
+		@radarr query in=radarr
+		redir @radarr http://{$HOME_HOST}:7878/add/new?term={re.q.2}
+		@sonarr query in=sonarr
+		redir @sonarr http://{$HOME_HOST}:8989/add/new?term={re.q.2}
+		redir * http://{$HOME_HOST}:8096/web/#/search?query={re.q.2}
+	}
+
 	handle {
 		file_server
 	}

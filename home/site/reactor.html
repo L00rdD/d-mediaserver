@@ -108,6 +108,7 @@
       align-content: center;
       grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       grid-template-areas:
+        "search search search"
         "p1 reactor p2"
         "p3 reactor p4";
       gap: 28px 48px;
@@ -117,6 +118,66 @@
       padding: 40px 24px 56px;
     }
     a { text-decoration: none; outline: none; }
+
+    /* Search: one field, one button per app (see /search in the Caddyfile) */
+    .search {
+      grid-area: search;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 8px;
+      animation: boot 0.7s ease-out both;
+    }
+    .search input, .search button {
+      min-height: 46px;
+      border: 1px solid var(--cyan-soft);
+      border-radius: 0;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      font-family: var(--mono);
+    }
+    .search input {
+      flex: 1 1 260px;
+      min-width: 0;
+      padding: 0 16px;
+      color: var(--text);
+      background: rgba(111, 227, 255, 0.06);
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search input::placeholder {
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .search input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 18px var(--cyan-soft), inset 0 0 14px rgba(111, 227, 255, 0.12);
+    }
+    .search button {
+      padding: 0 18px;
+      color: var(--cyan);
+      background: transparent;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .search button:first-of-type {
+      color: var(--bg);
+      background: var(--cyan);
+      border-color: var(--cyan);
+    }
+    .search button:hover, .search button:focus-visible {
+      color: var(--bg);
+      background: var(--gold);
+      border-color: var(--gold);
+      box-shadow: 0 0 16px rgba(255, 200, 87, 0.4);
+    }
 
     /* Reactor = Jellyfin, the main action */
     .reactor {
@@ -255,6 +316,7 @@
       main {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-template-areas:
+          "search search"
           "reactor reactor"
           "p1 p2"
           "p3 p4";
@@ -265,9 +327,12 @@
       header { padding: 14px 16px; }
     }
     @media (max-width: 460px) {
+      .search input { flex-basis: 100%; }
+      .search input::placeholder { letter-spacing: 0.08em; }
+      .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "reactor" "p1" "p2" "p3" "p4";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4";
       }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -289,6 +354,14 @@
   </header>
 
   <main>
+    <form class="search" action="/search" role="search">
+      <input type="search" name="q" required autocomplete="off"
+             placeholder="Search a movie or a TV show" aria-label="Search a movie or a TV show">
+      <button name="in" value="jellyfin" title="Search in Jellyfin">▶ Watch</button>
+      <button name="in" value="radarr" title="Add a movie with Radarr">+ Movie</button>
+      <button name="in" value="sonarr" title="Add a TV show with Sonarr">+ TV show</button>
+    </form>
+
     <a class="reactor" href="http://{{$host}}:8096" aria-label="Jellyfin: watch movies and TV shows">
       <span class="ring ticks"></span>
       <span class="ring arcs"></span>
