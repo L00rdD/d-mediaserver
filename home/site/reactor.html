@@ -1,0 +1,324 @@
+{{- /* "Reactor" look. HOME_HOST comes from .env through docker-compose.yml (default: dpi.lan) */ -}}
+{{- $host := env "HOME_HOST" -}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Media Server</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #02070d;
+      --cyan: #6fe3ff;
+      --cyan-soft: rgba(111, 227, 255, 0.45);
+      --cyan-faint: rgba(111, 227, 255, 0.16);
+      --grid: rgba(111, 227, 255, 0.045);
+      --gold: #ffc857;
+      --text: #d9f6ff;
+      --muted: #7fa9b8;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      color: var(--text);
+      font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(ellipse at 50% 45%, rgba(40, 150, 195, 0.22), transparent 62%),
+        linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% 44px,
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 44px 100%,
+        var(--bg);
+    }
+    /* Scanlines and vignette over the whole screen */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55));
+    }
+
+    /* Top bar */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 24px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--cyan-faint);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    h1 {
+      margin: 0;
+      font: inherit;
+      color: var(--cyan);
+      text-shadow: 0 0 12px var(--cyan-soft);
+    }
+    h1::before { content: "// "; color: var(--muted); }
+    .status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; }
+    .status b { font-weight: inherit; color: var(--text); text-transform: none; letter-spacing: 0.05em; }
+    .online { color: var(--cyan); }
+    .online::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      animation: blink 2.4s ease-in-out infinite;
+    }
+    /* Style switch: the current look is lit, the other one is a link */
+    .styles { display: flex; }
+    .styles > * {
+      padding: 4px 10px;
+      border: 1px solid var(--cyan-soft);
+      color: var(--muted);
+    }
+    .styles > * + * { margin-left: -1px; }
+    .styles span {
+      color: var(--bg);
+      background: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-soft);
+    }
+    .styles a:hover, .styles a:focus-visible {
+      position: relative;
+      color: var(--gold);
+      border-color: var(--gold);
+    }
+
+    /* Layout: two modules on each side of the reactor */
+    main {
+      flex: 1;
+      display: grid;
+      align-content: center;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      grid-template-areas:
+        "p1 reactor p2"
+        "p3 reactor p4";
+      gap: 28px 48px;
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 56px;
+    }
+    a { text-decoration: none; outline: none; }
+
+    /* Reactor = Jellyfin, the main action */
+    .reactor {
+      --c: var(--cyan);
+      grid-area: reactor;
+      justify-self: center;
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: min(72vw, 320px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      color: var(--c);
+      filter: drop-shadow(0 0 14px rgba(111, 227, 255, 0.45));
+      transition: transform 0.25s ease;
+      animation: boot 0.9s ease-out both;
+    }
+    .ring { position: absolute; border-radius: 50%; }
+    .ticks {
+      inset: 0;
+      opacity: 0.55;
+      background: repeating-conic-gradient(var(--c) 0 0.8deg, transparent 0.8deg 5deg);
+      -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+      mask: radial-gradient(closest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+      animation: spin 90s linear infinite;
+    }
+    .arcs {
+      inset: 7%;
+      background: conic-gradient(
+        var(--c) 0 70deg, transparent 70deg 120deg,
+        var(--c) 120deg 200deg, transparent 200deg 250deg,
+        var(--c) 250deg 320deg, transparent 320deg);
+      -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+      mask: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+      animation: spin 14s linear infinite reverse;
+    }
+    .cells {
+      inset: 15%;
+      background: repeating-conic-gradient(from 3deg, var(--c) 0 30deg, transparent 30deg 36deg);
+      -webkit-mask: radial-gradient(closest-side, transparent 72%, #000 73%);
+      mask: radial-gradient(closest-side, transparent 72%, #000 73%);
+      animation: pulse 3.2s ease-in-out infinite;
+    }
+    .core {
+      position: relative;
+      display: grid;
+      place-content: center;
+      gap: 4px;
+      width: 46%;
+      aspect-ratio: 1;
+      border: 2px solid var(--c);
+      border-radius: 50%;
+      text-align: center;
+      background: radial-gradient(circle, #10394b 0%, #04121a 72%);
+      box-shadow: inset 0 0 26px var(--cyan-soft);
+    }
+    .core-name {
+      font-size: clamp(0.95rem, 4.4vw, 1.25rem);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 0 14px var(--c);
+    }
+    .core-sub {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+    .reactor:hover, .reactor:focus-visible {
+      --c: var(--gold);
+      transform: scale(1.04);
+      filter: drop-shadow(0 0 18px rgba(255, 200, 87, 0.55));
+    }
+
+    /* Modules = the other apps */
+    .panel {
+      --c: var(--cyan);
+      position: relative;
+      display: block;
+      padding: 18px 22px 20px;
+      color: var(--text);
+      /* eight small gradients draw the four corner brackets */
+      background:
+        linear-gradient(var(--c), var(--c)) top left / 18px 2px no-repeat,
+        linear-gradient(var(--c), var(--c)) top left / 2px 18px no-repeat,
+        linear-gradient(var(--c), var(--c)) top right / 18px 2px no-repeat,
+        linear-gradient(var(--c), var(--c)) top right / 2px 18px no-repeat,
+        linear-gradient(var(--c), var(--c)) bottom left / 18px 2px no-repeat,
+        linear-gradient(var(--c), var(--c)) bottom left / 2px 18px no-repeat,
+        linear-gradient(var(--c), var(--c)) bottom right / 18px 2px no-repeat,
+        linear-gradient(var(--c), var(--c)) bottom right / 2px 18px no-repeat,
+        linear-gradient(135deg, rgba(111, 227, 255, 0.11), rgba(111, 227, 255, 0.02));
+      box-shadow: inset 0 0 0 1px var(--cyan-faint);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: boot 0.7s ease-out both;
+    }
+    .p1 { grid-area: p1; animation-delay: 0.15s; }
+    .p2 { grid-area: p2; animation-delay: 0.25s; }
+    .p3 { grid-area: p3; animation-delay: 0.35s; }
+    .p4 { grid-area: p4; animation-delay: 0.45s; }
+    .tag, .port {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .tag { display: block; }
+    .tag i { font-style: normal; color: var(--c); }
+    .name {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.45rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--c);
+      text-shadow: 0 0 12px var(--cyan-soft);
+    }
+    .port { position: absolute; top: 18px; right: 22px; }
+    .panel:hover, .panel:focus-visible {
+      --c: var(--gold);
+      transform: translateY(-3px);
+      box-shadow: inset 0 0 0 1px rgba(255, 200, 87, 0.35), 0 0 28px rgba(255, 200, 87, 0.18);
+    }
+    .panel:hover .name, .panel:focus-visible .name { text-shadow: 0 0 12px rgba(255, 200, 87, 0.5); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 50% { opacity: 0.55; } }
+    @keyframes blink { 50% { opacity: 0.25; } }
+    @keyframes boot { from { opacity: 0; transform: scale(0.94); } }
+
+    @media (max-width: 980px) {
+      main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+          "reactor reactor"
+          "p1 p2"
+          "p3 p4";
+        gap: 16px;
+        padding: 32px 16px 40px;
+      }
+      .reactor { margin-bottom: 20px; }
+      header { padding: 14px 16px; }
+    }
+    @media (max-width: 460px) {
+      main {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "reactor" "p1" "p2" "p3" "p4";
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Media Server</h1>
+    <div class="status">
+      <span>Host <b>{{$host}}</b></span>
+      <span class="online">Online</span>
+      <nav class="styles" aria-label="Style">
+        <span aria-current="true">Reactor</span>
+        <a href="/style/cyberpunk">Cyberpunk</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <a class="reactor" href="http://{{$host}}:8096" aria-label="Jellyfin: watch movies and TV shows">
+      <span class="ring ticks"></span>
+      <span class="ring arcs"></span>
+      <span class="ring cells"></span>
+      <span class="core">
+        <span class="core-name">Jellyfin</span>
+        <span class="core-sub">▶ Watch</span>
+      </span>
+    </a>
+
+    <a class="panel p1" href="http://{{$host}}:7878">
+      <span class="tag"><i>01</i> // Movies</span>
+      <span class="name">Radarr</span>
+      <span class="port">:7878</span>
+    </a>
+    <a class="panel p2" href="http://{{$host}}:8989">
+      <span class="tag"><i>02</i> // TV shows</span>
+      <span class="name">Sonarr</span>
+      <span class="port">:8989</span>
+    </a>
+    <a class="panel p3" href="http://{{$host}}:9091">
+      <span class="tag"><i>03</i> // Downloads</span>
+      <span class="name">Transmission</span>
+      <span class="port">:9091</span>
+    </a>
+    <a class="panel p4" href="http://{{$host}}:9696">
+      <span class="tag"><i>04</i> // Indexers</span>
+      <span class="name">Prowlarr</span>
+      <span class="port">:9696</span>
+    </a>
+  </main>
+</body>
+</html>

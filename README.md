@@ -14,6 +14,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 
 | Service | Description | Port |
 | :--- | :--- | :--- |
+| **Home page** | One page that links to every app below, served by [Caddy](https://caddyserver.com/). | `80` |
 | **[Jellyfin](https://jellyfin.org/)** | Open-source media streaming server. | `8096` |
 | **[Sonarr](https://sonarr.tv/)** | Smart PVR for automatic TV Show downloading and sorting. | `8989` |
 | **[Radarr](https://radarr.video/)** | Smart PVR for automatic Movie downloading and sorting. | `7878` |
@@ -168,9 +169,13 @@ PGID=100
 TZ=Europe/Paris
 # No login for Radarr, Sonarr and Prowlarr on the home network (see Passwords)
 SKIP_LOCAL_LOGIN=1
+# Name or IP of this machine on your network, used by the home page links
+HOME_HOST=nas.lan
+# Port of the home page, if 80 is already taken (a NAS often uses it)
+HOME_PORT=8080
 ```
 
-Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/storage`, `1000:1000` and `Europe/Paris`.
+Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/storage`, `1000:1000`, `Europe/Paris` and a home page at `http://dpi.lan`.
 
 ### 5. Point the Apps at `/data`
 
@@ -185,10 +190,14 @@ Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/s
 
 ## 🌐 Accessing Your Apps
 
-Once Docker confirms all containers are `Started`, open your web browser and go to:
-`http://<YOUR-SERVER-IP>:<PORT>`
+Once Docker confirms all containers are `Started`, open your web browser and go to the home page:
+`http://dpi.lan`
 
-*Example:* To access Sonarr, type `http://192.168.1.33:8989`.
+It is the only address to remember: it links to every app. It comes in two looks, *Reactor* and *Cyberpunk*; the switch at the top right changes it and each device remembers its own choice.
+
+The links point at `dpi.lan` by default. If your server answers to another name, set `HOME_HOST` in your `.env` (a name or an IP, without `http://`) and run `docker compose up -d` again. `HOME_HOST` does not create the name: it has to be one your network already resolves, usually the machine's hostname followed by your router's suffix (`.lan`, `.home`, `.local`).
+
+Each app is also reachable directly at `http://<YOUR-SERVER-IP>:<PORT>`. *Example:* To access Sonarr, type `http://192.168.1.33:8989`.
 
 ---
 

@@ -1,0 +1,19 @@
+# Serves the home page over plain HTTP, whatever name or IP is used to reach it.
+# "templates" lets the pages read HOME_HOST from the container environment and
+# lets index.html pick the look from the "style" cookie.
+:80 {
+	root * /srv
+	templates
+	header Cache-Control no-cache
+
+	# /style/<name> remembers the chosen look for a year, then goes back home
+	@style path_regexp style ^/style/(reactor|cyberpunk)$
+	handle @style {
+		header Set-Cookie "style={re.style.1}; Path=/; Max-Age=31536000; SameSite=Lax"
+		redir * / 303
+	}
+
+	handle {
+		file_server
+	}
+}
