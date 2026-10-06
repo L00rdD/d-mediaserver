@@ -15,7 +15,10 @@ a pagoda roof with an eave and a ridge, the two exhaust stacks rising from
 it like finials. Two round moon windows with ring grilles feed the base.
 Every opening is a real one.
 
-![tower](renders/tower.png)
+![tower](renders/color.png)
+
+Anthracite resin, with bronze dry-brushed on the reliefs (`renders/color.png`;
+the colours are set at the top of `tower.scad`, for the renders only).
 
 ## Stages, bottom to top
 
