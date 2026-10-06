@@ -110,7 +110,8 @@
       grid-template-areas:
         "search search search"
         "p1 reactor p2"
-        "p3 reactor p4";
+        "p3 reactor p4"
+        "bot bot bot";
       gap: 28px 48px;
       width: 100%;
       max-width: 1080px;
@@ -307,6 +308,49 @@
     }
     .panel:hover .name, .panel:focus-visible .name { text-shadow: 0 0 12px rgba(255, 200, 87, 0.5); }
 
+    /* Trading bot card: hidden until /trading-bot/status.json loads (see trading-bot.js) */
+    .bot { grid-area: bot; animation-delay: 0.55s; }
+    .bot, .bot:hover { --c: var(--cyan); transform: none; box-shadow: inset 0 0 0 1px var(--cyan-faint); }
+    .bot .tag { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+    .bot .tag em { font-style: normal; padding: 0 6px; color: var(--bg); background: var(--gold); }
+    .bot .tag .up { color: var(--cyan); }
+    .bot .tag .down { color: var(--gold); }
+    .bot-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px 24px;
+      margin-top: 14px;
+    }
+    .bot-stats dt {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .bot-stats dd {
+      margin: 2px 0 0;
+      font-family: var(--mono);
+      font-size: 1.15rem;
+      color: var(--text);
+    }
+    .bot-stats dd small { font-size: 0.75rem; color: var(--muted); }
+    .bot .up { color: #7dffb3; }
+    .bot .down { color: #ff7d8a; }
+    .bot-list {
+      display: grid;
+      gap: 4px;
+      margin: 14px 0 0;
+      padding: 12px 0 0;
+      border-top: 1px solid var(--cyan-faint);
+      list-style: none;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+    .bot-list li { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr; gap: 12px; }
+    .bot-list li span:last-child { text-align: right; }
+    .bot-foot { display: block; margin-top: 12px; }
+
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 50% { opacity: 0.55; } }
     @keyframes blink { 50% { opacity: 0.25; } }
@@ -319,7 +363,8 @@
           "search search"
           "reactor reactor"
           "p1 p2"
-          "p3 p4";
+          "p3 p4"
+          "bot bot";
         gap: 16px;
         padding: 32px 16px 40px;
       }
@@ -332,7 +377,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "bot";
       }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -392,6 +437,20 @@
       <span class="name">Prowlarr</span>
       <span class="port">:9696</span>
     </a>
+
+    <section class="panel bot" id="trading-bot" hidden aria-label="Trading bot">
+      <span class="tag"><i>05</i> // Trading bot <em data-tb="mode">PAPER</em> <span data-tb="state">Running</span></span>
+      <dl class="bot-stats">
+        <div><dt>Equity</dt><dd data-tb="equity">–</dd></div>
+        <div><dt>Total gain</dt><dd><span data-tb="pnl">–</span> <small data-tb="pct"></small></dd></div>
+        <div><dt>Positions</dt><dd><span data-tb="positions">0</span> <small>unrealized <span data-tb="unrealized">–</span></small></dd></div>
+        <div><dt>Realized</dt><dd><span data-tb="realized">–</span> <small>on <span data-tb="trades">0</span> fills</small></dd></div>
+        <div><dt>Fees paid</dt><dd data-tb="fees">–</dd></div>
+      </dl>
+      <ul class="bot-list" data-tb="list"></ul>
+      <span class="tag bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span></span>
+    </section>
   </main>
+  <script src="/trading-bot.js" defer></script>
 </body>
 </html>

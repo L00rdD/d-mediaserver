@@ -324,6 +324,85 @@
       transform: translate(-3px, -3px);
     }
 
+    /* Trading bot card: hidden until /trading-bot/status.json loads (see trading-bot.js) */
+    .bot {
+      grid-column: 1 / -1;
+      position: relative;
+      isolation: isolate;
+      padding: 18px 20px 20px 28px;
+      background: var(--line);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+      animation: slide 0.5s ease-out both;
+      animation-delay: 0.4s;
+    }
+    .bot::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      z-index: -1;
+      background: var(--panel);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+    }
+    .bot::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 6px;
+      background: var(--yellow);
+    }
+    .bot-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 6px 14px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .bot-head .name { margin: 0; color: var(--yellow); letter-spacing: 0.03em; }
+    .bot-head em { font-style: normal; padding: 1px 8px; color: #000; background: var(--cyan); font-weight: 700; }
+    .bot-head .up { color: var(--cyan); }
+    .bot-head .down { color: var(--red); }
+    .bot-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px 24px;
+      margin: 16px 0 0;
+    }
+    .bot-stats dt {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .bot-stats dd {
+      margin: 2px 0 0;
+      font: 800 1.5rem / 1 var(--display);
+      font-stretch: condensed;
+      color: #fff;
+    }
+    .bot-stats dd small { font: 0.75rem var(--mono); color: var(--muted); }
+    .bot .up { color: #39ff88; }
+    .bot .down { color: var(--red); }
+    .bot-list {
+      display: grid;
+      gap: 4px;
+      margin: 16px 0 0;
+      padding: 12px 0 0;
+      border-top: 1px solid var(--line);
+      list-style: none;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+    .bot-list li { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr; gap: 12px; }
+    .bot-list li span:last-child { text-align: right; }
+    .bot-foot { margin-top: 12px; }
+
     @keyframes blink { 50% { opacity: 0; } }
     @keyframes slide { from { opacity: 0; transform: translateX(-18px); } }
     /* Hidden most of the time, then short bursts of offset coloured slices */
@@ -418,6 +497,20 @@
         <span class="what">Indexers</span>
       </a>
     </div>
+
+    <section class="bot" id="trading-bot" hidden aria-label="Trading bot">
+      <div class="bot-head"><span>05</span><span class="name">Trading bot</span><em data-tb="mode">PAPER</em><span data-tb="state">Running</span></div>
+      <dl class="bot-stats">
+        <div><dt>Equity</dt><dd data-tb="equity">–</dd></div>
+        <div><dt>Total gain</dt><dd><span data-tb="pnl">–</span> <small data-tb="pct"></small></dd></div>
+        <div><dt>Positions</dt><dd><span data-tb="positions">0</span> <small>unrealized <span data-tb="unrealized">–</span></small></dd></div>
+        <div><dt>Realized</dt><dd><span data-tb="realized">–</span> <small>on <span data-tb="trades">0</span> fills</small></dd></div>
+        <div><dt>Fees paid</dt><dd data-tb="fees">–</dd></div>
+      </dl>
+      <ul class="bot-list" data-tb="list"></ul>
+      <div class="bot-head bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span></div>
+    </section>
   </main>
+  <script src="/trading-bot.js" defer></script>
 </body>
 </html>

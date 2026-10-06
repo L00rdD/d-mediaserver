@@ -234,6 +234,19 @@ Good to know: NordVPN has no port forwarding, so Transmission downloads normally
 
 ---
 
+## 📈 Trading Bot Card (optional)
+
+The home page can show the status of a [trading bot](../trading-bot) running on the same machine: equity, total gain, open positions, realized P&L and fees. The bot writes `state/status.json` after every decision; the page reads it and refreshes the prices from Binance in the browser.
+
+```bash
+# in .env
+COMPOSE_FILE=docker-compose.yml:docker-compose.trading.yml
+# only if the bot is not in ../trading-bot
+TRADING_BOT_STATE=/path/to/trading-bot/state
+```
+
+Then `docker compose up -d home`. Without the file the card simply stays hidden.
+
 ## 🔑 Passwords
 
 By default Radarr, Sonarr and Prowlarr each ask you to set up a login the first time you open them. If you would rather have no password to remember, add this line to your `.env` and run `docker compose up -d` again:
