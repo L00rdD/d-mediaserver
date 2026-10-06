@@ -19,6 +19,7 @@ Every opening is a real one.
 
 Anthracite resin, with bronze dry-brushed on the reliefs (`renders/color.png`;
 the colours are set at the top of `tower.scad`, for the renders only).
+Eight colour schemes to compare are in `renders/colours/`.
 
 ## Stages, bottom to top
 
