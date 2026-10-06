@@ -1,0 +1,2 @@
+# Mount point for the trading bot state folder (docker-compose.trading.yml).
+# /srv is mounted read-only, so the folder must exist here for Docker to mount over it.
