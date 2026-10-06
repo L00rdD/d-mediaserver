@@ -3,10 +3,12 @@
 // plate 223 x 126 x 230 mm). Every stage is a tray with a plug underneath that
 // drops into the stage below; magnets in the corners keep the stack together.
 //
-// Look: the "cyberpunk" page of the home server. Chamfered edges, slanted
-// louvres over the sides and the back (lots of air, and an LED strip inside
-// glows through them), a hazard band and an engraved label on the front, a
-// bezel with cut corners around the screen, a louvred lid over the fan.
+// Look: a closed hull with its machinery showing. Four conduit pipes run up
+// the corners with a collar on every stage, a round exhaust stack with radial
+// fins sits over the fan, two round intake ports with ring grilles feed the
+// base, slanted louvres cover the sides and the back, panel lines run across
+// the front and a bezel with cut corners frames the screen. Every opening is
+// a real one: the tower breathes through all of them.
 //
 // Stages, bottom to top:  base (power strip + bricks)  >  hub  >  compute
 // (Pi + screen)  >  disk (one drive each, print as many as needed)  >  lid (fan).
@@ -66,8 +68,13 @@ pi_stand_h  = 6;
 disk_bay    = [130, 95, 26];  // one 2.5" drive in its enclosure, lying flat
 fan         = 40; fan_holes = 32; fan_hole_d = 3.2;
 cable       = [36, 14];       // rear cable pass-through in every floor
-label       = "DPI // 01";    // engraved on the hub stage
-font        = "Liberation Mono:style=Bold";
+pipe_d      = 16;             // corner conduits
+pipe_out    = 2.5;            // how far they stand proud of the walls
+collar_d    = 20; collar_h = 5;
+stack_d     = 64;             // exhaust stack over the fan, outer diameter
+stack_h     = 14;
+port_d      = 42;             // round intake ports on the front of the base
+groove      = [1.2, 0.7];     // panel lines, width x depth
 
 W = inner_w + 2 * wall;
 D = inner_d + 2 * wall;
@@ -77,6 +84,36 @@ $fn = 48;
 // rectangle with 45-degree chamfered corners
 module cham(w, d, c) { offset(delta = c, chamfer = true) offset(delta = -c) square([w, d], center = true); }
 
+// outer profile of the tower: the chamfered body with a conduit on each corner
+module pipes_2d(w, d) {
+    for (sx = [-1, 1], sy = [-1, 1])
+        translate([sx * (w / 2 - pipe_d / 2 + pipe_out), sy * (d / 2 - pipe_d / 2 + pipe_out)]) circle(d = pipe_d);
+}
+module hull_2d(w, d, c) { cham(w, d, c); pipes_2d(w, d); }
+
+// a collar on each conduit, the "fitting" between two pipe sections
+module collars(z) {
+    for (sx = [-1, 1], sy = [-1, 1])
+        translate([sx * (W / 2 - pipe_d / 2 + pipe_out), sy * (D / 2 - pipe_d / 2 + pipe_out), z])
+            cylinder(d = collar_d, h = collar_h);
+}
+
+// a recessed vertical or horizontal line on the front face
+module panel_line(x, z, len, vertical = true) {
+    translate([x, -D / 2 - 0.01, z]) rotate([90, 0, 0]) mirror([0, 0, 1])
+        linear_extrude(groove[1] + 0.01)
+            square(vertical ? [groove[0], len] : [len, groove[0]], center = true);
+}
+
+// a round intake port: recessed disc with ring slots cut through the wall
+module port(x, z) {
+    translate([x, -D / 2, z]) rotate([90, 0, 0]) {
+        translate([0, 0, -2]) cylinder(d = port_d, h = 3);                       // recess
+        for (r = [7, 12.5, 18]) translate([0, 0, -wall - 3])
+            linear_extrude(wall + 5) difference() { circle(r = r + 1.1); circle(r = r - 1.1); }
+    }
+}
+
 // a tray: floor at the bottom of the plug, open at the top
 module tray(h, passthrough = true) {
     difference() {
@@ -84,7 +121,8 @@ module tray(h, passthrough = true) {
             translate([0, 0, -lip_h])
                 linear_extrude(lip_h + 0.01)
                     cham(inner_w - 2 * lip_clr, inner_d - 2 * lip_clr, chamfer - wall);
-            linear_extrude(h) cham(W, D, chamfer);
+            linear_extrude(h) hull_2d(W, D, chamfer);
+            collars(h / 2 - collar_h / 2);
         }
         translate([0, 0, -0.01]) linear_extrude(h + 1) cham(inner_w, inner_d, chamfer - wall);
         translate([0, 0, -lip_h + floor_t])
@@ -183,9 +221,12 @@ module base() {
         tray(base_h, passthrough = false);
         floor_vents();
         louvres(base_h);
-        // a short field of louvres low on the front, left side
-        translate([-inner_w / 2 + 50, -D / 2, 0]) louvre_field(90, 46, edge = 8, end = 6);
-        hazard(inner_w / 2 - 42, 15, [60, 9]);
+        // two intake ports low on the front, left side
+        port(-inner_w / 2 + 40, 34);
+        port(-inner_w / 2 + 90, 34);
+        // panel lines: a spine on the right that runs up every stage, and one across
+        panel_line(inner_w / 2 - 34, base_h / 2, base_h + 2);
+        panel_line((-inner_w / 2 - 2 + inner_w / 2 - 34) / 2, 72, inner_w - 34 + 2, vertical = false);
         // mains cord: dropped in from the top, through the rear wall (right side)
         translate([inner_w / 2 - 40, D / 2, 30 + base_h]) cube([16, wall * 3, 2 * base_h], center = true);
         // ethernet and anything else leaving the tower: rear left
@@ -200,7 +241,7 @@ module hub_stage() {
     difference() {
         tray(hub_h);
         louvres(hub_h);
-        engrave(label, inner_w / 2 - 52, hub_h / 2, size = 7);
+        panel_line(inner_w / 2 - 34, hub_h / 2, hub_h + 2);
         // the 7 USB ports face the rear
         translate([0, D / 2, hub[2] / 2 + 4]) cube([hub[0] + 6, wall * 3, hub[2] - 2], center = true);
     }
@@ -225,6 +266,7 @@ module compute() {
             }
         }
         louvres(compute_h);
+        panel_line(inner_w / 2 - 34, compute_h / 2, compute_h + 2);
         // pocket from the outside, then the window through
         translate([0, -D / 2 - 3, zc]) cube([screen[0] + 0.6, 2 * (3 + screen_t + 0.5), screen[1] + 0.6], center = true);
         translate([0, -D / 2, zc]) cube([win[0], 40, win[1]], center = true);
@@ -245,6 +287,7 @@ module disk() {
     difference() {
         tray(disk_h);
         louvres(disk_h);
+        panel_line(inner_w / 2 - 34, disk_h / 2, disk_h + 2);
     }
     stops(disk_bay, at = [-inner_w / 2 + disk_bay[0] / 2 + 6, 0], h = 6);
 }
@@ -255,26 +298,33 @@ module lid() {
             translate([0, 0, -lip_h])
                 linear_extrude(lip_h + 0.01)
                     cham(inner_w - 2 * lip_clr, inner_d - 2 * lip_clr, chamfer - wall);
-            linear_extrude(lid_h) cham(W, D, chamfer);
+            linear_extrude(lid_h) hull_2d(W, D, chamfer);
+            // exhaust stack
+            translate([0, 0, lid_h - 0.01]) cylinder(d = stack_d, h = stack_h);
         }
+        // the stack is a tube, open over the fan
+        translate([0, 0, lid_h - floor_t - 1]) cylinder(d = stack_d - 2 * wall, h = stack_h + floor_t + 2);
         // hollow underneath, the fan hangs from the top plate
         translate([0, 0, -lip_h - 1])
             linear_extrude(lip_h + lid_h - floor_t + 1)
                 cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
-        // louvred top: slanted slots over most of the lid, the fan sits under the middle
-        intersection() {
-            translate([0, 0, lid_h - floor_t - 1]) linear_extrude(floor_t + 2) cham(inner_w - 34, inner_d - 30, 6);
+        // passive louvres on both sides of the stack
+        for (sx = [-1, 1]) intersection() {
+            translate([sx * (inner_w / 2 - 38), 0, lid_h - floor_t - 1]) linear_extrude(floor_t + 2) cham(44, inner_d - 34, 4);
             for (i = [-16 : 16])
                 translate([i * louvre_pitch, 0, lid_h - floor_t - 1]) rotate(30)
                     linear_extrude(floor_t + 2) square([louvre_w, 300], center = true);
         }
         for (sx = [-1, 1], sy = [-1, 1])
             translate([sx * fan_holes / 2, sy * fan_holes / 2, lid_h - floor_t - 1]) cylinder(d = fan_hole_d, h = floor_t + 2);
-        hazard(0, lid_h / 2, [W - 2 * chamfer - 10, 8]);
+        panel_line(inner_w / 2 - 34, lid_h / 2, lid_h + 2);
         if (magnets) corners(boss_in) translate([0, 0, -lip_h - 1]) cylinder(d = magnet_d, h = magnet_h + 1);
     }
-    // two ribs keep the slotted top plate stiff
-    for (sx = [-1, 1]) translate([sx * (inner_w / 2 - 14), 0, lid_h - floor_t - 2]) cube([3, inner_d - 22, 4], center = true);
+    // radial fins and a hub close the stack: the grille over the fan
+    translate([0, 0, lid_h - floor_t]) {
+        for (a = [0 : 30 : 359]) rotate(a) translate([stack_d / 2 - wall - 20, -1, 0]) cube([20.5, 2, stack_h + floor_t - 3]);
+        difference() { cylinder(d = 18, h = stack_h + floor_t - 3); translate([0, 0, 1.5]) cylinder(d = 14, h = 20); }
+    }
 }
 
 // two of these hold the screen frame against its pocket
