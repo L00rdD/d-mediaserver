@@ -57,6 +57,11 @@ services:
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
+    # Public resolver: ISPs often answer 127.0.0.1 for indexer sites, which
+    # breaks the searches. Only the indexers' lookups use it.
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     environment:
       - PROWLARR__AUTH__METHOD=${SKIP_LOCAL_LOGIN:+Forms}
       - PROWLARR__AUTH__REQUIRED=${SKIP_LOCAL_LOGIN:+DisabledForLocalAddresses}
@@ -72,6 +77,11 @@ services:
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
+    # Public resolver: ISPs often answer 127.0.0.1 for indexer sites, which
+    # breaks the searches. Only the indexers' lookups use it.
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     environment:
       - LOG_LEVEL=info
       - PUID=${PUID:-1000}
