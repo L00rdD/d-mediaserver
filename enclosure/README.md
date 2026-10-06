@@ -25,7 +25,7 @@ through all of them.
 | `hub` | 34 mm | The 7-port hub, USB ports facing the rear through a slot. |
 | `compute` | 124 mm | The screen, sunk in a pocket of the front face and held from inside by two `screen_clip` bars. The Pi on four standoffs at the right rear, ports facing inwards, so every cable stays inside. |
 | `disk` | 32 mm | One 2.5" drive in its enclosure. Print one per drive, stack as many as needed. |
-| `lid` | 16 mm | 40 mm exhaust fan under a honeycomb grille. |
+| `lid` | 18 mm | 40 mm exhaust fan under the finned stack; a second, smaller stack and louvres vent passively. |
 
 Each stage has a plug underneath that drops into the stage below. A column
 in each inside corner runs the full height of the stage, half sunk in the
