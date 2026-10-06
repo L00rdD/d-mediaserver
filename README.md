@@ -236,16 +236,7 @@ Good to know: NordVPN has no port forwarding, so Transmission downloads normally
 
 ## 📈 Trading Bot Card (optional)
 
-The home page can show the status of a [trading bot](../trading-bot) running on the same machine: equity, total gain, open positions, realized P&L and fees. The bot writes `state/status.json` after every decision; the page reads it and refreshes the prices from Binance in the browser.
-
-```bash
-# in .env
-COMPOSE_FILE=docker-compose.yml:docker-compose.trading.yml
-# only if the bot is not in ../trading-bot
-TRADING_BOT_STATE=/path/to/trading-bot/state
-```
-
-Then `docker compose up -d home`. Without the file the card simply stays hidden.
+The home page shows a card for a [trading bot](https://github.com/L00rdD/trading-bot) running on the same machine: equity, total gain, open positions, realized P&L and fees. Like the other apps, the bot serves its own dashboard on its port (8080); the card reads `/api/status.json` there and links to it. Nothing to configure here: when nothing answers on port 8080, the card stays hidden.
 
 ## 🔑 Passwords
 

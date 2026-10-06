@@ -324,7 +324,7 @@
       transform: translate(-3px, -3px);
     }
 
-    /* Trading bot card: hidden until /trading-bot/status.json loads (see trading-bot.js) */
+    /* Trading bot card: hidden until the bot answers on :8080 (see trading-bot.js) */
     .bot {
       grid-column: 1 / -1;
       position: relative;
@@ -402,6 +402,8 @@
     .bot-list li { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr; gap: 12px; }
     .bot-list li span:last-child { text-align: right; }
     .bot-foot { margin-top: 12px; }
+    .bot .bot-more { margin-left: auto; color: var(--cyan); }
+    .bot:hover .bot-more, .bot:focus-visible .bot-more { color: var(--yellow); }
 
     @keyframes blink { 50% { opacity: 0; } }
     @keyframes slide { from { opacity: 0; transform: translateX(-18px); } }
@@ -498,7 +500,7 @@
       </a>
     </div>
 
-    <section class="bot" id="trading-bot" hidden aria-label="Trading bot">
+    <a class="bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
       <div class="bot-head"><span>05</span><span class="name">Trading bot</span><em data-tb="mode">PAPER</em><span data-tb="state">Running</span></div>
       <dl class="bot-stats">
         <div><dt>Equity</dt><dd data-tb="equity">–</dd></div>
@@ -508,8 +510,8 @@
         <div><dt>Fees paid</dt><dd data-tb="fees">–</dd></div>
       </dl>
       <ul class="bot-list" data-tb="list"></ul>
-      <div class="bot-head bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span></div>
-    </section>
+      <div class="bot-head bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span><span class="bot-more">Dashboard :8080 →</span></div>
+    </a>
   </main>
   <script src="/trading-bot.js" defer></script>
 </body>

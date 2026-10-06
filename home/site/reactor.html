@@ -308,9 +308,10 @@
     }
     .panel:hover .name, .panel:focus-visible .name { text-shadow: 0 0 12px rgba(255, 200, 87, 0.5); }
 
-    /* Trading bot card: hidden until /trading-bot/status.json loads (see trading-bot.js) */
+    /* Trading bot card: hidden until the bot answers on :8080 (see trading-bot.js) */
     .bot { grid-area: bot; animation-delay: 0.55s; }
-    .bot, .bot:hover { --c: var(--cyan); transform: none; box-shadow: inset 0 0 0 1px var(--cyan-faint); }
+    .bot { color: var(--text); }
+    .bot .bot-more { margin-left: auto; color: var(--c); }
     .bot .tag { display: flex; flex-wrap: wrap; gap: 6px 14px; }
     .bot .tag em { font-style: normal; padding: 0 6px; color: var(--bg); background: var(--gold); }
     .bot .tag .up { color: var(--cyan); }
@@ -438,7 +439,7 @@
       <span class="port">:9696</span>
     </a>
 
-    <section class="panel bot" id="trading-bot" hidden aria-label="Trading bot">
+    <a class="panel bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
       <span class="tag"><i>05</i> // Trading bot <em data-tb="mode">PAPER</em> <span data-tb="state">Running</span></span>
       <dl class="bot-stats">
         <div><dt>Equity</dt><dd data-tb="equity">–</dd></div>
@@ -448,8 +449,8 @@
         <div><dt>Fees paid</dt><dd data-tb="fees">–</dd></div>
       </dl>
       <ul class="bot-list" data-tb="list"></ul>
-      <span class="tag bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span></span>
-    </section>
+      <span class="tag bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span><span class="bot-more">Dashboard :8080 →</span></span>
+    </a>
   </main>
   <script src="/trading-bot.js" defer></script>
 </body>

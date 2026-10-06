@@ -1,13 +1,14 @@
-// Fills the trading bot card (see docker-compose.trading.yml) and shows it.
-// Prices come straight from Binance so the equity is live even between two
-// bot cycles; when that call fails, the prices the bot saved are used instead.
+// Fills the trading bot card and shows it. The bot serves its own dashboard and
+// state on port 8080 of the same host (CORS open); when it does not answer, the
+// card stays hidden. Prices come straight from Binance so the equity is live even
+// between two bot cycles; when that call fails, the prices the bot saved are used.
 (async () => {
   const card = document.getElementById("trading-bot");
   if (!card) return;
 
   let s;
   try {
-    const r = await fetch("/trading-bot/status.json", { cache: "no-store" });
+    const r = await fetch(`http://${location.hostname}:8080/api/status.json`, { cache: "no-store" });
     if (!r.ok) return;
     s = await r.json();
   } catch {
