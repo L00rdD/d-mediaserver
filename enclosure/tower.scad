@@ -37,8 +37,7 @@ lip_clr  = 0.3;    // clearance between plug and the stage below
 magnets  = true;   // 6 x 2 mm disc magnets, 4 per joint
 magnet_d = 6.4;
 magnet_h = 2.3;
-boss_d   = 9.5;    // magnet boss at the inside corners of every rim
-boss_in  = 9;      // boss centre, measured from the inside walls
+col_d    = 11;     // corner columns, full height, half sunk in the corner walls; they carry the magnets
 
 /* ---------- louvres ---------- */
 louvre_angle = 60;   // from horizontal
@@ -116,13 +115,36 @@ module port(x, z) {
     }
 }
 
+// the four corner columns sit on the chamfered inside corners
+module col_xy() {
+    cc = chamfer - wall;
+    for (sx = [-1, 1], sy = [-1, 1]) translate([sx * (inner_w / 2 - cc / 2), sy * (inner_d / 2 - cc / 2), 0]) children();
+}
+
+// the plug under a stage, with its corners cut away around the columns below
+module plug_2d() {
+    difference() {
+        cham(inner_w - 2 * lip_clr, inner_d - 2 * lip_clr, chamfer - wall);
+        col_xy() circle(d = col_d + 2 * lip_clr);
+    }
+}
+
+// corner columns from z0 to z1, a magnet pocket at both ends
+module columns(z0, z1) {
+    col_xy() difference() {
+        translate([0, 0, z0]) cylinder(d = col_d, h = z1 - z0);
+        if (magnets) {
+            translate([0, 0, z1 - magnet_h]) cylinder(d = magnet_d, h = magnet_h + 1);
+            translate([0, 0, z0 - 1]) cylinder(d = magnet_d, h = magnet_h + 1);
+        }
+    }
+}
+
 // a tray: floor at the bottom of the plug, open at the top
 module tray(h, passthrough = true) {
     difference() {
         union() {
-            translate([0, 0, -lip_h])
-                linear_extrude(lip_h + 0.01)
-                    cham(inner_w - 2 * lip_clr, inner_d - 2 * lip_clr, chamfer - wall);
+            translate([0, 0, -lip_h]) linear_extrude(lip_h + 0.01) plug_2d();
             linear_extrude(h) hull_2d(W, D, chamfer);
             collars(h / 2 - collar_h / 2);
         }
@@ -130,9 +152,8 @@ module tray(h, passthrough = true) {
         translate([0, 0, -lip_h + floor_t])
             linear_extrude(lip_h) cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
         if (passthrough) rear_passthrough();
-        if (magnets) floor_magnets();
     }
-    if (magnets) rim_bosses(h);
+    columns(0, h);
 }
 
 module rear_passthrough() {
@@ -143,17 +164,6 @@ module rear_passthrough() {
 module corners(inset) {
     for (sx = [-1, 1], sy = [-1, 1])
         translate([sx * (inner_w / 2 - inset), sy * (inner_d / 2 - inset), 0]) children();
-}
-
-module rim_bosses(h) {
-    corners(boss_in) difference() {
-        translate([0, 0, h - 10]) cylinder(d = boss_d, h = 10);
-        translate([0, 0, h - magnet_h]) cylinder(d = magnet_d, h = magnet_h + 1);
-    }
-}
-
-module floor_magnets() {
-    corners(boss_in) translate([0, 0, -lip_h - 1]) cylinder(d = magnet_d, h = magnet_h + 1);
 }
 
 // a field of slanted slots cut through a wall that runs along x at y = 0.
@@ -306,9 +316,7 @@ module disk() {
 module lid() {
     difference() {
         union() {
-            translate([0, 0, -lip_h])
-                linear_extrude(lip_h + 0.01)
-                    cham(inner_w - 2 * lip_clr, inner_d - 2 * lip_clr, chamfer - wall);
+            translate([0, 0, -lip_h]) linear_extrude(lip_h + 0.01) plug_2d();
             linear_extrude(lid_h) hull_2d(W, D, chamfer);
             // exhaust stack
             translate([0, 0, lid_h - 0.01]) cylinder(d = stack_d, h = stack_h);
@@ -329,8 +337,8 @@ module lid() {
         for (sx = [-1, 1], sy = [-1, 1])
             translate([sx * fan_holes / 2, sy * fan_holes / 2, lid_h - floor_t - 1]) cylinder(d = fan_hole_d, h = floor_t + 2);
         panel_line(inner_w / 2 - 34, lid_h / 2, lid_h + 2);
-        if (magnets) corners(boss_in) translate([0, 0, -lip_h - 1]) cylinder(d = magnet_d, h = magnet_h + 1);
     }
+    columns(0, lid_h - floor_t + 0.01);
     // radial fins and a hub close the stack: the grille over the fan
     translate([0, 0, lid_h - floor_t]) {
         for (a = [0 : 30 : 359]) rotate(a) translate([stack_d / 2 - wall - 20, -1, 0]) cube([20.5, 2, stack_h + floor_t - 3]);

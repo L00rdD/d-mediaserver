@@ -25,8 +25,10 @@ all of them.
 | `disk` | 32 mm | One 2.5" drive in its enclosure. Print one per drive, stack as many as needed. |
 | `lid` | 16 mm | 40 mm exhaust fan under a honeycomb grille. |
 
-Each stage has a plug underneath that drops into the stage below, with four
-6 × 2 mm magnets per joint. A 36 × 14 mm pass-through at the rear of every
+Each stage has a plug underneath that drops into the stage below. A column
+in each inside corner runs the full height of the stage, half sunk in the
+walls, with a 6 × 2 mm magnet pocket at each end; the plug is notched around
+the columns of the stage below, so column meets column and the magnets hold. A 36 × 14 mm pass-through at the rear of every
 floor lets the cables run up and down the tower. The louvres share the same
 angle and pitch on every stage, so the pattern reads as one across the
 stack; the front only gets the two intake ports, low on the base.
