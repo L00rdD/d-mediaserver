@@ -23,7 +23,7 @@
 // Everything is sized generously on purpose: adjust the component block to the
 // real parts and the rest follows.
 
-part    = "assembly"; // [assembly, base, hub, compute, disk, lid, screen_clip]
+part    = "assembly"; // [assembly, base, riser, hub, compute, disk, lid, screen_clip]
 explode = 25;         // gap between stages in the assembly view
 
 /* ---------- shell ---------- */
@@ -50,14 +50,17 @@ louvre_band  = 40;   // tallest row of slots; taller stages get several rows
 louvre_gap   = 8;    // between rows
 
 /* ---------- stage heights, floor to rim ---------- */
-base_h    = 110;
+base_h    = 130;   // strip 48 + a brick standing on it, up to 80 tall
+riser_h   = 30;    // an empty stage, to add room anywhere in the stack
 hub_h     = 34;
 compute_h = 124;
 disk_h    = 32;
 lid_h     = 18;
 
 /* ---------- components, oversized on purpose ---------- */
-strip       = [190, 60, 45];  // power strip L x W x H, lying flat, outlets up
+strip       = [195, 70, 48];  // power strip L x W x H, lying flat, outlets up.
+                              // Covers a Legrand extra-flat 3-way (167 x 55 x 38)
+                              // and most 3-way strips up to 195 mm long.
 hub         = [155, 65, 26];  // 7-port hub, USB ports to the rear
 screen      = [140, 100];     // screen with its black frame, W x H
 screen_t    = 4;              // frame thickness sunk into the front pocket
@@ -226,7 +229,7 @@ module base() {
         port(-inner_w / 2 + 90, 34);
         // panel lines: a spine on the right that runs up every stage, and one across
         panel_line(inner_w / 2 - 34, base_h / 2, base_h + 2);
-        panel_line((-inner_w / 2 - 2 + inner_w / 2 - 34) / 2, 72, inner_w - 34 + 2, vertical = false);
+        panel_line((-inner_w / 2 - 2 + inner_w / 2 - 34) / 2, 84, inner_w - 34 + 2, vertical = false);
         // mains cord: dropped in from the top, through the rear wall (right side)
         translate([inner_w / 2 - 40, D / 2, 30 + base_h]) cube([16, wall * 3, 2 * base_h], center = true);
         // ethernet and anything else leaving the tower: rear left
@@ -235,6 +238,15 @@ module base() {
         corners(16) translate([0, 0, -lip_h - 0.01]) cylinder(d = 12, h = 1);
     }
     stops(strip, h = 8);
+}
+
+// an empty stage: slip one under any stage that needs more height
+module riser() {
+    difference() {
+        tray(riser_h);
+        louvres(riser_h);
+        panel_line(inner_w / 2 - 34, riser_h / 2, riser_h + 2);
+    }
 }
 
 module hub_stage() {
@@ -362,6 +374,7 @@ module assembly() {
 
 if (part == "assembly")    assembly();
 if (part == "base")        base();
+if (part == "riser")       riser();
 if (part == "hub")         hub_stage();
 if (part == "compute")     compute();
 if (part == "disk")        disk();
