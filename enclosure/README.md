@@ -18,7 +18,7 @@ all of them.
 
 | Stage | Height | Holds |
 | :--- | :--- | :--- |
-| `base` | 130 mm | 3-outlet power strip lying flat (up to 195 × 70 × 48 mm, a Legrand extra-flat 3-way fits with room to spare), both bricks plugged in, standing up to 80 mm tall. Mains cord and Ethernet leave through two slots in the rear wall. Air comes in through the floor slots, on rubber feet. |
+| `base` | 130 mm | 3-outlet power strip lying flat (up to 175 × 65 × 48 mm; a Legrand extra-flat 3-way is 167 × 55 × 38), both bricks plugged in, standing up to 80 mm tall. Mains cord and Ethernet leave through two slots in the rear wall. Air comes in through the floor slots, on rubber feet. |
 | `riser` | 30 mm | Empty. Slip one under any stage that needs more height, for a taller brick or a thicker drive. |
 | `hub` | 34 mm | The 7-port hub, USB ports facing the rear through a slot. |
 | `compute` | 124 mm | The screen, sunk in a pocket of the front face and held from inside by two `screen_clip` bars. The Pi on four standoffs at the right rear, ports facing inwards, so every cable stays inside. |
@@ -31,7 +31,7 @@ floor lets the cables run up and down the tower. The louvres share the same
 angle and pitch on every stage, so the pattern reads as one across the
 stack; the front only gets the two intake ports, low on the base.
 
-Outer size: 210 × 120 mm over the pipes, about 385 mm tall with two disk stages and the stack.
+Outer size: 190 × 110 mm over the pipes, about 385 mm tall with two disk stages and the stack. The footprint is set by the hub (155 mm), the strip and the screen; a disk stage is the same size as every other stage so that they stack.
 
 ## Files
 

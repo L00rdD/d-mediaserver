@@ -30,8 +30,8 @@ explode = 25;         // gap between stages in the assembly view
 wall     = 2.5;
 floor_t  = 3.5;
 chamfer  = 10;     // 45-degree chamfer on the vertical edges
-inner_w  = 200;    // left-right, inside
-inner_d  = 110;    // front-back, inside
+inner_w  = 180;    // left-right, inside: the hub (155) and the strip set it
+inner_d  = 100;    // front-back, inside: the Pi behind the screen sets it
 lip_h    = 6;      // plug under each stage
 lip_clr  = 0.3;    // clearance between plug and the stage below
 magnets  = true;   // 6 x 2 mm disc magnets, 4 per joint
@@ -58,9 +58,8 @@ disk_h    = 32;
 lid_h     = 18;
 
 /* ---------- components, oversized on purpose ---------- */
-strip       = [195, 70, 48];  // power strip L x W x H, lying flat, outlets up.
-                              // Covers a Legrand extra-flat 3-way (167 x 55 x 38)
-                              // and most 3-way strips up to 195 mm long.
+strip       = [175, 65, 48];  // power strip L x W x H, lying flat, outlets up.
+                              // A Legrand extra-flat 3-way is 167 x 55 x 38.
 hub         = [155, 65, 26];  // 7-port hub, USB ports to the rear
 screen      = [140, 100];     // screen with its black frame, W x H
 screen_t    = 4;              // frame thickness sunk into the front pocket
@@ -68,7 +67,7 @@ screen_lip  = 3;              // front wall overlap on the frame edge
 pi          = [85, 56];
 pi_holes    = [58, 49];       // Pi 4 mounting holes
 pi_stand_h  = 6;
-disk_bay    = [130, 95, 26];  // one 2.5" drive in its enclosure, lying flat
+disk_bay    = [120, 90, 26];  // one 2.5" drive in its enclosure, lying flat (Samsung M3: 111 x 82 x 18)
 fan         = 40; fan_holes = 32; fan_hole_d = 3.2;
 cable       = [36, 14];       // rear cable pass-through in every floor
 pipe_d      = 16;             // corner conduits
@@ -255,7 +254,7 @@ module hub_stage() {
         louvres(hub_h);
         panel_line(inner_w / 2 - 34, hub_h / 2, hub_h + 2);
         // the 7 USB ports face the rear
-        translate([0, D / 2, hub[2] / 2 + 4]) cube([hub[0] + 6, wall * 3, hub[2] - 2], center = true);
+        translate([0, D / 2, hub[2] / 2 + 4]) cube([hub[0] + 2, wall * 3, hub[2] - 2], center = true);
     }
     stops(hub, at = [0, inner_d / 2 - hub[1] / 2 - 3], h = 5);
 }
