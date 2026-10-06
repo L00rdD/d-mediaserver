@@ -5,6 +5,13 @@ the living room: Pi, 7-port hub, 5" screen, 2.5" drives and the power strip
 with its bricks. Designed for resin printing on an Anycubic Photon Mono M7
 (plate 223 × 126 × 230 mm); every stage fits the plate on its own.
 
+The look follows the *Cyberpunk* page of the home server: chamfered edges,
+slanted louvres over the sides, the back and the lid (a lot of air goes
+through, and an LED strip inside glows through them), a hazard band and an
+engraved label on the front, a bezel with two cut corners around the screen.
+Print it in dark grey or black; a drop of yellow paint in the hazard grooves
+finishes it.
+
 ![tower](renders/tower.png)
 
 ## Stages, bottom to top
@@ -19,8 +26,9 @@ with its bricks. Designed for resin printing on an Anycubic Photon Mono M7
 
 Each stage has a plug underneath that drops into the stage below, with four
 6 × 2 mm magnets per joint. A 36 × 14 mm pass-through at the rear of every
-floor lets the cables run up and down the tower. Vent slots are on the sides
-only; the front stays plain.
+floor lets the cables run up and down the tower. The louvres share the same
+angle and pitch on every stage, so the pattern reads as one across the
+stack; the front only gets a short field low on the base.
 
 Outer size: 205 × 115 mm, about 350 mm tall with two disk stages.
 
@@ -47,7 +55,8 @@ Everything is sized generously. Measure the real parts and adjust the
 
 Print settings for ABS-like resin: trays rim up, lid top down, tilted 10 to 15°
 on two axes, medium supports under the rim and the bosses. Walls are 2.5 mm,
-floors 3.5 mm; the floor slots double as drain holes.
+floors 3.5 mm; the floor slots double as drain holes. The louvres are 2.6 mm
+wide, wide enough to drain and to clean with a brush.
 
 ## Hardware
 
@@ -56,3 +65,4 @@ floors 3.5 mm; the floor slots double as drain holes.
 - 4 self-adhesive rubber feet, 12 mm
 - Noctua NF-A4x10 5V PWM fan, driven from the Pi GPIO
 - Short cables: micro-HDMI to HDMI, USB-A to micro-USB (screen), USB-C (Pi power)
+- Optional: a 5 V addressable LED strip (WS2812) on the Pi GPIO, stuck inside behind the louvres
