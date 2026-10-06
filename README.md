@@ -194,7 +194,7 @@ Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/s
 Once Docker confirms all containers are `Started`, open your web browser and go to the home page:
 `http://dpi.lan`
 
-It is the only address to remember: it links to every app. It comes in two looks, *Reactor* and *Cyberpunk*; the switch at the top right changes it and each device remembers its own choice.
+It is the only address to remember: it links to every app. Each app opens in its own tab, so the home page is always one tab away. It comes in two looks, *Reactor* and *Cyberpunk*; the switch at the top right changes it and each device remembers its own choice.
 
 The search bar sends what you type straight to the right app: **Watch** looks for it in your Jellyfin library, **+ Movie** opens Radarr and **+ TV show** opens Sonarr with the search already running, ready to add.
 

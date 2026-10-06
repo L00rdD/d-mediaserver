@@ -374,7 +374,7 @@
   </header>
 
   <main>
-    <form class="search" action="/search" role="search">
+    <form class="search" action="/search" role="search" target="_blank">
       <input type="search" name="q" required autocomplete="off"
              placeholder="Search a movie or a TV show" aria-label="Search a movie or a TV show">
       <button name="in" value="jellyfin" title="Search in Jellyfin">▶ Watch</button>
@@ -382,7 +382,7 @@
       <button name="in" value="sonarr" title="Add a TV show with Sonarr">+ TV show</button>
     </form>
 
-    <a class="slab" href="http://{{$host}}:8096">
+    <a class="slab" href="http://{{$host}}:8096" target="_blank" rel="noopener">
       <span class="slab-tag">00 // Stream</span>
       <span class="slab-name">Jellyfin</span>
       <span class="slab-sub">Movies and TV shows, ready to watch</span>
@@ -393,25 +393,25 @@
     </a>
 
     <div class="cards">
-      <a class="card" href="http://{{$host}}:7878">
+      <a class="card" href="http://{{$host}}:7878" target="_blank" rel="noopener">
         <span class="num">01</span>
         <span class="port">:7878</span>
         <span class="name">Radarr</span>
         <span class="what">Movies</span>
       </a>
-      <a class="card" href="http://{{$host}}:8989">
+      <a class="card" href="http://{{$host}}:8989" target="_blank" rel="noopener">
         <span class="num">02</span>
         <span class="port">:8989</span>
         <span class="name">Sonarr</span>
         <span class="what">TV shows</span>
       </a>
-      <a class="card" href="http://{{$host}}:9091">
+      <a class="card" href="http://{{$host}}:9091" target="_blank" rel="noopener">
         <span class="num">03</span>
         <span class="port">:9091</span>
         <span class="name">Transmission</span>
         <span class="what">Downloads</span>
       </a>
-      <a class="card" href="http://{{$host}}:9696">
+      <a class="card" href="http://{{$host}}:9696" target="_blank" rel="noopener">
         <span class="num">04</span>
         <span class="port">:9696</span>
         <span class="name">Prowlarr</span>

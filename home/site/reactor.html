@@ -354,7 +354,7 @@
   </header>
 
   <main>
-    <form class="search" action="/search" role="search">
+    <form class="search" action="/search" role="search" target="_blank">
       <input type="search" name="q" required autocomplete="off"
              placeholder="Search a movie or a TV show" aria-label="Search a movie or a TV show">
       <button name="in" value="jellyfin" title="Search in Jellyfin">▶ Watch</button>
@@ -362,7 +362,7 @@
       <button name="in" value="sonarr" title="Add a TV show with Sonarr">+ TV show</button>
     </form>
 
-    <a class="reactor" href="http://{{$host}}:8096" aria-label="Jellyfin: watch movies and TV shows">
+    <a class="reactor" href="http://{{$host}}:8096" target="_blank" rel="noopener" aria-label="Jellyfin: watch movies and TV shows">
       <span class="ring ticks"></span>
       <span class="ring arcs"></span>
       <span class="ring cells"></span>
@@ -372,22 +372,22 @@
       </span>
     </a>
 
-    <a class="panel p1" href="http://{{$host}}:7878">
+    <a class="panel p1" href="http://{{$host}}:7878" target="_blank" rel="noopener">
       <span class="tag"><i>01</i> // Movies</span>
       <span class="name">Radarr</span>
       <span class="port">:7878</span>
     </a>
-    <a class="panel p2" href="http://{{$host}}:8989">
+    <a class="panel p2" href="http://{{$host}}:8989" target="_blank" rel="noopener">
       <span class="tag"><i>02</i> // TV shows</span>
       <span class="name">Sonarr</span>
       <span class="port">:8989</span>
     </a>
-    <a class="panel p3" href="http://{{$host}}:9091">
+    <a class="panel p3" href="http://{{$host}}:9091" target="_blank" rel="noopener">
       <span class="tag"><i>03</i> // Downloads</span>
       <span class="name">Transmission</span>
       <span class="port">:9091</span>
     </a>
-    <a class="panel p4" href="http://{{$host}}:9696">
+    <a class="panel p4" href="http://{{$host}}:9696" target="_blank" rel="noopener">
       <span class="tag"><i>04</i> // Indexers</span>
       <span class="name">Prowlarr</span>
       <span class="port">:9696</span>
