@@ -64,11 +64,8 @@ id
 | `DATA_ROOT` | The media folder from step 2. | `/volume1/media` |
 | `PUID`, `PGID` | The two numbers printed by `id`. | `1026`, `100` |
 | `TZ` | Your time zone. | `Europe/Paris` |
-| `HOME_HOST` | The name or IP you type to reach the device, without `http://`. | `nas.lan` or `192.168.1.50` |
 | `HOME_PORT` | Port of the home page. Change it when the device already uses port 80, which most NAS do. | `8080` |
 | `SKIP_LOCAL_LOGIN` | `1` to open Radarr, Sonarr and Prowlarr without a login at home. | `1` |
-
-`HOME_HOST` does not create a name, it only tells the home page which address to put in its links. Not sure the name works? Use the IP address.
 
 ### 4. Start everything
 
@@ -84,7 +81,7 @@ docker compose ps
 
 ### 5. Open the home page
 
-Go to `http://<HOME_HOST>:<HOME_PORT>`, for example `http://nas.lan:8080`. Every app is one click away from there.
+Go to `http://<name or IP of the device>:<HOME_PORT>`, for example `http://nas.lan:8080` or `http://192.168.1.50:8080`. Every app is one click away from there: the links reuse the address you typed.
 
 ---
 
@@ -177,7 +174,6 @@ Good to know:
 | What you see | Likely cause | Fix |
 | :--- | :--- | :--- |
 | `port is already allocated` at start | The device already uses that port. | For port 80, set `HOME_PORT` in `.env`. For another one, stop the NAS package that uses it (its own Jellyfin or Transmission, for example). |
-| The home page opens but its links do not | `HOME_HOST` is a name your network does not know. | Put the device's IP address in `HOME_HOST`, then `docker compose up -d`. |
 | An app cannot write, or shows *permission denied* | `PUID`/`PGID` do not own the media folder. | Run `id` as the owner of the folder and copy the two numbers into `.env`. |
 | Radarr or Sonarr cannot find a finished download | Transmission still downloads to its default folder. | Set its folders to `/data/complete` and `/data/incomplete` (setup table, line 2). |
 

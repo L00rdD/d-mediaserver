@@ -1,6 +1,6 @@
 # Serves the home page over plain HTTP, whatever name or IP is used to reach it.
-# "templates" lets the pages read HOME_HOST from the container environment and
-# lets index.html pick the look from the "style" cookie.
+# "templates" lets the pages link to the apps on the name or IP used to reach
+# them and lets index.html pick the look from the "style" cookie.
 :80 {
 	root * /srv
 	templates
@@ -21,10 +21,10 @@
 	}
 	handle @search {
 		@radarr query in=radarr
-		redir @radarr http://{$HOME_HOST}:7878/add/new?term={re.q.2}
+		redir @radarr http://{host}:7878/add/new?term={re.q.2}
 		@sonarr query in=sonarr
-		redir @sonarr http://{$HOME_HOST}:8989/add/new?term={re.q.2}
-		redir * http://{$HOME_HOST}:8096/web/#/search?query={re.q.2}
+		redir @sonarr http://{host}:8989/add/new?term={re.q.2}
+		redir * http://{host}:8096/web/#/search?query={re.q.2}
 	}
 
 	handle {

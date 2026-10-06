@@ -1,5 +1,5 @@
-{{- /* "Reactor" look. HOME_HOST comes from .env through docker-compose.yml (default: dpi.lan) */ -}}
-{{- $host := env "HOME_HOST" -}}
+{{- /* "Reactor" look. The links reuse the name or IP typed to reach this page */ -}}
+{{- $host := .Host -}}
 <!doctype html>
 <html lang="en">
 <head>

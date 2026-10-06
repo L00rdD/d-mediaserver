@@ -172,8 +172,6 @@ PGID=100
 TZ=Europe/Paris
 # No login for Radarr, Sonarr and Prowlarr on the home network (see Passwords)
 SKIP_LOCAL_LOGIN=1
-# Name or IP of this machine on your network, used by the home page links
-HOME_HOST=nas.lan
 # Port of the home page, if 80 is already taken (a NAS often uses it)
 HOME_PORT=8080
 ```
@@ -200,7 +198,7 @@ It is the only address to remember: it links to every app. It comes in two looks
 
 The search bar sends what you type straight to the right app: **Watch** looks for it in your Jellyfin library, **+ Movie** opens Radarr and **+ TV show** opens Sonarr with the search already running, ready to add.
 
-The links point at `dpi.lan` by default. If your server answers to another name, set `HOME_HOST` in your `.env` (a name or an IP, without `http://`) and run `docker compose up -d` again. `HOME_HOST` does not create the name: it has to be one your network already resolves, usually the machine's hostname followed by your router's suffix (`.lan`, `.home`, `.local`).
+The links follow the address you typed to reach the home page: open it by name, by IP or through a private network such as ZeroTier, and every link and search goes to that same address.
 
 Each app is also reachable directly at `http://<YOUR-SERVER-IP>:<PORT>`. *Example:* To access Sonarr, type `http://192.168.1.33:8989`.
 

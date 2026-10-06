@@ -5,8 +5,8 @@
 # SKIP_LOCAL_LOGIN=1 in .env makes Radarr, Sonarr and Prowlarr skip the login
 # on the local network (no password to create or forget). Without it the
 # *__AUTH__* lines are empty and each app keeps its own login settings.
-# HOME_HOST is the name (or IP) the home page uses to link to the apps; it
-# defaults to dpi.lan. HOME_PORT is the port the home page is served on (80).
+# HOME_PORT is the port the home page is served on (80). Its links to the apps
+# reuse the name or IP typed to reach it.
 # docker-compose.legacy.yml adds the folder names of the first version of this
 # project for installs that are being updated (see DEPLOY.md).
 # docker-compose.vpn.yml sends Transmission through a VPN (see README).
@@ -15,8 +15,6 @@ services:
   home:
     image: caddy:latest
     container_name: home
-    environment:
-      - HOME_HOST=${HOME_HOST:-dpi.lan}
     volumes:
       - ./home/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./home/site:/srv:ro
