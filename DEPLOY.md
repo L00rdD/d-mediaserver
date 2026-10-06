@@ -176,5 +176,6 @@ Good to know:
 | `port is already allocated` at start | The device already uses that port. | For port 80, set `HOME_PORT` in `.env`. For another one, stop the NAS package that uses it (its own Jellyfin or Transmission, for example). |
 | An app cannot write, or shows *permission denied* | `PUID`/`PGID` do not own the media folder. | Run `id` as the owner of the folder and copy the two numbers into `.env`. |
 | Radarr or Sonarr cannot find a finished download | Transmission still downloads to its default folder. | Set its folders to `/data/complete` and `/data/incomplete` (setup table, line 2). |
+| With the VPN, `transmission` stays `Created` after `docker compose up -d` | Gluetun was still connecting, so Compose gave up on Transmission. | Wait for `gluetun` to show `(healthy)` in `docker compose ps`, then run `docker compose up -d` again. |
 
 > **⚠️ CRITICAL:** never forward these ports to the internet on your router. The apps are meant for your home network only.
