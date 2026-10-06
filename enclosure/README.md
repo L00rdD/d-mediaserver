@@ -6,11 +6,13 @@ with its bricks. Designed for resin printing on an Anycubic Photon Mono M7
 (plate 223 × 126 × 230 mm); every stage fits the plate on its own.
 
 The look: a closed hull with its machinery showing. Four conduit pipes run
-up the corners with a collar on every stage, a round exhaust stack with
-radial fins sits over the fan, two round intake ports with ring grilles feed
-the base, slanted louvres cover the sides and the back, and thin panel lines
-run across the front. Every opening is a real one: the tower breathes through
-all of them.
+up the corners with a collar on every stage, smaller conduits run around the
+base and the Pi stage with junction blocks at the corners, a stepped exhaust
+stack with radial fins and two housing rings sits over the fan next to a
+smaller passive stack, two round intake ports with bezel rings feed the base,
+slanted louvres cover the sides and the back, service hatches and hex bolt
+heads dress the front. Every opening is a real one: the tower breathes
+through all of them.
 
 ![tower](renders/tower.png)
 
