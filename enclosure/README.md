@@ -5,14 +5,17 @@ the living room: Pi, 7-port hub, 5" screen, 2.5" drives and the power strip
 with its bricks. Designed for resin printing on an Anycubic Photon Mono M7
 (plate 223 × 126 × 230 mm); every stage fits the plate on its own.
 
-The look: a closed hull with its machinery showing. Four conduit pipes run
-up the corners with a collar on every stage, smaller conduits run around the
-base and the Pi stage with junction blocks at the corners, a stepped exhaust
-stack with radial fins and two housing rings sits over the fan next to a
-smaller passive stack, two round intake ports with bezel rings feed the base,
-slanted louvres cover the sides and the back, service hatches and hex bolt
-heads dress the front. Every opening is a real one: the tower breathes
-through all of them.
+The look: an ornate hull, the opposite of a plain box, so the tower is a
+piece in its own right rather than one more grey box next to the router.
+Every face is covered with sculpted plating generated from a seed: tiles of
+three heights with chamfered edges, some with a sunken inner panel, ribs or
+a port hole, split like the hull of a ship. Fluted conduit columns with three
+rings per stage hold the corners, smaller conduits run around the base and
+the Pi stage with junction blocks, a stepped exhaust stack with fins and
+housing rings sits over the fan next to a smaller passive stack, two round
+intake ports feed the base, and slanted louvres cut through the plating on
+the sides and the back. Every opening is a real one. Change `plate_seed` for
+another plating pattern, `tile_min` and `tile_depth` for its density.
 
 ![tower](renders/tower.png)
 
