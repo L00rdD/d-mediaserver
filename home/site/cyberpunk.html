@@ -324,6 +324,22 @@
       transform: translate(-3px, -3px);
     }
 
+    /* Sapling Sunrise card: hidden until the tracker answers on :8081 (see sapling-sunrise.js) */
+    .ss-list {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+    .ss-list li { display: grid; grid-template-columns: 1.2fr 1.4fr 1.6fr 0.8fr; gap: 12px; align-items: center; }
+    .ss-list li span:last-child { text-align: right; }
+    .ss-bar { display: block; height: 8px; background: rgba(255, 255, 255, 0.12); }
+    .ss-bar i { display: block; height: 100%; background: var(--cyan); }
+    @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
+
     /* Trading bot card: hidden until the bot answers on :8080 (see trading-bot.js) */
     .bot {
       grid-column: 1 / -1;
@@ -512,7 +528,14 @@
       <ul class="bot-list" data-tb="list"></ul>
       <div class="bot-head bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span><span class="bot-more">Dashboard :8080 →</span></div>
     </a>
+
+    <a class="bot sapling" id="sapling-sunrise" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Sapling Sunrise, open its dashboard">
+      <div class="bot-head"><span>06</span><span class="name">Sapling Sunrise</span><span data-ss="state"></span></div>
+      <ul class="ss-list" data-ss="list"></ul>
+      <div class="bot-head bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></div>
+    </a>
   </main>
   <script src="/trading-bot.js" defer></script>
+  <script src="/sapling-sunrise.js" defer></script>
 </body>
 </html>

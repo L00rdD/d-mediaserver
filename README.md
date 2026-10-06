@@ -240,6 +240,10 @@ Good to know: NordVPN has no port forwarding, so Transmission downloads normally
 
 The home page shows a card for a [trading bot](https://github.com/L00rdD/trading-bot) running on the same machine: equity, total gain, open positions, realized P&L and fees. Like the other apps, the bot serves its own dashboard on its port (8080); the card reads `/api/status.json` there and links to it. Nothing to configure here: when nothing answers on port 8080, the card stays hidden.
 
+## 🌱 Sapling Sunrise Card (optional)
+
+The home page shows a card for [Sapling Sunrise](https://github.com/L00rdD/sapling-sunrise), a growth tracker running on the same machine: one progress bar per plant (germination, cold stratification, seedlings...) and the days left in the current phase. The tracker serves its own dashboard and status on its port (8081); the card reads `/api/status.json` there and links to it. Nothing to configure here: when nothing answers on port 8081, the card stays hidden. Reminders go to Discord from the tracker itself.
+
 ## 🔑 Passwords
 
 By default Radarr, Sonarr and Prowlarr each ask you to set up a login the first time you open them. If you would rather have no password to remember, add this line to your `.env` and run `docker compose up -d` again:
