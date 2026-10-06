@@ -47,7 +47,8 @@ Outer size: 190 × 110 mm over the pipes, about 385 mm tall with two disk stages
 - `tower.scad`: the parametric model. Open it in [OpenSCAD](https://openscad.org),
   pick a `part` at the top (or `openscad -D 'part="base"' -o base.stl tower.scad`).
   `assembly` shows the stack exploded, with ghosts of the parts to check the room.
-- `stl/`: one STL per part, exported from the current parameters.
+- `stl/`: one STL per part, exported from the current parameters. `disk.pwscene`
+  is the Photon Workshop scene of the disk stage, with its orientation and supports.
 - `renders/`: reference pictures.
 
 ## Before printing

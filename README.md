@@ -99,6 +99,14 @@ printf '[Unit]\nRequiresMountsFor=/mnt/storage\n' | sudo tee /etc/systemd/system
 sudo systemctl daemon-reload
 ```
 
+Cap the container logs, so an app that loops on an error can never fill the SD card (30 MB per container at most):
+```bash
+printf '{\n  "log-driver": "json-file",\n  "log-opts": { "max-size": "10m", "max-file": "3" }\n}\n' | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+```
+
+Containers that already exist keep their old log settings: after this, run `docker compose up -d --force-recreate` once in each project folder.
+
 ### 2. Share the Pool on the Network (SMB)
 
 ```bash
