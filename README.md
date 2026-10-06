@@ -16,7 +16,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 
 | Service | Description | Port |
 | :--- | :--- | :--- |
-| **Home page** | One page that links to every app below, served by [Caddy](https://caddyserver.com/). | `80` |
+| **Home page** | One page that links to every app below, served by [Caddy](https://caddyserver.com/). It shows how full the data disk is. | `80` |
 | **[Jellyfin](https://jellyfin.org/)** | Open-source media streaming server. | `8096` |
 | **[Sonarr](https://sonarr.tv/)** | Smart PVR for automatic TV Show downloading and sorting. | `8989` |
 | **[Radarr](https://radarr.video/)** | Smart PVR for automatic Movie downloading and sorting. | `7878` |

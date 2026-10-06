@@ -18,27 +18,29 @@ services:
     volumes:
       - ./home/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./home/site:/srv:ro
+      - disk-status:/status:ro
     ports:
       - ${HOME_PORT:-80}:80
     restart: unless-stopped
 
-  # Writes the free space of the data disk to disk.json every minute and serves it
-  # to the home page (through Caddy, see home/Caddyfile).
+  # Writes the space used on the data disk to disk.json every minute, in a volume
+  # the home page serves as /disk.json (see home/Caddyfile). Busybox only: works
+  # on any machine and any architecture.
   storage:
     image: alpine:latest
     container_name: storage
+    init: true
     command:
       - sh
       - -c
       - |
-        mkdir -p /www
         while true; do
-          df -Pk /data | awk 'NR==2 {printf "{\"total\":%d,\"used\":%d,\"free\":%d}\n", $$2*1024, $$3*1024, $$4*1024}' > /www/disk.tmp && mv /www/disk.tmp /www/disk.json
+          df -Pk /data | awk 'NR==2 {printf "{\"total\":%.0f,\"used\":%.0f,\"free\":%.0f}\n", $$2*1024, $$3*1024, $$4*1024}' > /status/disk.tmp && mv /status/disk.tmp /status/disk.json
           sleep 60
-        done &
-        exec httpd -f -p 8082 -h /www
+        done
     volumes:
       - ${DATA_ROOT:-/mnt/storage}:/data:ro
+      - disk-status:/status
     restart: unless-stopped
 
   transmission:
@@ -139,3 +141,7 @@ services:
     ports:
       - 8096:8096
     restart: unless-stopped
+
+volumes:
+  # disk.json, written by the storage service and served by the home page
+  disk-status:

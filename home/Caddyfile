@@ -27,9 +27,10 @@
 		redir * http://{host}:8096/web/#/search?query={re.q.2}
 	}
 
-	# /disk.json is the free space of the data disk, written by the storage service
+	# /disk.json is the space used on the data disk, written by the storage service
 	handle /disk.json {
-		reverse_proxy storage:8082
+		root * /status
+		file_server
 	}
 
 	handle {
