@@ -209,7 +209,7 @@ Each app is also reachable directly at `http://<YOUR-SERVER-IP>:<PORT>`. *Exampl
 The VPN option sends **Transmission, and only Transmission**, through a VPN. It adds one container, [Gluetun](https://github.com/qdm12/gluetun), that holds the VPN connection; Transmission borrows its network and has no other way out.
 
 - **No leak:** when the VPN is down, Transmission is offline instead of downloading with your own address.
-- **No script to babysit it:** Gluetun checks the connection and reconnects by itself.
+- **No script to babysit it:** Gluetun checks the connection and reconnects by itself. When a server keeps refusing the login, Gluetun would retry that same server forever, so a small watchdog ([autoheal](https://github.com/willfarrell/docker-autoheal)) restarts it, which makes it pick another server, and restarts Transmission so it re-attaches to the new tunnel.
 - **Nothing else changes:** Jellyfin, the home page and the other apps keep their direct connection, and Radarr and Sonarr still reach Transmission under the same name.
 
 Add these lines to your `.env`, then run `docker compose up -d`:
@@ -229,6 +229,8 @@ Check that it works: the two addresses must be different.
 curl -s https://ipinfo.io/ip                                # your own address
 docker exec transmission curl -s https://ipinfo.io/ip       # the VPN's address
 ```
+
+To be told about these restarts, add `AUTOHEAL_WEBHOOK_URL=` to `.env` with a webhook URL (for a Discord channel, append `/slack` to the webhook URL Discord gives you).
 
 Good to know: NordVPN has no port forwarding, so Transmission downloads normally but uploads less. And as long as the VPN lines are wrong or empty, Transmission does not start at all: read `docker compose logs --tail 30 gluetun` to see why.
 

@@ -5,6 +5,12 @@
 # Switch it on in .env (needs Docker Compose 2.24 or newer):
 #   COMPOSE_FILE=docker-compose.yml:docker-compose.vpn.yml
 #   VPN_USER=...  VPN_PASSWORD=...  VPN_COUNTRY=...
+# Self-healing: Gluetun retries the SAME server forever when that server refuses
+# the login, and Transmission loses its network whenever Gluetun restarts. The
+# autoheal container restarts any container that stays unhealthy: Gluetun then
+# picks another server, and Transmission (whose health check is "do I have
+# internet?") re-attaches to the new network. AUTOHEAL_WEBHOOK_URL, optional,
+# gets a message at every such restart (Discord: add /slack to the webhook URL).
 services:
   gluetun:
     image: qmcgaw/gluetun:latest
@@ -33,6 +39,8 @@ services:
         aliases:
           # Radarr and Sonarr keep calling it "transmission"
           - transmission
+    labels:
+      - autoheal=true
     restart: unless-stopped
 
   transmission:
@@ -42,3 +50,26 @@ services:
       gluetun:
         condition: service_healthy
         restart: true
+    labels:
+      - autoheal=true
+    healthcheck:
+      # no internet through the tunnel = unhealthy = restarted by autoheal
+      test: ["CMD", "curl", "-fsS", "--max-time", "10", "-o", "/dev/null", "https://api.ipify.org"]
+      interval: 1m
+      timeout: 15s
+      retries: 3
+      start_period: 2m
+
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: autoheal
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - AUTOHEAL_INTERVAL=30
+      - AUTOHEAL_START_PERIOD=120
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=20
+      - WEBHOOK_URL=${AUTOHEAL_WEBHOOK_URL:-}
+      - TZ=${TZ:-Europe/Paris}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
