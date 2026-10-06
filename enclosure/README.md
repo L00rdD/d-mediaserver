@@ -5,17 +5,15 @@ the living room: Pi, 7-port hub, 5" screen, 2.5" drives and the power strip
 with its bricks. Designed for resin printing on an Anycubic Photon Mono M7
 (plate 223 × 126 × 230 mm); every stage fits the plate on its own.
 
-The look: an ornate hull, the opposite of a plain box, so the tower is a
-piece in its own right rather than one more grey box next to the router.
-Every face is covered with sculpted plating generated from a seed: tiles of
-three heights with chamfered edges, some with a sunken inner panel, ribs or
-a port hole, split like the hull of a ship. Fluted conduit columns with three
-rings per stage hold the corners, smaller conduits run around the base and
-the Pi stage with junction blocks, a stepped exhaust stack with fins and
-housing rings sits over the fan next to a smaller passive stack, two round
-intake ports feed the base, and slanted louvres cut through the plating on
-the sides and the back. Every opening is a real one. Change `plate_seed` for
-another plating pattern, `tile_min` and `tile_depth` for its density.
+The look: a lantern pagoda, made for a living room of katanas and dragons
+rather than a grey box next to the router. Every stage has latticed windows
+(asanoha, the hemp-leaf lattice) on its sides and its back, cut right
+through the wall so the tower breathes through them; a meander band runs
+along the top and the bottom of every stage, the solid fields carry seigaiha
+waves in relief, the corner posts wear three rings per stage, and the lid is
+a pagoda roof with an eave and a ridge, the two exhaust stacks rising from
+it like finials. Two round moon windows with ring grilles feed the base.
+Every opening is a real one.
 
 ![tower](renders/tower.png)
 
@@ -28,15 +26,15 @@ another plating pattern, `tile_min` and `tile_depth` for its density.
 | `hub` | 34 mm | The 7-port hub, USB ports facing the rear through a slot. |
 | `compute` | 124 mm | The screen, sunk in a pocket of the front face and held from inside by two `screen_clip` bars. The Pi on four standoffs at the right rear, ports facing inwards, so every cable stays inside. |
 | `disk` | 32 mm | One 2.5" drive in its enclosure. Print one per drive, stack as many as needed. |
-| `lid` | 18 mm | 40 mm exhaust fan under the finned stack; a second, smaller stack and louvres vent passively. |
+| `lid` | 18 mm + roof | Pagoda roof. 40 mm exhaust fan under the finned main stack; the smaller stack vents passively. |
 
 Each stage has a plug underneath that drops into the stage below. A column
 in each inside corner runs the full height of the stage, half sunk in the
 walls, with a 6 × 2 mm magnet pocket at each end; the plug is notched around
 the columns of the stage below, so column meets column and the magnets hold. A 36 × 14 mm pass-through at the rear of every
-floor lets the cables run up and down the tower. The louvres share the same
-angle and pitch on every stage, so the pattern reads as one across the
-stack; the front only gets the two intake ports, low on the base.
+floor lets the cables run up and down the tower. The lattice pitch and the bands are the same on every stage, so the
+ornament reads as one across the stack; the front only gets the two moon
+windows, low on the base, and the screen.
 
 Outer size: 190 × 110 mm over the pipes, about 385 mm tall with two disk stages and the stack. The footprint is set by the hub (155 mm), the strip and the screen; a disk stage is the same size as every other stage so that they stack.
 
@@ -63,9 +61,9 @@ Everything is sized generously. Measure the real parts and adjust the
 
 Print settings for ABS-like resin: trays rim up, lid top down, tilted 10 to 15°
 on two axes, medium supports under the rim and the bosses. Walls are 2.5 mm,
-floors 3.5 mm; the floor slots double as drain holes. The louvres are 2.6 mm
-wide, wide enough to drain and to clean with a brush. The lid prints top
-down: its stack and fins need supports.
+floors 3.5 mm; the floor slots double as drain holes. The lattice openings
+are about 7 mm triangles, easy to drain and to clean with a brush. The lid
+prints roof down: the stacks, the eave and the fins need supports.
 
 ## Hardware
 

@@ -3,14 +3,14 @@
 // plate 223 x 126 x 230 mm). Every stage is a tray with a plug underneath that
 // drops into the stage below; magnets in the corners keep the stack together.
 //
-// Look: an ornate hull, the opposite of a plain box. Every face is covered
-// with sculpted plating, generated from a seed: tiles of three heights with
-// chamfered edges, split like the hull of a ship. Fluted conduit columns with
-// three rings per stage hold the corners, smaller conduits run around the
-// base and the Pi stage, a stepped exhaust stack with fins and housing rings
-// sits over the fan next to a smaller passive stack, two round intake ports
-// feed the base, slanted louvres cut through the plating on the sides and the
-// back. Every opening is a real one: the tower breathes through all of them.
+// Look: a lantern pagoda for a living room of katanas and dragons. Every
+// stage has latticed windows (asanoha, the hemp-leaf lattice) on its sides
+// and its back, cut right through the wall so the tower breathes through
+// them; a meander (key fret) band runs along the top and the bottom of every
+// stage, the solid fields carry seigaiha waves in relief, lacquered corner
+// posts wear three bronze rings per stage, and the lid is a pagoda roof with
+// an eave, a ridge and the two exhaust stacks rising from it like finials.
+// Two round moon windows with ring grilles feed the base.
 //
 // Stages, bottom to top:  base (power strip + bricks)  >  hub  >  compute
 // (Pi + screen)  >  disk (one drive each, print as many as needed)  >  lid (fan).
@@ -82,11 +82,16 @@ bolt_d      = 5;              // raised hex bolt heads
 bolt_h      = 1.3;
 run_d       = 9;              // the smaller conduits that run around the base and the Pi stage
 
-/* ---------- plating ---------- */
-tile_min    = 16;             // no tile smaller than this
-tile_gap    = 1.4;            // groove between tiles
-tile_depth  = 4;              // how many times a face is split
-plate_seed  = 7;              // change for another pattern
+/* ---------- ornament ---------- */
+band_h      = 6;              // meander band height
+band_t      = 0.9;            // relief of the ornament
+key_p       = 8;              // meander period
+lat_pitch   = 9;              // lattice pitch
+lat_w       = 1.6;            // lattice bar width
+wave_p      = 11;             // seigaiha scale pitch
+frame_w     = 3;              // raised frame around each window
+roof_h      = 12;             // pagoda roof rise
+eave        = 5;              // roof overhang
 
 W = inner_w + 2 * wall;
 D = inner_d + 2 * wall;
@@ -258,72 +263,100 @@ module stops(size, at = [0, 0], h = 4, clr = 1, leg = 12) {
     }
 }
 
-/* ---------- plating ---------- */
-// one tile: a chamfered plate raised by one of three heights; the tall ones
-// get a sunken inner panel, the wide low ones a row of ribs, a few a port hole
-module tile(x, y, w, h, v) {
-    g  = tile_gap;
-    lvl = v < 0.35 ? 0.8 : v < 0.8 ? 1.6 : 2.4;
-    tw = w - 2 * g; th = h - 2 * g;
-    if (tw > 6 && th > 6)
-        translate([x + g, y + g, 0]) difference() {
-            hull() {
-                linear_extrude(lvl - 0.7) square([tw, th]);
-                translate([0.7, 0.7, 0]) linear_extrude(lvl) square([tw - 1.4, th - 1.4]);
-            }
-            if (lvl > 2 && tw > 22 && th > 18)                     // sunken inner panel
-                translate([4, 4, lvl - 0.8]) linear_extrude(2) square([tw - 8, th - 8]);
-            if (lvl > 1 && lvl < 2 && tw > 34 && th > 12)          // three ribs
-                for (i = [1 : 3]) translate([tw * i / 4 - 0.9, 3, lvl - 0.6]) linear_extrude(2) square([1.8, th - 6]);
-            if (lvl < 1 && v < 0.12 && tw > 14 && th > 14)         // a port hole
-                translate([tw / 2, th / 2, lvl - 0.6]) cylinder(d = 6, h = 2);
+/* ---------- ornament, all 2D patterns lie in XY with the origin at their centre ---------- */
+// key fret (meander) band, len x h
+module meander2d(len, h) {
+    t = h / 5;
+    n = ceil(len / key_p) + 1;
+    intersection() {
+        square([len, h], center = true);
+        translate([-len / 2, -h / 2]) for (i = [0 : n - 1]) translate([i * key_p, 0]) {
+            square([t, h]);                                   // riser
+            translate([0, h - t]) square([key_p * 0.75, t]);  // top run
+            translate([key_p * 0.75 - t, h * 0.4]) square([t, h * 0.6]);
+            translate([key_p * 0.3, h * 0.4]) square([key_p * 0.45, t]);
+            translate([key_p * 0.3, 0]) square([t, h * 0.4 + t]);
+            translate([key_p * 0.3, 0]) square([key_p * 0.7, t]);   // bottom run
         }
-}
-
-// split a rectangle into tiles, again and again, from a seed
-module tiles(x, y, w, h, seed, depth = 0) {
-    r = rands(0, 1, 4, seed);
-    can = (w > 2 * tile_min) || (h > 2 * tile_min);
-    if (depth < tile_depth && can && (depth < 2 || r[0] < 0.8)) {
-        along_w = (w > 2 * tile_min) && (!(h > 2 * tile_min) || (w >= h ? r[1] < 0.75 : r[1] < 0.25));
-        f = 0.35 + 0.3 * r[2];
-        if (along_w) {
-            tiles(x, y, w * f, h, seed * 7 + 1, depth + 1);
-            tiles(x + w * f, y, w * (1 - f), h, seed * 7 + 2, depth + 1);
-        } else {
-            tiles(x, y, w, h * f, seed * 7 + 3, depth + 1);
-            tiles(x, y + h * f, w, h * (1 - f), seed * 7 + 4, depth + 1);
-        }
-    } else tile(x, y, w, h, r[3]);
-}
-
-// a plated panel of w x h lying flat, origin at its centre
-module plate_panel(w, h, seed) { translate([-w / 2, -h / 2, 0]) tiles(0, 0, w, h, seed); }
-
-// plating on the four faces of a stage of height h; the front panel is cut
-// by whatever the stage passes as children (bezel, ports)
-module plating(h, seed, front = true) {
-    pw = W - 2 * (pipe_d - pipe_out) - 6;    // between the corner columns
-    pd = D - 2 * (pipe_d - pipe_out) - 6;
-    ph = h - 4;
-    for (sx = [-1, 1]) translate([sx * (W / 2 - 0.01), 0, h / 2]) rotate([90, 0, sx * 90]) plate_panel(pd, ph, seed + 1 + sx);
-    translate([0, D / 2 - 0.01, h / 2]) rotate([90, 0, 180]) plate_panel(pw, ph, seed + 5);
-    if (front) difference() {
-        translate([0, -D / 2 + 0.01, h / 2]) rotate([90, 0, 0]) plate_panel(pw, ph, seed + 9);
-        children();
     }
 }
 
-// two more rings per stage on the corner conduits, and flutes along them
-module column_rings(h) {
-    for (sx = [-1, 1], sy = [-1, 1])
-        translate([sx * (W / 2 - pipe_d / 2 + pipe_out), sy * (D / 2 - pipe_d / 2 + pipe_out), 0])
-            for (z = [5, h - 5 - (collar_h - 1)]) translate([0, 0, z]) cylinder(d = collar_d - 1.5, h = collar_h - 1);
+// asanoha lattice: the openings between bars running at 0, 60 and 120 degrees
+module lattice2d(w, h) {
+    difference() {
+        square([w, h], center = true);
+        for (a = [0, 60, 120]) rotate(a) for (i = [-30 : 30]) translate([0, i * lat_pitch]) square([3 * (w + h), lat_w], center = true);
+    }
 }
-module column_flutes(h) {
+
+// seigaiha: overlapping scales of three rings, clipped to w x h
+module waves2d(w, h) {
+    intersection() {
+        square([w, h], center = true);
+        for (j = [-ceil(h / wave_p / 2) - 1 : ceil(h / wave_p / 2) + 1], i = [-ceil(w / wave_p) - 1 : ceil(w / wave_p) + 1])
+            translate([i * wave_p + (j % 2 == 0 ? 0 : wave_p / 2), j * wave_p * 0.5])
+                for (r = [wave_p / 2, wave_p / 2 - 2.2, wave_p / 2 - 4.4]) if (r > 0.8) difference() { circle(r = r); circle(r = r - 1); }
+    }
+}
+
+// place a 2D pattern on a face: side = "L", "R", "B" (back), "F" (front),
+// at height z (centre), extruded outwards by `t` (positive) or cut inwards
+module on_face(side, u, z, t) {
+    if (side == "F") translate([u, -D / 2 + 0.01, z]) rotate([90, 0, 0]) linear_extrude(t) children();
+    if (side == "B") translate([u, D / 2 - 0.01, z]) rotate([90, 0, 180]) linear_extrude(t) children();
+    if (side == "L") translate([-W / 2 + 0.01, u, z]) rotate([90, 0, -90]) linear_extrude(t) children();
+    if (side == "R") translate([W / 2 - 0.01, u, z]) rotate([90, 0, 90]) linear_extrude(t) children();
+}
+// the same, but cutting through the wall
+module through_face(side, u, z) {
+    d = wall * 3 + 8;
+    if (side == "F") translate([u, -D / 2 + d / 2, z]) rotate([90, 0, 0]) linear_extrude(d) children();
+    if (side == "B") translate([u, D / 2 - d / 2, z]) rotate([90, 0, 180]) linear_extrude(d) children();
+    if (side == "L") translate([-W / 2 + d / 2, u, z]) rotate([90, 0, -90]) linear_extrude(d) children();
+    if (side == "R") translate([W / 2 - d / 2, u, z]) rotate([90, 0, 90]) linear_extrude(d) children();
+}
+
+face_w = W - 2 * (pipe_d - pipe_out) - 4;   // usable width of the front and the back, between the posts
+face_d = D - 2 * (pipe_d - pipe_out) - 4;   // usable width of a side
+
+// meander bands along the top and the bottom of a stage, on all four faces
+// short stages (under 40 mm) only get the top band, to leave room for a window
+module bands(h, front = true) {
+    for (z = h < 40 ? [h - 3 - band_h / 2] : [3 + band_h / 2, h - 3 - band_h / 2]) {
+        for (sd = ["L", "R"]) on_face(sd, 0, z, band_t) meander2d(face_d, band_h);
+        on_face("B", 0, z, band_t) meander2d(face_w, band_h);
+        if (front) on_face("F", 0, z, band_t) meander2d(face_w, band_h);
+    }
+}
+
+// a latticed window with its raised frame; `cut` = true gives the openings
+module window(side, u, z, w, h, cut = false) {
+    if (cut) through_face(side, u, z) lattice2d(w, h);
+    else on_face(side, u, z, 1.5) difference() { square([w + 2 * frame_w, h + 2 * frame_w], center = true); square([w, h], center = true); }
+}
+
+// windows on both sides and the back of a stage, sized to what is left
+// between the bands; short stages get a single row of lattice
+module windows(h, cut = false) {
+    zb = h < 40 ? 3 : 3 + band_h;                 // below the window
+    zt = h - 3 - band_h;                           // above it
+    wh = zt - zb - 2 * frame_w - 2;
+    zc = (zt + zb) / 2;
+    if (wh >= 8) {
+        for (sd = ["L", "R"]) window(sd, 0, zc, face_d - 22, wh, cut);
+        window("B", 0, zc, face_w - 22, wh, cut);
+    }
+}
+
+// the centre and height of the solid field on the front of a short stage
+function field_z(h) = h < 40 ? (h - 3 - band_h + 3) / 2 : h / 2;
+function field_h(h) = h < 40 ? h - 3 - band_h - 3 - 4 : h - 2 * (3 + band_h) - 4;
+
+// three rings per stage on the corner posts
+module post_rings(h) {
     for (sx = [-1, 1], sy = [-1, 1])
         translate([sx * (W / 2 - pipe_d / 2 + pipe_out), sy * (D / 2 - pipe_d / 2 + pipe_out), 0])
-            for (a = [0 : 30 : 359]) rotate(a) translate([pipe_d / 2, 0, -1]) cylinder(d = 1.8, h = h + 2);
+            for (z = [4, h - 4 - (collar_h - 1)]) translate([0, 0, z]) cylinder(d = collar_d - 1, h = collar_h - 1);
 }
 
 /* ---------- stages ---------- */
@@ -331,13 +364,21 @@ module base() {
     difference() {
         union() {
             tray(base_h, passthrough = false);
-            column_rings(base_h);
-            plating(base_h, plate_seed)
-                for (x = [-inner_w / 2 + 40, -inner_w / 2 + 90]) translate([x, -D / 2, 34]) rotate([90, 0, 0]) cylinder(d = port_d + 16, h = 20, center = true);
+            post_rings(base_h);
+            bands(base_h);
+            windows(base_h);
+            // waves on the front, around the moon windows
+            on_face("F", 0, base_h / 2, band_t) difference() {
+                square([face_w, base_h - 2 * (3 + band_h) - 4], center = true);
+                for (x = [-inner_w / 2 + 40, -inner_w / 2 + 90]) translate([x, 34 - base_h / 2]) circle(d = port_d + 12);
+            }
+            on_face("F", 0, base_h / 2, band_t * 2) intersection() {
+                waves2d(face_w - 4, base_h - 2 * (3 + band_h) - 8);
+                difference() { square([face_w, base_h], center = true); for (x = [-inner_w / 2 + 40, -inner_w / 2 + 90]) translate([x, 34 - base_h / 2]) circle(d = port_d + 12); }
+            }
         }
-        column_flutes(base_h);
+        windows(base_h, cut = true);
         floor_vents();
-        louvres(base_h, bottom = 30);
         // two intake ports low on the front, left side
         port(-inner_w / 2 + 40, 34);
         port(-inner_w / 2 + 90, 34);
@@ -350,27 +391,23 @@ module base() {
     }
     stops(strip, h = 8);
     conduit_run(16);
-    // bezel ring and bolts around each intake port
-    for (x = [-inner_w / 2 + 40, -inner_w / 2 + 90]) {
-        translate([x, -D / 2 + 0.01, 34]) rotate([90, 0, 0]) difference() { cylinder(d = port_d + 10, h = 2); translate([0, 0, -1]) cylinder(d = port_d + 1, h = 4); }
-        for (a = [45 : 90 : 315]) bolt_front(x + (port_d / 2 + 2.5) * cos(a), 34 + (port_d / 2 + 2.5) * sin(a));
-    }
+    // a ring around each moon window
+    for (x = [-inner_w / 2 + 40, -inner_w / 2 + 90])
+        translate([x, -D / 2 + 0.01, 34]) rotate([90, 0, 0]) difference() { cylinder(d = port_d + 10, h = 2.4); translate([0, 0, -1]) cylinder(d = port_d + 1, h = 5); }
 }
 
 // an empty stage: slip one under any stage that needs more height
 module riser() {
     difference() {
-        union() { tray(riser_h); column_rings(riser_h); plating(riser_h, plate_seed + 20); }
-        column_flutes(riser_h);
-        louvres(riser_h);
+        union() { tray(riser_h); post_rings(riser_h); bands(riser_h); windows(riser_h); on_face("F", 0, field_z(riser_h), band_t * 2) waves2d(face_w - 4, field_h(riser_h)); }
+        windows(riser_h, cut = true);
     }
 }
 
 module hub_stage() {
     difference() {
-        union() { tray(hub_h); column_rings(hub_h); plating(hub_h, plate_seed + 40); }
-        column_flutes(hub_h);
-        louvres(hub_h);
+        union() { tray(hub_h); post_rings(hub_h); bands(hub_h); windows(hub_h); on_face("F", 0, field_z(hub_h), band_t * 2) waves2d(face_w - 4, field_h(hub_h)); }
+        windows(hub_h, cut = true);
         // the 7 USB ports face the rear
         translate([0, D / 2, hub[2] / 2 + 4]) cube([hub[0] + 2, wall * 3, hub[2] - 2], center = true);
     }
@@ -385,9 +422,14 @@ module compute() {
     difference() {
         union() {
             tray(compute_h);
-            column_rings(compute_h);
-            plating(compute_h, plate_seed + 60)
-                translate([0, -D / 2, zc]) cube([bez[0] + 8, 20, bez[1] + 8], center = true);
+            post_rings(compute_h);
+            bands(compute_h);
+            windows(compute_h);
+            // waves above and below the screen
+            for (sz = [-1, 1]) {
+                fh = (compute_h - bez[1]) / 2 - (3 + band_h) - 6;
+                if (fh > 6) on_face("F", 0, zc + sz * (bez[1] / 2 + 3 + fh / 2), band_t * 2) waves2d(face_w - 4, fh);
+            }
             // thicker front plate so the frame can sit in a pocket
             translate([0, -inner_d / 2 + screen_t / 2 + 0.5, zc])
                 cube([screen[0] + 24, screen_t + 1, screen[1] + 16], center = true);
@@ -397,14 +439,12 @@ module compute() {
                 for (s = [-1, 1]) translate([s * bez[0] / 2, s * bez[1] / 2, -1]) rotate(45) cube([18, 18, 6], center = true);
             }
         }
-        column_flutes(compute_h);
-        louvres(compute_h, edge = 22, bottom = 8);
+        windows(compute_h, cut = true);
         // pocket from the outside, then the window through
         translate([0, -D / 2 - 3, zc]) cube([screen[0] + 0.6, 2 * (3 + screen_t + 0.5), screen[1] + 0.6], center = true);
         translate([0, -D / 2, zc]) cube([win[0], 40, win[1]], center = true);
     }
     conduit_run(compute_h - 12);
-    for (sx = [-1, 1], sz = [-1, 1]) translate([0, -3, 0]) bolt_front(sx * (bez[0] / 2 - 14), zc + sz * (bez[1] / 2 - 4.5));
     // the frame is held from the inside by two clip bars screwed on these bosses
     for (sx = [-1, 1], sz = [-1, 1])
         translate([sx * (screen[0] / 2 + 6), -inner_d / 2 + screen_t + 1, zc + sz * (screen[1] / 2 + 6)])
@@ -419,54 +459,57 @@ module compute() {
 
 module disk() {
     difference() {
-        union() { tray(disk_h); column_rings(disk_h); plating(disk_h, plate_seed + 80); }
-        column_flutes(disk_h);
-        louvres(disk_h);
+        union() { tray(disk_h); post_rings(disk_h); bands(disk_h); windows(disk_h); on_face("F", 0, field_z(disk_h), band_t * 2) waves2d(face_w - 4, field_h(disk_h)); }
+        windows(disk_h, cut = true);
     }
     stops(disk_bay, at = [-inner_w / 2 + disk_bay[0] / 2 + 6, 0], h = 6);
 }
 
 module lid() {
+    sx2 = -inner_w / 2 + 42; sy2 = 14;          // the small stack
+    top = lid_h + roof_h;                        // roof ridge height
     difference() {
         union() {
             translate([0, 0, -lip_h]) linear_extrude(lip_h + 0.01) plug_2d();
             linear_extrude(lid_h) hull_2d(W, D, chamfer);
-            // exhaust stack, with a stepped foot and two housing rings around it
-            translate([0, 0, lid_h - 0.01]) cylinder(d = stack_d, h = stack_h);
-            translate([0, 0, lid_h - 0.01]) cylinder(d = stack_d + 10, h = 4);
-            for (d = [stack_d + 22, stack_d + 36]) translate([0, 0, lid_h - 0.01]) difference() { cylinder(d = d, h = 1.5); translate([0, 0, -1]) cylinder(d = d - 4, h = 4); }
-            // a second, smaller stack at the rear left: a passive vent
-            translate([-inner_w / 2 + 42, 14, lid_h - 0.01]) { cylinder(d = 30, h = stack_h - 4); cylinder(d = 38, h = 3); }
+            // one meander band around the lid
+            for (sd = ["L", "R"]) on_face(sd, 0, lid_h / 2, band_t) meander2d(face_d, band_h);
+            for (sd = ["F", "B"]) on_face(sd, 0, lid_h / 2, band_t) meander2d(face_w, band_h);
+            // the eave, then the roof rising to a ridge
+            translate([0, 0, lid_h - 3]) linear_extrude(3) cham(W + 2 * eave, D + 2 * eave, chamfer + eave);
+            hull() {
+                translate([0, 0, lid_h - 0.01]) linear_extrude(0.02) cham(W + 2 * eave - 4, D + 2 * eave - 4, chamfer + eave);
+                translate([0, 0, top - 0.01]) linear_extrude(0.02) cham(W - 70, 14, 4);
+            }
+            translate([0, 0, top - 0.01]) linear_extrude(3) cham(W - 60, 8, 2);   // ridge
+            // the exhaust stack rises from the roof like a finial, in three tiers
+            translate([0, 0, lid_h]) cylinder(d = stack_d + 12, h = roof_h + 3);
+            translate([0, 0, lid_h]) cylinder(d = stack_d + 4, h = roof_h + 6);
+            translate([0, 0, lid_h]) cylinder(d = stack_d, h = roof_h + stack_h + 2);
+            translate([0, 0, top + stack_h - 1]) cylinder(d = stack_d + 6, h = 3);
+            // a second, smaller stack: a passive vent
+            translate([sx2, sy2, lid_h]) { cylinder(d = 30, h = roof_h + stack_h - 4); cylinder(d = 38, h = roof_h - 2); }
         }
-        // the stacks are tubes, open through the lid
-        translate([0, 0, lid_h - floor_t - 1]) cylinder(d = stack_d - 2 * wall, h = stack_h + floor_t + 2);
-        translate([-inner_w / 2 + 42, 14, lid_h - floor_t - 1]) cylinder(d = 30 - 2 * wall, h = stack_h + floor_t + 2);
+        // the stacks are tubes, open through the roof and the plate
+        translate([0, 0, lid_h - floor_t - 1]) cylinder(d = stack_d - 2 * wall, h = roof_h + stack_h + floor_t + 6);
+        translate([sx2, sy2, lid_h - floor_t - 1]) cylinder(d = 30 - 2 * wall, h = roof_h + stack_h + floor_t + 2);
         // hollow underneath, the fan hangs from the top plate
         translate([0, 0, -lip_h - 1])
             linear_extrude(lip_h + lid_h - floor_t + 1)
                 cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
-        // passive louvres on the right of the stack
-        intersection() {
-            translate([inner_w / 2 - 36, 0, lid_h - floor_t - 1]) linear_extrude(floor_t + 2) cham(40, inner_d - 34, 4);
-            for (i = [-16 : 16])
-                translate([i * louvre_pitch, 0, lid_h - floor_t - 1]) rotate(30)
-                    linear_extrude(floor_t + 2) square([louvre_w, 300], center = true);
-        }
         for (sx = [-1, 1], sy = [-1, 1])
             translate([sx * fan_holes / 2, sy * fan_holes / 2, lid_h - floor_t - 1]) cylinder(d = fan_hole_d, h = floor_t + 2);
     }
     columns(0, lid_h - floor_t + 0.01);
     // radial fins and a hub close the stacks: the grilles over the openings
     translate([0, 0, lid_h - floor_t]) {
-        for (a = [0 : 30 : 359]) rotate(a) translate([stack_d / 2 - wall - 20, -1, 0]) cube([20.5, 2, stack_h + floor_t - 3]);
-        difference() { cylinder(d = 18, h = stack_h + floor_t - 3); translate([0, 0, 1.5]) cylinder(d = 14, h = 20); }
+        for (a = [0 : 30 : 359]) rotate(a) translate([stack_d / 2 - wall - 20, -1, 0]) cube([20.5, 2, roof_h + stack_h + floor_t - 1]);
+        difference() { cylinder(d = 18, h = roof_h + stack_h + floor_t - 1); translate([0, 0, 1.5]) cylinder(d = 14, h = 40); }
     }
-    translate([-inner_w / 2 + 42, 14, lid_h - floor_t]) {
-        for (a = [0 : 45 : 359]) rotate(a) translate([15 - wall - 9, -0.8, 0]) cube([9.5, 1.6, stack_h + floor_t - 6]);
-        cylinder(d = 7, h = stack_h + floor_t - 6);
+    translate([sx2, sy2, lid_h - floor_t]) {
+        for (a = [0 : 45 : 359]) rotate(a) translate([15 - wall - 9, -0.8, 0]) cube([9.5, 1.6, roof_h + stack_h + floor_t - 6]);
+        cylinder(d = 7, h = roof_h + stack_h + floor_t - 6);
     }
-    // bolts around the stack foot
-    for (a = [0 : 60 : 359]) bolt_top((stack_d / 2 + 5 + 3) * cos(a), (stack_d / 2 + 8) * sin(a), lid_h + 4);
 }
 
 // two of these hold the screen frame against its pocket
