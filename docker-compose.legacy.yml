@@ -1,0 +1,28 @@
+# Optional: the folder names of the first version of this project.
+# With this file the apps also see /movies, /shows and /downloads, so a
+# config/ folder made with that version keeps working without changing any
+# path inside the apps. Switch it on with one line in .env:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.legacy.yml
+# The old second-drive names (disk_*) point at the same folders, since
+# everything now lives under DATA_ROOT.
+services:
+  transmission:
+    volumes:
+      - ${DATA_ROOT:-/mnt/storage}/complete:/downloads/complete
+      - ${DATA_ROOT:-/mnt/storage}/incomplete:/downloads/incomplete
+      - ${DATA_ROOT:-/mnt/storage}/complete:/downloads/disk_complete
+      - ${DATA_ROOT:-/mnt/storage}/incomplete:/downloads/disk_incomplete
+
+  radarr:
+    volumes:
+      - ${DATA_ROOT:-/mnt/storage}/movies:/movies
+      - ${DATA_ROOT:-/mnt/storage}/movies:/disk_movies
+      - ${DATA_ROOT:-/mnt/storage}/complete:/downloads/complete
+      - ${DATA_ROOT:-/mnt/storage}/complete:/downloads/disk_complete
+
+  sonarr:
+    volumes:
+      - ${DATA_ROOT:-/mnt/storage}/shows:/shows
+      - ${DATA_ROOT:-/mnt/storage}/shows:/disk_shows
+      - ${DATA_ROOT:-/mnt/storage}/complete:/downloads/complete
+      - ${DATA_ROOT:-/mnt/storage}/complete:/downloads/disk_complete

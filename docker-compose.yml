@@ -7,6 +7,9 @@
 # *__AUTH__* lines are empty and each app keeps its own login settings.
 # HOME_HOST is the name (or IP) the home page uses to link to the apps; it
 # defaults to dpi.lan. HOME_PORT is the port the home page is served on (80).
+# docker-compose.legacy.yml adds the folder names of the first version of this
+# project for installs that are being updated (see DEPLOY.md).
+# docker-compose.vpn.yml sends Transmission through a VPN (see README).
 # Never forward these ports to the internet.
 services:
   home:

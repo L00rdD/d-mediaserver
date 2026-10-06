@@ -23,6 +23,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 | **[Transmission](https://transmissionbt.com/)**| Fast, easy, and free BitTorrent client. | `9091` |
 | **[Prowlarr](https://prowlarr.com/)** | Indexer manager/proxy built to integrate with Sonarr/Radarr. | `9696` |
 | **[FlareSolverr](https://github.com/FlareSolverr/)**| Proxy server to bypass Cloudflare protection for indexers. | `8191` |
+| **[Gluetun](https://github.com/qdm12/gluetun)** | Optional VPN client that Transmission goes through (see VPN). | |
 
 ---
 
@@ -202,6 +203,36 @@ The search bar sends what you type straight to the right app: **Watch** looks fo
 The links point at `dpi.lan` by default. If your server answers to another name, set `HOME_HOST` in your `.env` (a name or an IP, without `http://`) and run `docker compose up -d` again. `HOME_HOST` does not create the name: it has to be one your network already resolves, usually the machine's hostname followed by your router's suffix (`.lan`, `.home`, `.local`).
 
 Each app is also reachable directly at `http://<YOUR-SERVER-IP>:<PORT>`. *Example:* To access Sonarr, type `http://192.168.1.33:8989`.
+
+---
+
+## 🛡️ VPN (optional)
+
+The VPN option sends **Transmission, and only Transmission**, through a VPN. It adds one container, [Gluetun](https://github.com/qdm12/gluetun), that holds the VPN connection; Transmission borrows its network and has no other way out.
+
+- **No leak:** when the VPN is down, Transmission is offline instead of downloading with your own address.
+- **No script to babysit it:** Gluetun checks the connection and reconnects by itself.
+- **Nothing else changes:** Jellyfin, the home page and the other apps keep their direct connection, and Radarr and Sonarr still reach Transmission under the same name.
+
+Add these lines to your `.env`, then run `docker compose up -d`:
+
+```text
+COMPOSE_FILE=docker-compose.yml:docker-compose.vpn.yml
+VPN_USER=your-service-username
+VPN_PASSWORD=your-service-password
+VPN_COUNTRY=Switzerland
+```
+
+`VPN_USER` and `VPN_PASSWORD` are the *service credentials* of your VPN account (NordVPN: *Set up NordVPN manually* in your account page), not the e-mail and password you log in with. `VPN_COUNTRY` is optional. The provider is NordVPN unless you set `VPN_PROVIDER` to another one [supported by Gluetun](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers). It needs Docker Compose 2.24 or newer.
+
+Check that it works: the two addresses must be different.
+
+```bash
+curl -s https://ipinfo.io/ip                                # your own address
+docker exec transmission curl -s https://ipinfo.io/ip       # the VPN's address
+```
+
+Good to know: NordVPN has no port forwarding, so Transmission downloads normally but uploads less. And as long as the VPN lines are wrong or empty, Transmission does not start at all: read `docker compose logs --tail 30 gluetun` to see why.
 
 ---
 

@@ -126,6 +126,52 @@ Run them from the `mediaserver` folder.
 
 ---
 
+## 🛡️ Optional: Download Through a VPN
+
+Nothing to do if you do not want one: without the lines below, Transmission keeps its direct connection, and every download then goes out with your own address.
+
+To send Transmission (and only Transmission) through a VPN, add this to your `.env` and run `docker compose up -d`:
+
+```text
+COMPOSE_FILE=docker-compose.yml:docker-compose.vpn.yml
+VPN_USER=your-service-username
+VPN_PASSWORD=your-service-password
+VPN_COUNTRY=Switzerland
+```
+
+It also combines with the update option above: `COMPOSE_FILE=docker-compose.yml:docker-compose.legacy.yml:docker-compose.vpn.yml`. The credentials, the leak-proof behaviour and how to check it are in the [VPN section of the README](README.md#%EF%B8%8F-vpn-optional).
+
+---
+
+## ⬆️ Updating an Install Made With the First Version
+
+The first version of this project gave the apps other folder names (`/movies`, `/shows`, `/downloads/...`), and the apps remember them. The compatibility file `docker-compose.legacy.yml` brings those names back next to `/data`, so the existing `config/` folder keeps working as it is: no path to change in any app, and every account, indexer and library stays.
+
+Your media folder must hold `movies/`, `shows/`, `complete/` and `incomplete/` side by side, as in step 2.
+
+1. Stop the stack and keep a copy of the settings:
+   ```bash
+   docker compose down
+   cp -a config config.backup
+   ```
+2. Replace the project files with the new version (`git pull`, or download it again as in step 1) and keep your `config/` folder where it is.
+3. Create the `.env` as in step 3 and also remove the `#` in front of this line:
+   ```text
+   COMPOSE_FILE=docker-compose.yml:docker-compose.legacy.yml
+   ```
+4. Start again:
+   ```bash
+   docker compose up -d
+   ```
+
+Good to know:
+
+- Plex is no longer part of the stack. If Docker mentions an orphan `plex` container and you do not use it anymore, run `docker compose up -d --remove-orphans` once.
+- If Jellyfin had libraries on `/data/disk_movies` or `/data/disk_shows` (the old second drive), remove those two folders from the libraries: their content now shows up in `/data/movies` and `/data/shows`.
+- Later, if you move the apps to the `/data` names (setup table above), you can delete the `COMPOSE_FILE` line.
+
+---
+
 ## 🩹 If Something Goes Wrong
 
 | What you see | Likely cause | Fix |
