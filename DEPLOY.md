@@ -64,7 +64,7 @@ id
 | `DATA_ROOT` | The media folder from step 2. | `/volume1/media` |
 | `PUID`, `PGID` | The two numbers printed by `id`. | `1026`, `100` |
 | `TZ` | Your time zone. | `Europe/Paris` |
-| `HOME_PORT` | Port of the home page. Change it when the device already uses port 80, which most NAS do. | `8080` |
+| `HOME_PORT` | Port of the home page. Change it when the device already uses port 80, which most NAS do. | `8088` |
 | `SKIP_LOCAL_LOGIN` | `1` to open Radarr, Sonarr and Prowlarr without a login at home. | `1` |
 
 ### 4. Start everything
@@ -73,7 +73,7 @@ id
 docker compose up -d
 ```
 
-The first start downloads the apps. When the command gives the prompt back, check that the seven containers are up:
+The first start downloads the apps. When the command gives the prompt back, check that the eight containers are up:
 
 ```bash
 docker compose ps
@@ -81,7 +81,7 @@ docker compose ps
 
 ### 5. Open the home page
 
-Go to `http://<name or IP of the device>:<HOME_PORT>`, for example `http://nas.lan:8080` or `http://192.168.1.50:8080`. Every app is one click away from there: the links reuse the address you typed.
+Go to `http://<name or IP of the device>:<HOME_PORT>`, for example `http://nas.lan:8088` or `http://192.168.1.50:8088`. Every app is one click away from there: the links reuse the address you typed.
 
 ---
 

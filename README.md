@@ -173,7 +173,7 @@ TZ=Europe/Paris
 # No login for Radarr, Sonarr and Prowlarr on the home network (see Passwords)
 SKIP_LOCAL_LOGIN=1
 # Port of the home page, if 80 is already taken (a NAS often uses it)
-HOME_PORT=8080
+HOME_PORT=8088
 ```
 
 Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/storage`, `1000:1000`, `Europe/Paris` and a home page at `http://dpi.lan`.
@@ -198,9 +198,11 @@ It is the only address to remember: it links to every app. Each app opens in its
 
 The search bar sends what you type straight to the right app: **Watch** looks for it in your Jellyfin library, **+ Movie** opens Radarr and **+ TV show** opens Sonarr with the search already running, ready to add.
 
+Under the apps, a bar shows how full the data disk is: a small `storage` container measures `DATA_ROOT` every minute and the page reads the result at `/disk.json`. The bar turns to the warning colour at 90 %.
+
 The links follow the address you typed to reach the home page: open it by name, by IP or through a private network such as ZeroTier, and every link and search goes to that same address.
 
-Each app is also reachable directly at `http://<YOUR-SERVER-IP>:<PORT>`. *Example:* To access Sonarr, type `http://192.168.1.33:8989`.
+Each app is also reachable directly at `http://<YOUR-SERVER-IP>:<PORT>`. *Example:* To access Sonarr, type `http://192.168.1.50:8989`.
 
 ---
 
