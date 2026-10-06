@@ -111,6 +111,7 @@
         "search search search"
         "p1 reactor p2"
         "p3 reactor p4"
+        "sto sto sto"
         "bot bot bot"
         "sap sap sap";
       gap: 28px 48px;
@@ -368,6 +369,11 @@
     .bot-list li { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr; gap: 12px; }
     .bot-list li span:last-child { text-align: right; }
     .bot-foot { display: block; margin-top: 12px; }
+    .storage { grid-area: sto; pointer-events: none; animation-delay: 0.5s; }
+    .st-row { display: flex; justify-content: space-between; gap: 14px; margin-top: 14px; font-family: var(--mono); font-size: 0.85rem; }
+    .st-bar { display: block; height: 10px; margin-top: 8px; background: rgba(255, 255, 255, 0.12); }
+    .st-bar i { display: block; height: 100%; background: var(--cyan); }
+    .st-bar i.full { background: var(--gold); }
     .sapling { grid-area: sap; animation-delay: 0.65s; }
 
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -383,6 +389,7 @@
           "reactor reactor"
           "p1 p2"
           "p3 p4"
+          "sto sto"
           "bot bot"
           "sap sap";
         gap: 16px;
@@ -397,7 +404,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "bot" "sap";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap";
       }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -458,6 +465,12 @@
       <span class="port">:9696</span>
     </a>
 
+    <div class="panel bot storage" id="storage" hidden aria-label="Storage used">
+      <span class="tag"><i>00</i> // Storage</span>
+      <div class="st-row"><span data-st="used"></span><span><span data-st="free"></span> · <span data-st="pct"></span></span></div>
+      <span class="st-bar"><i data-st="fill"></i></span>
+    </div>
+
     <a class="panel bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
       <span class="tag"><i>05</i> // Trading bot <em data-tb="mode">PAPER</em> <span data-tb="state">Running</span></span>
       <dl class="bot-stats">
@@ -477,6 +490,7 @@
       <span class="tag bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></span>
     </a>
   </main>
+  <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
 </body>
