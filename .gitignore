@@ -10,3 +10,6 @@ data/
 # Ignore macOS/Linux system files
 .DS_Store
 Thumbs.db
+
+# Python bytecode (enclosure/scad2step.py)
+__pycache__/
