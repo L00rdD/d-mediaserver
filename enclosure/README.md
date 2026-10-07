@@ -13,7 +13,10 @@ along the top and the bottom of every stage, the solid fields carry seigaiha
 waves in relief, the corner posts wear three rings per stage, and the lid is
 a pagoda roof with an eave and a ridge, the two exhaust stacks rising from
 it like finials. Two round moon windows with ring grilles feed the base.
-Every opening is a real one.
+Every opening is a real one. The floors of the riser, hub, compute and disk
+stages are latticed too (same triangle grid, 2 mm bars, solid under the
+stops, the Pi standoffs and the cable pass-through), so the lid fan draws air
+up through the whole tower, from the base slots to the roof.
 
 ![tower](renders/color.png)
 
@@ -70,13 +73,15 @@ Everything is sized generously. Measure the real parts and adjust the
 
 Print settings for ABS-like resin: trays rim up, lid top down, tilted 10 to 15°
 on two axes, medium supports under the rim and the bosses. Walls are 2.5 mm,
-floors 3.5 mm; the floor slots double as drain holes. The lattice openings
+floors 3.5 mm; the floor slots and the floor lattice double as drain holes. The lattice openings
 are about 7 mm triangles, easy to drain and to clean with a brush. The lid
 prints roof down: the stacks, the eave and the fins need supports.
 
 ## Hardware
 
-- 20 magnets 6 × 2 mm (4 per joint), glued
+- 40 magnets 6 × 2 mm for the standard stack (8 per joint: 4 at the top of the
+  stage below, 4 at the bottom of the stage above; 4 more per extra stage), glued
+  with the poles checked; or half of them replaced by 6 × 2 mm steel discs
 - 4 M2.5 × 6 screws for the Pi, 4 M3 × 8 for the screen clips, 4 M3 × 20 for the fan
 - 4 self-adhesive rubber feet, 12 mm
 - Noctua NF-A4x10 5V PWM fan, driven from the Pi GPIO

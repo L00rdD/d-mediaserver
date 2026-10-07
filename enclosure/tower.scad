@@ -90,6 +90,9 @@ lat_pitch   = 9;              // lattice pitch
 lat_w       = 1.6;            // lattice bar width
 wave_p      = 11;             // seigaiha scale pitch
 frame_w     = 3;              // raised frame around each window
+floor_p     = 9;              // floor lattice pitch (the walls' asanoha, same pitch)
+floor_bar   = 2;              // floor lattice bar width, thicker than on the walls
+floor_edge  = 3;              // solid border kept around the floor lattice
 roof_h      = 12;             // pagoda roof rise
 eave        = 5;              // roof overhang
 
@@ -208,6 +211,30 @@ module tray(h, passthrough = true) {
         }
         pockets(0, h);
     }
+}
+
+// the floor lattice: whole triangular openings of the asanoha grid, kept only
+// where they fit inside the plug with a solid border and clear of `pads`
+// (circles [x, y, r]) and of the cable pass-through. Base excluded: its floor
+// has the vent slots and carries the strip and the bricks.
+function _floor_in(q) = let(hx = inner_w / 2 - wall - lip_clr, hy = inner_d / 2 - wall - lip_clr, m = floor_edge)
+    abs(q[0]) <= hx - m && abs(q[1]) <= hy - m && abs(q[0]) + abs(q[1]) <= hx + hy - (chamfer - 2 * wall) - m * sqrt(2);
+function _floor_v(i, k) = let(s = floor_p / sin(60)) [k * s + i * s / 2, i * floor_p];
+function _floor_open(t) = let(c = (t[0] + t[1] + t[2]) / 3, f = (floor_p / 3 - floor_bar / 2) / (floor_p / 3)) [for (q = t) c + (q - c) * f];
+function _floor_samples(o) = concat(o, [for (a = [0 : 2], f = [0.25, 0.5, 0.75]) o[a] + (o[(a + 1) % 3] - o[a]) * f], [(o[0] + o[1] + o[2]) / 3]);
+function _floor_clear(pts, pads) =
+    let(cy = inner_d / 2 - cable[1] / 2 - wall - 4, rx = cable[0] / 2 + floor_edge, ry = cable[1] / 2 + floor_edge,
+        all_pads = concat(pads, [for (sx = [-1, 1], sy = [-1, 1]) [sx * (inner_w / 2 - (chamfer - wall) / 2), sy * (inner_d / 2 - (chamfer - wall) / 2), col_d / 2 + lip_clr + floor_edge]]))
+    len([for (q = pts) if (abs(q[0]) <= rx && abs(q[1] - cy) <= ry) 1]) == 0 &&
+    len([for (q = pts, c = all_pads) if (norm(q - [c[0], c[1]]) <= c[2]) 1]) == 0;
+function floor_openings(pads = []) =
+    [for (i = [-8 : 8], k = [-14 : 14],
+          t = [[_floor_v(i, k), _floor_v(i, k + 1), _floor_v(i + 1, k)], [_floor_v(i, k + 1), _floor_v(i + 1, k + 1), _floor_v(i + 1, k)]])
+        let(o = _floor_open(t))
+        if (_floor_in(o[0]) && _floor_in(o[1]) && _floor_in(o[2]) && _floor_clear(_floor_samples(o), pads)) o];
+module floor_lattice(pads = []) {
+    color(c_body) translate([0, 0, -lip_h - 1]) linear_extrude(lip_h + 1)
+        for (o = floor_openings(pads)) polygon(o);
 }
 
 module rear_passthrough() {
@@ -422,6 +449,7 @@ module riser() {
     difference() {
         union() { color(c_body) tray(riser_h); post_rings(riser_h); bands(riser_h); windows(riser_h); color(c_trim) on_face("F", 0, field_z(riser_h), band_t * 2) waves2d(face_w - 4, field_h(riser_h)); }
         windows(riser_h, cut = true);
+        floor_lattice();
     }
 }
 
@@ -429,6 +457,8 @@ module hub_stage() {
     difference() {
         union() { color(c_body) tray(hub_h); post_rings(hub_h); bands(hub_h); windows(hub_h); color(c_trim) on_face("F", 0, field_z(hub_h), band_t * 2) waves2d(face_w - 4, field_h(hub_h)); }
         windows(hub_h, cut = true);
+        // keep the floor solid under the hub stops
+        floor_lattice([for (sx = [-1, 1], sy = [-1, 1]) [sx * (hub[0] / 2 + 1), inner_d / 2 - hub[1] / 2 - 3 + sy * (hub[1] / 2 + 1), 16]]);
         // the 7 USB ports face the rear
         color(c_body) translate([0, D / 2, hub[2] / 2 + 4]) cube([hub[0] + 2, wall * 3, hub[2] - 2], center = true);
     }
@@ -461,6 +491,8 @@ module compute() {
             }
         }
         windows(compute_h, cut = true);
+        // keep the floor solid under the Pi standoffs
+        floor_lattice([for (sx = [-1, 1], sy = [-1, 1]) [pi_at[0] + sx * pi_holes[0] / 2, pi_at[1] + sy * pi_holes[1] / 2, 6.5]]);
         // pocket from the outside, then the window through
         color(c_body) translate([0, -D / 2 - 3, zc]) cube([screen[0] + 0.6, 2 * (3 + screen_t + 0.5), screen[1] + 0.6], center = true);
         color(c_body) translate([0, -D / 2, zc]) cube([win[0], 40, win[1]], center = true);
@@ -482,6 +514,8 @@ module disk() {
     difference() {
         union() { color(c_body) tray(disk_h); post_rings(disk_h); bands(disk_h); windows(disk_h); color(c_trim) on_face("F", 0, field_z(disk_h), band_t * 2) waves2d(face_w - 4, field_h(disk_h)); }
         windows(disk_h, cut = true);
+        // keep the floor solid under the drive stops
+        floor_lattice([for (sx = [-1, 1], sy = [-1, 1]) [-inner_w / 2 + disk_bay[0] / 2 + 6 + sx * (disk_bay[0] / 2 + 1), sy * (disk_bay[1] / 2 + 1), 16]]);
     }
     color(c_body) stops(disk_bay, at = [-inner_w / 2 + disk_bay[0] / 2 + 6, 0], h = 6);
 }
