@@ -150,7 +150,10 @@ module port(x, z) {
     color(c_body) translate([x, -D / 2, z]) rotate([90, 0, 0]) {
         translate([0, 0, -2]) cylinder(d = port_d, h = 3);                       // recess
         for (r = [7, 12.5, 18]) translate([0, 0, -wall - 3])
-            linear_extrude(wall + 5) difference() { circle(r = r + 1.1); circle(r = r - 1.1); }
+            linear_extrude(wall + 5) difference() {
+                circle(r = r + 1.1); circle(r = r - 1.1);
+                for (a = [45, 135]) rotate(a) square([2.4, 2 * port_d], center = true);   // spokes hold the rings
+            }
     }
 }
 
@@ -168,31 +171,43 @@ module plug_2d() {
     }
 }
 
-// corner columns from z0 to z1, a magnet pocket at both ends
+// corner columns from z0 to z1
 module columns(z0, z1) {
-    col_xy() difference() {
-        translate([0, 0, z0]) cylinder(d = col_d, h = z1 - z0);
-        if (magnets) {
-            translate([0, 0, z1 - magnet_h]) cylinder(d = magnet_d, h = magnet_h + 1);
-            translate([0, 0, z0 - 1]) cylinder(d = magnet_d, h = magnet_h + 1);
-        }
+    col_xy() translate([0, 0, z0]) cylinder(d = col_d, h = z1 - z0);
+}
+
+// magnet pockets at the ends of the columns, cut from the whole stage
+// (the column is half sunk in the wall, so a pocket cut from the column alone
+// would leave a crescent of wall inside it)
+module pockets(z0, z1, top = true) {
+    if (magnets) col_xy() {
+        if (top) translate([0, 0, z1 - magnet_h]) cylinder(d = magnet_d, h = magnet_h + 1);
+        translate([0, 0, z0 - 1]) cylinder(d = magnet_d, h = magnet_h + 1);
     }
 }
 
-// a tray: floor at the bottom of the plug, open at the top
+// a tray: floor at the bottom of the plug, open at the top. The plug sits
+// inside the footprint of the cavity above it, so a ring `tie_h` tall at the
+// foot of the walls joins the walls to the plug and the floor.
+tie_h = 1.5;
 module tray(h, passthrough = true) {
     difference() {
         union() {
-            translate([0, 0, -lip_h]) linear_extrude(lip_h + 0.01) plug_2d();
-            linear_extrude(h) hull_2d(W, D, chamfer);
-            collars(h / 2 - collar_h / 2);
+            difference() {
+                union() {
+                    translate([0, 0, -lip_h]) linear_extrude(lip_h + 0.01) plug_2d();
+                    linear_extrude(h) hull_2d(W, D, chamfer);
+                    collars(h / 2 - collar_h / 2);
+                }
+                color(c_body) translate([0, 0, tie_h]) linear_extrude(h + 1) cham(inner_w, inner_d, chamfer - wall);
+                color(c_body) translate([0, 0, -lip_h + floor_t])
+                    linear_extrude(lip_h) cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
+                if (passthrough) rear_passthrough();
+            }
+            columns(0, h);
         }
-        color(c_body) translate([0, 0, -0.01]) linear_extrude(h + 1) cham(inner_w, inner_d, chamfer - wall);
-        color(c_body) translate([0, 0, -lip_h + floor_t])
-            linear_extrude(lip_h) cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
-        if (passthrough) rear_passthrough();
+        pockets(0, h);
     }
-    columns(0, h);
 }
 
 module rear_passthrough() {
@@ -438,7 +453,7 @@ module compute() {
             }
             // thicker front plate so the frame can sit in a pocket
             color(c_body) translate([0, -inner_d / 2 + screen_t / 2 + 0.5, zc])
-                cube([screen[0] + 24, screen_t + 1, screen[1] + 16], center = true);
+                cube([screen[0] + 30, screen_t + 1, screen[1] + 16], center = true);   // wide enough to meet the corner columns
             // bezel
             color(c_trim) translate([0, -D / 2, zc]) rotate([90, 0, 0]) difference() {
                 linear_extrude(3) cham(bez[0], bez[1], 4);
@@ -506,15 +521,16 @@ module lid() {
                 cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
         for (sx = [-1, 1], sy = [-1, 1])
             translate([sx * fan_holes / 2, sy * fan_holes / 2, lid_h - floor_t - 1]) cylinder(d = fan_hole_d, h = floor_t + 2);
+        pockets(0, lid_h, top = false);
     }
-    color(c_body) columns(0, lid_h - floor_t + 0.01);
+    color(c_body) difference() { columns(0, lid_h - floor_t + 0.01); pockets(0, lid_h, top = false); }
     // radial fins and a hub close the stacks: the grilles over the openings
     color(c_trim) translate([0, 0, lid_h - floor_t]) {
-        for (a = [0 : 30 : 359]) rotate(a) translate([stack_d / 2 - wall - 20, -1, 0]) cube([20.5, 2, roof_h + stack_h + floor_t - 1]);
+        for (a = [0 : 30 : 359]) rotate(a) translate([8, -1, 0]) cube([stack_d / 2 - wall - 8 + 0.5, 2, roof_h + stack_h + floor_t - 1]);   // from the hub into the tube wall
         difference() { cylinder(d = 18, h = roof_h + stack_h + floor_t - 1); translate([0, 0, 1.5]) cylinder(d = 14, h = 40); }
     }
     color(c_trim) translate([sx2, sy2, lid_h - floor_t]) {
-        for (a = [0 : 45 : 359]) rotate(a) translate([15 - wall - 9, -0.8, 0]) cube([9.5, 1.6, roof_h + stack_h + floor_t - 6]);
+        for (a = [0 : 45 : 359]) rotate(a) translate([3, -0.8, 0]) cube([15 - wall - 3 + 0.5, 1.6, roof_h + stack_h + floor_t - 6]);
         cylinder(d = 7, h = roof_h + stack_h + floor_t - 6);
     }
 }

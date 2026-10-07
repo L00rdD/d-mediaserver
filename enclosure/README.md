@@ -49,6 +49,10 @@ Outer size: 190 × 110 mm over the pipes, about 385 mm tall with two disk stages
   `assembly` shows the stack exploded, with ghosts of the parts to check the room.
 - `stl/`: one STL per part, exported from the current parameters. `disk.pwscene`
   is the Photon Workshop scene of the disk stage, with its orientation and supports.
+- `step/`: the same parts as STEP (AP214), real solids for CAD tools rather than
+  meshes. Made by `scad2step.py`, which runs OpenSCAD for the 2D profiles and
+  [FreeCAD](https://www.freecad.org) for the solids and the export; the header of
+  the script says how to run it. Re-run it after changing the model, like the STLs.
 - `renders/`: reference pictures.
 
 ## Before printing
