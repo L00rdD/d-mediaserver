@@ -1,4 +1,4 @@
-{{- /* "Cyberpunk" look. The links reuse the name or IP typed to reach this page */ -}}
+{{- /* "Cyberpunk" look, after the Cyberpunk 2077 in-game menus. The links reuse the name or IP typed to reach this page */ -}}
 {{- $host := .Host -}}
 <!doctype html>
 <html lang="en">
@@ -6,18 +6,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Media Server</title>
+  <link rel="preload" href="/fonts/rajdhani-600.woff2" as="font" type="font/woff2" crossorigin>
   <style>
+    /* Rajdhani (SIL OFL, fonts/OFL.txt) is the closest free match to the game's UI font */
+    @font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(/fonts/rajdhani-500.woff2) format("woff2"); }
+    @font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(/fonts/rajdhani-600.woff2) format("woff2"); }
+    @font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(/fonts/rajdhani-700.woff2) format("woff2"); }
+
     :root {
       color-scheme: dark;
-      --bg: #08080c;
-      --panel: #111118;
-      --yellow: #fcee0a;
-      --cyan: #00f0ff;
-      --red: #ff003c;
-      --line: rgba(0, 240, 255, 0.4);
-      --muted: #8a8c99;
-      --display: "Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", "Helvetica Neue", system-ui, sans-serif;
+      --bg: #07080d;
+      --panel: rgba(14, 12, 20, 0.92);
+      --red: #ff6158;
+      --red-dim: rgba(255, 97, 88, 0.42);
+      --red-faint: rgba(255, 97, 88, 0.09);
+      --cyan: #5ef6ff;
+      --yellow: #f3e600;
+      --green: #39ff88;
+      --text: #f1e9e4;
+      --muted: #a2726d;
+      --display: "Rajdhani", "Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
       --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --notch: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
     }
     * { box-sizing: border-box; }
     html { height: 100%; }
@@ -26,47 +36,109 @@
       min-height: 100%;
       display: flex;
       flex-direction: column;
-      color: #f2f2f5;
-      font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      font: 500 17px/1.35 var(--display);
       background:
-        radial-gradient(ellipse at 90% 105%, rgba(255, 0, 60, 0.22), transparent 55%),
-        radial-gradient(ellipse at 0% 0%, rgba(0, 240, 255, 0.12), transparent 50%),
+        radial-gradient(ellipse at 85% 110%, rgba(255, 97, 88, 0.20), transparent 55%),
+        radial-gradient(ellipse at 5% -10%, rgba(94, 246, 255, 0.10), transparent 50%),
+        linear-gradient(rgba(255, 97, 88, 0.05) 1px, transparent 1px) 0 0 / 48px 48px,
+        linear-gradient(90deg, rgba(255, 97, 88, 0.05) 1px, transparent 1px) 0 0 / 48px 48px,
         var(--bg);
     }
-    /* Scanlines over the whole screen */
+    /* Scanlines and a dark vignette over the whole screen, like a screen seen through optics */
     body::after {
       content: "";
       position: fixed;
       inset: 0;
+      z-index: 50;
       pointer-events: none;
-      background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
+      background:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.55));
     }
-    a { text-decoration: none; outline: none; }
+    a { color: inherit; text-decoration: none; outline: none; }
 
-    /* Top: hazard stripes, glitching title, host */
-    .hazard {
-      height: 10px;
-      background: repeating-linear-gradient(-45deg, var(--yellow) 0 14px, #000 14px 28px);
+    /* Boot sequence: plays once per tab session (see the script at the bottom), fades out by itself */
+    .boot {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 8vw;
+      background: var(--bg);
+      font: 0.85rem/1.5 var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--red);
+      animation: boot-out 0.35s 1.9s ease-in forwards;
+    }
+    .boot p { margin: 0; opacity: 0; animation: boot-line 0.01s forwards; }
+    .boot p:nth-child(2) { animation-delay: 0.25s; }
+    .boot p:nth-child(3) { animation-delay: 0.5s; }
+    .boot p:nth-child(4) { animation-delay: 0.8s; }
+    .boot p:nth-child(5) { animation-delay: 1.1s; }
+    .boot p:nth-child(6) { animation-delay: 1.45s; color: var(--yellow); }
+    .boot b { font-weight: inherit; color: var(--cyan); }
+    .boot .ok { color: var(--green); }
+    .boot-skip .boot { display: none; }
+
+    /* Vertical katakana down the right edge, "media server / night city" */
+    .kana {
+      position: fixed;
+      top: 50%;
+      right: 14px;
+      transform: translateY(-50%);
+      writing-mode: vertical-rl;
+      font: 600 0.8rem/1 var(--mono);
+      letter-spacing: 0.5em;
+      color: var(--red-dim);
+      pointer-events: none;
+    }
+
+    /* Top HUD */
+    .hud-line {
+      height: 3px;
+      background: linear-gradient(90deg, var(--red) 0 22%, transparent 22% 23%, var(--red-dim) 23% 70%, transparent 70% 71%, var(--cyan) 71% 74%, var(--red-dim) 74%);
     }
     .bar {
       display: flex;
       flex-wrap: wrap;
       align-items: flex-end;
       justify-content: space-between;
-      gap: 12px 24px;
+      gap: 14px 24px;
       width: 100%;
-      max-width: 1120px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 28px 24px 0;
+      padding: 26px 32px 0;
+    }
+    .brand { display: flex; align-items: center; gap: 16px; }
+    .logo {
+      width: 46px;
+      height: 46px;
+      flex: none;
+      border: 2px solid var(--red);
+      clip-path: polygon(30% 0, 100% 0, 100% 70%, 70% 100%, 0 100%, 0 30%);
+      background:
+        linear-gradient(135deg, transparent 0 44%, var(--red) 44% 56%, transparent 56%),
+        var(--red-faint);
+    }
+    .brand small {
+      display: block;
+      font: 0.7rem var(--mono);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
     h1 {
       margin: 0;
-      font: 800 clamp(2.2rem, 7vw, 3.8rem) / 0.95 var(--display);
-      font-stretch: condensed;
-      letter-spacing: 0.02em;
+      font: 700 clamp(2.2rem, 6.5vw, 3.6rem) / 0.9 var(--display);
+      letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--yellow);
-      transform: skewX(-8deg);
+      color: var(--red);
+      text-shadow: 0 0 18px rgba(255, 97, 88, 0.45);
     }
     .glitch { position: relative; display: inline-block; }
     .glitch::before, .glitch::after {
@@ -74,200 +146,304 @@
       position: absolute;
       inset: 0;
       clip-path: inset(50% 0 50% 0);
+      text-shadow: none;
     }
-    .glitch::before { color: var(--cyan); animation: glitch-a 4s steps(1) infinite; }
-    .glitch::after { color: var(--red); animation: glitch-b 4s steps(1) infinite; }
+    .glitch::before { color: var(--cyan); animation: glitch-a 5s steps(1) infinite; }
+    .glitch::after { color: var(--yellow); animation: glitch-b 5s steps(1) infinite; }
     .status {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 8px 16px;
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      letter-spacing: 0.16em;
+      gap: 8px 18px;
+      font: 0.75rem var(--mono);
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--muted);
     }
-    .status b { font-weight: inherit; color: var(--cyan); text-transform: none; letter-spacing: 0.05em; }
-    .online {
-      padding: 3px 10px 3px 8px;
-      color: #000;
-      background: var(--yellow);
-      font-weight: 700;
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%);
-    }
+    .status b { font-weight: inherit; color: var(--cyan); letter-spacing: 0.06em; }
+    .status .clock { color: var(--text); }
+    .online { color: var(--green); }
     .online::before {
       content: "";
       display: inline-block;
       width: 7px;
       height: 7px;
       margin-right: 8px;
-      background: var(--red);
-      animation: blink 1.2s steps(1) infinite;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: blink 1.4s steps(1) infinite;
     }
+    .signal { display: inline-flex; align-items: flex-end; gap: 2px; height: 11px; margin-left: 6px; vertical-align: -1px; }
+    .signal i { width: 3px; background: var(--cyan); }
+    .signal i:nth-child(1) { height: 30%; }
+    .signal i:nth-child(2) { height: 55%; }
+    .signal i:nth-child(3) { height: 80%; }
+    .signal i:nth-child(4) { height: 100%; opacity: 0.3; }
     /* Style switch: the current look is filled, the other one is a link */
     .styles { display: flex; }
-    .styles > * {
-      padding: 3px 10px;
-      border: 1px solid var(--cyan);
-      color: var(--cyan);
-    }
+    .styles > * { padding: 3px 10px; border: 1px solid var(--red-dim); color: var(--red); }
     .styles > * + * { margin-left: -1px; }
-    .styles span { color: #000; background: var(--cyan); font-weight: 700; }
-    .styles a:hover, .styles a:focus-visible {
-      position: relative;
-      color: #000;
-      background: var(--yellow);
-      border-color: var(--yellow);
-    }
+    .styles span { color: #000; background: var(--red); border-color: var(--red); font-weight: 700; }
+    .styles a:hover, .styles a:focus-visible { position: relative; color: #000; background: var(--cyan); border-color: var(--cyan); }
 
     main {
       flex: 1;
       display: grid;
       align-content: center;
       grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-      gap: 26px;
+      gap: 22px 26px;
       width: 100%;
-      max-width: 1120px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 36px 24px 56px;
+      padding: 30px 32px 40px;
     }
+    .job { display: flex; flex-direction: column; min-width: 0; }
+    /* Section titles, like the journal tabs: thin rule, small caps, a counter */
+    .label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 12px;
+      font: 700 0.8rem/1 var(--display);
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--red);
+    }
+    .label::before { content: ""; width: 8px; height: 8px; background: currentColor; transform: rotate(45deg); }
+    .label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--red-dim), transparent); }
+    .label small { font: 0.7rem var(--mono); letter-spacing: 0.2em; color: var(--muted); }
+    .label.tracked { color: var(--yellow); }
+    .label.wide { grid-column: 1 / -1; margin: 10px 0 -8px; }
+    /* Only shown when one of the cards below it is */
+    .telemetry { display: none; }
+    main:has(.bot:not([hidden])) .telemetry { display: flex; }
 
-    /* Search: one field, one button per app (see /search in the Caddyfile) */
+    /* Search, styled as a command line: one field, one button per app (see /search in the Caddyfile) */
     .search {
       grid-column: 1 / -1;
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      animation: slide 0.5s ease-out both;
+      animation: flicker-in 0.6s ease-out both;
     }
+    .prompt {
+      position: relative;
+      flex: 1 1 280px;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--red-dim);
+      border-left: 4px solid var(--red);
+    }
+    .prompt::before {
+      content: ">";
+      padding: 0 4px 0 14px;
+      font: 700 1rem var(--mono);
+      color: var(--red);
+    }
+    .prompt:focus-within { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan), 0 0 18px rgba(94, 246, 255, 0.25); }
+    .prompt:focus-within::before { color: var(--cyan); }
     .search input, .search button {
       min-height: 46px;
-      border: 1px solid var(--line);
       border-radius: 0;
       outline: none;
       -webkit-appearance: none;
       appearance: none;
-      font-family: var(--mono);
     }
     .search input {
-      flex: 1 1 260px;
+      flex: 1;
       min-width: 0;
-      padding: 0 16px;
-      color: #fff;
-      background: var(--panel);
-      border-left: 6px solid var(--yellow);
-      font-size: 1rem;
+      padding: 0 14px 0 6px;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      font: 1rem var(--mono);
       letter-spacing: 0.05em;
     }
-    .search input::placeholder {
-      color: var(--muted);
-      font-size: 0.8rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-    }
-    .search input:focus { border-color: var(--yellow); }
+    .search input::placeholder { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase; }
     .search button {
-      padding: 0 20px;
-      color: var(--cyan);
-      background: transparent;
-      border-color: var(--cyan);
-      font-size: 0.8rem;
-      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 18px 0 10px;
+      color: var(--red);
+      background: var(--red-faint);
+      border: 1px solid var(--red-dim);
+      font: 700 0.9rem var(--display);
       letter-spacing: 0.18em;
       text-transform: uppercase;
       cursor: pointer;
-    }
-    .search button:first-of-type {
-      color: #000;
-      background: var(--yellow);
-      border-color: var(--yellow);
       clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
     }
-    .search button:hover, .search button:focus-visible {
-      color: #000;
-      background: var(--cyan);
-      border-color: var(--cyan);
+    /* Key hint, as on the in-game buttons */
+    .search button kbd {
+      display: inline-grid;
+      place-items: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 4px;
+      border: 1px solid currentColor;
+      font: 600 0.7rem var(--mono);
+      letter-spacing: 0;
     }
+    .search button:first-of-type { color: #000; background: var(--yellow); border-color: var(--yellow); }
+    .search button:hover, .search button:focus-visible { color: #000; background: var(--cyan); border-color: var(--cyan); }
 
-    /* Yellow slab = Jellyfin, the main action */
+    /* Scanner reticle: yellow corner brackets that close in on the hovered item, and a sweeping line */
+    .scan {
+      position: absolute;
+      inset: 7px;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(1.06);
+      transition: opacity 0.15s, transform 0.2s ease-out;
+      --b: var(--yellow);
+      background:
+        linear-gradient(var(--b), var(--b)) 0 0 / 16px 2px, linear-gradient(var(--b), var(--b)) 0 0 / 2px 16px,
+        linear-gradient(var(--b), var(--b)) 100% 0 / 16px 2px, linear-gradient(var(--b), var(--b)) 100% 0 / 2px 16px,
+        linear-gradient(var(--b), var(--b)) 0 100% / 16px 2px, linear-gradient(var(--b), var(--b)) 0 100% / 2px 16px,
+        linear-gradient(var(--b), var(--b)) 100% 100% / 16px 2px, linear-gradient(var(--b), var(--b)) 100% 100% / 2px 16px;
+      background-repeat: no-repeat;
+    }
+    .scan::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 40%;
+      top: -40%;
+      background: linear-gradient(transparent, rgba(94, 246, 255, 0.16) 85%, rgba(94, 246, 255, 0.7) 100%);
+    }
+    a:hover > .scan, a:focus-visible > .scan { opacity: 1; transform: none; }
+    a:hover > .scan::after, a:focus-visible > .scan::after { animation: sweep 0.7s ease-out; }
+
+    /* Main job = Jellyfin, the tracked one */
     .slab {
       position: relative;
+      isolation: isolate;
+      flex: 1;
       display: flex;
       flex-direction: column;
-      min-height: 320px;
-      padding: 26px 30px 28px;
-      color: #000;
+      min-height: 330px;
+      padding: 24px 28px 26px 34px;
       background: var(--yellow);
       clip-path: polygon(0 0, calc(100% - 36px) 0, 100% 36px, 100% 100%, 36px 100%, 0 calc(100% - 36px));
-      transition: background-color 0.12s, transform 0.15s;
-      animation: slide 0.5s ease-out both;
+      animation: flicker-in 0.6s ease-out both;
     }
+    .slab::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      z-index: -1;
+      clip-path: inherit;
+      background:
+        linear-gradient(160deg, rgba(243, 230, 0, 0.16), transparent 55%),
+        repeating-linear-gradient(-45deg, transparent 0 10px, rgba(243, 230, 0, 0.035) 10px 11px),
+        var(--bg);
+      transition: background-color 0.15s;
+    }
+    .slab::after {
+      content: "";
+      position: absolute;
+      top: 36px;
+      bottom: 36px;
+      left: 0;
+      width: 6px;
+      background: var(--yellow);
+    }
+    .slab .scan { --b: var(--cyan); }
     .slab-tag {
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.2em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font: 0.72rem var(--mono);
+      letter-spacing: 0.22em;
       text-transform: uppercase;
+      color: var(--yellow);
     }
+    .slab-tag::before { content: ""; width: 9px; height: 9px; border: 2px solid currentColor; transform: rotate(45deg); }
+    /* Breach protocol code matrix, decoration only */
+    .matrix {
+      position: absolute;
+      top: 54px;
+      right: 30px;
+      display: grid;
+      grid-template-columns: repeat(5, auto);
+      gap: 4px 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(243, 230, 0, 0.25);
+      font: 600 0.72rem var(--mono);
+      color: rgba(243, 230, 0, 0.35);
+    }
+    .matrix::before {
+      content: "Code matrix";
+      grid-column: 1 / -1;
+      margin-bottom: 4px;
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(243, 230, 0, 0.6);
+    }
+    .matrix .hit { color: var(--bg); background: var(--cyan); padding: 0 2px; margin: 0 -2px; }
     .slab-name {
       margin-top: auto;
-      font: 800 clamp(3rem, 8vw, 4.6rem) / 0.9 var(--display);
-      font-stretch: condensed;
+      font: 700 clamp(3.2rem, 8vw, 5rem) / 0.85 var(--display);
+      letter-spacing: 0.02em;
       text-transform: uppercase;
-      transform: skewX(-8deg);
-      transform-origin: left bottom;
-    }
-    .slab-sub { margin-top: 10px; font-weight: 600; }
-    .slab-foot {
-      display: flex;
-      align-items: stretch;
-      gap: 14px;
-      margin-top: 22px;
-      padding-left: 30px;
-    }
-    .cta {
-      padding: 9px 18px;
       color: var(--yellow);
-      background: #000;
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      font-weight: 700;
+      text-shadow: 0 0 24px rgba(243, 230, 0, 0.35);
+    }
+    .slab-sub { margin-top: 10px; font-size: 1.05rem; color: var(--text); }
+    .slab-sub em { font-style: normal; color: var(--yellow); letter-spacing: 0.18em; text-transform: uppercase; font-size: 0.8rem; margin-right: 8px; }
+    .slab-foot { display: flex; align-items: stretch; gap: 14px; margin-top: 22px; }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 18px 8px 10px;
+      color: #000;
+      background: var(--yellow);
+      font: 700 0.95rem var(--display);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      transition: color 0.12s, padding 0.15s;
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);
+      transition: padding 0.15s, background-color 0.12s;
     }
+    .cta kbd { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1px solid #000; font: 600 0.7rem var(--mono); }
     .cta::after { content: "_"; animation: blink 1s steps(1) infinite; }
     /* barcode-like decoration */
     .code {
       flex: 1;
       max-width: 150px;
-      background: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 5px, #000 5px 9px, transparent 9px 11px, #000 11px 12px, transparent 12px 17px);
+      opacity: 0.55;
+      background: repeating-linear-gradient(90deg, var(--yellow) 0 2px, transparent 2px 5px, var(--yellow) 5px 9px, transparent 9px 11px, var(--yellow) 11px 12px, transparent 12px 17px);
     }
-    .slab:hover, .slab:focus-visible { background: var(--cyan); transform: translate(-3px, -3px); }
-    .slab:hover .cta, .slab:focus-visible .cta { color: var(--cyan); padding-right: 30px; }
+    .slab:hover::before, .slab:focus-visible::before { background-color: #15140a; }
+    .slab:hover .slab-name, .slab:focus-visible .slab-name { animation: glitch-text 0.35s steps(2) 1; }
+    .slab:hover .cta, .slab:focus-visible .cta { background: var(--cyan); padding-right: 30px; }
 
-    /* Cards = the other apps */
+    /* Side jobs = the other apps */
     .cards {
+      flex: 1;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
+      gap: 16px;
     }
     .card {
-      --fg: var(--yellow);
-      --fg2: var(--cyan);
-      --dim: var(--muted);
+      --edge: var(--red-dim);
       --fill: var(--panel);
       position: relative;
       isolation: isolate;
       display: flex;
       flex-direction: column;
       min-height: 150px;
-      padding: 18px 20px 20px 28px;
-      background: var(--line);
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
-      transition: transform 0.15s;
-      animation: slide 0.5s ease-out both;
+      padding: 16px 20px 18px 26px;
+      background: var(--edge);
+      clip-path: var(--notch);
+      transition: background-color 0.12s;
+      animation: flicker-in 0.6s ease-out both;
     }
     .card:nth-child(1) { animation-delay: 0.08s; }
     .card:nth-child(2) { animation-delay: 0.16s; }
@@ -279,76 +455,59 @@
       position: absolute;
       inset: 1px;
       z-index: -1;
-      background: var(--fill);
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+      background: linear-gradient(135deg, var(--red-faint), transparent 60%), var(--fill);
+      clip-path: var(--notch);
       transition: background-color 0.12s;
     }
     .card::after {
       content: "";
       position: absolute;
-      top: 0;
-      bottom: 0;
+      top: 14px;
+      bottom: 30px;
       left: 0;
-      width: 6px;
+      width: 4px;
       background: var(--red);
     }
-    .num, .port {
-      font-family: var(--mono);
-      font-size: 0.75rem;
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font: 0.7rem var(--mono);
       letter-spacing: 0.2em;
-      color: var(--dim);
+      text-transform: uppercase;
+      color: var(--muted);
     }
-    .port { position: absolute; top: 18px; right: 20px; }
+    .card-head b { font-weight: inherit; color: var(--red); }
     .name {
       margin-top: auto;
-      font: 800 clamp(1.6rem, 3.4vw, 2.2rem) / 1 var(--display);
-      font-stretch: condensed;
-      letter-spacing: 0.03em;
+      font: 700 clamp(1.7rem, 3.4vw, 2.3rem) / 1 var(--display);
+      letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--fg);
+      color: var(--text);
     }
     .what {
-      margin-top: 6px;
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--fg2);
-    }
-    .card:hover, .card:focus-visible {
-      --fg: #000;
-      --fg2: #000;
-      --dim: #000;
-      --fill: var(--yellow);
-      background: var(--yellow);
-      transform: translate(-3px, -3px);
-    }
-
-    /* Sapling Sunrise card: hidden until the tracker answers on :8081 (see sapling-sunrise.js) */
-    .ss-list {
-      display: grid;
+      display: flex;
+      align-items: center;
       gap: 8px;
-      margin: 14px 0 0;
-      padding: 0;
-      list-style: none;
-      font-family: var(--mono);
-      font-size: 0.8rem;
+      margin-top: 4px;
+      font: 600 0.82rem var(--display);
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--cyan);
     }
-    .ss-list li { display: grid; grid-template-columns: 1.2fr 1.4fr 1.6fr 0.8fr; gap: 12px; align-items: center; }
-    .ss-list li span:last-child { text-align: right; }
-    .ss-bar { display: block; height: 8px; background: rgba(255, 255, 255, 0.12); }
-    .ss-bar i { display: block; height: 100%; background: var(--cyan); }
-    @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
+    .what::before { content: ""; width: 14px; height: 1px; background: currentColor; }
+    .card:hover, .card:focus-visible { --edge: var(--red); --fill: #2a0f12; }
+    .card:hover .name, .card:focus-visible .name { color: var(--red); animation: glitch-text 0.35s steps(2) 1; }
 
-    /* Trading bot card: hidden until the bot answers on :8080 (see trading-bot.js) */
+    /* Telemetry cards: storage, trading bot, Sapling Sunrise; each hidden until its source answers */
     .bot {
       grid-column: 1 / -1;
       position: relative;
       isolation: isolate;
-      padding: 18px 20px 20px 28px;
-      background: var(--line);
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
-      animation: slide 0.5s ease-out both;
+      padding: 16px 22px 18px 28px;
+      background: var(--red-dim);
+      clip-path: var(--notch);
+      animation: flicker-in 0.6s ease-out both;
       animation-delay: 0.4s;
     }
     .bot::before {
@@ -357,29 +516,28 @@
       inset: 1px;
       z-index: -1;
       background: var(--panel);
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+      clip-path: var(--notch);
     }
     .bot::after {
       content: "";
       position: absolute;
-      top: 0;
-      bottom: 0;
+      top: 14px;
+      bottom: 30px;
       left: 0;
-      width: 6px;
-      background: var(--yellow);
+      width: 4px;
+      background: var(--cyan);
     }
     .bot-head {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
       gap: 6px 14px;
-      font-family: var(--mono);
-      font-size: 0.75rem;
+      font: 0.72rem var(--mono);
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--muted);
     }
-    .bot-head .name { margin: 0; color: var(--yellow); letter-spacing: 0.03em; }
+    .bot-head .name { margin: 0; color: var(--red); font-size: clamp(1.4rem, 3vw, 1.8rem); }
     .bot-head em { font-style: normal; padding: 1px 8px; color: #000; background: var(--cyan); font-weight: 700; }
     .bot-head .up { color: var(--cyan); }
     .bot-head .down { color: var(--red); }
@@ -387,47 +545,92 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 14px 24px;
-      margin: 16px 0 0;
+      margin: 14px 0 0;
     }
-    .bot-stats dt {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    .bot-stats dd {
-      margin: 2px 0 0;
-      font: 800 1.5rem / 1 var(--display);
-      font-stretch: condensed;
-      color: #fff;
-    }
-    .bot-stats dd small { font: 0.75rem var(--mono); color: var(--muted); }
-    .bot .up { color: #39ff88; }
+    .bot-stats > div { padding-left: 10px; border-left: 1px solid var(--red-dim); }
+    .bot-stats dt { font: 600 0.75rem var(--display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+    .bot-stats dd { margin: 2px 0 0; font: 700 1.6rem / 1 var(--display); color: var(--text); }
+    .bot-stats dd small { font: 0.72rem var(--mono); color: var(--muted); }
+    .bot .up { color: var(--green); }
     .bot .down { color: var(--red); }
     .bot-list {
       display: grid;
       gap: 4px;
-      margin: 16px 0 0;
+      margin: 14px 0 0;
       padding: 12px 0 0;
-      border-top: 1px solid var(--line);
+      border-top: 1px dashed var(--red-dim);
       list-style: none;
-      font-family: var(--mono);
-      font-size: 0.8rem;
+      font: 0.8rem var(--mono);
     }
     .bot-list li { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr; gap: 12px; }
     .bot-list li span:last-child { text-align: right; }
     .bot-foot { margin-top: 12px; }
-    .storage { pointer-events: none; animation-delay: 0.3s; }
-    .st-row { display: flex; justify-content: space-between; gap: 14px; margin-top: 14px; font-family: var(--mono); font-size: 0.85rem; }
-    .st-bar { display: block; height: 10px; margin-top: 8px; background: rgba(255, 255, 255, 0.12); }
-    .st-bar i { display: block; height: 100%; background: var(--cyan); }
-    .st-bar i.full { background: var(--red); }
     .bot .bot-more { margin-left: auto; color: var(--cyan); }
-    .bot:hover .bot-more, .bot:focus-visible .bot-more { color: var(--yellow); }
+    a.bot:hover { background: var(--red); }
+    a.bot:hover .bot-more, a.bot:focus-visible .bot-more { color: var(--yellow); }
+
+    /* Bars cut into cells, like the cyberdeck RAM gauge */
+    .st-bar, .ss-bar {
+      display: block;
+      background: rgba(255, 97, 88, 0.14);
+      -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(5% - 3px), transparent calc(5% - 3px) 5%);
+      mask: repeating-linear-gradient(90deg, #000 0 calc(5% - 3px), transparent calc(5% - 3px) 5%);
+    }
+    .st-bar i, .ss-bar i { display: block; height: 100%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+    .storage { pointer-events: none; animation-delay: 0.3s; }
+    .st-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; margin-top: 12px; font: 0.85rem var(--mono); }
+    .st-row > span { white-space: nowrap; }
+    .st-bar { height: 14px; margin-top: 8px; }
+    .st-bar i.full { background: var(--red); box-shadow: 0 0 10px var(--red); }
+    .ss-list {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      font: 0.8rem var(--mono);
+    }
+    .ss-list li { display: grid; grid-template-columns: 1.2fr 1.4fr 1.6fr 0.8fr; gap: 12px; align-items: center; }
+    .ss-list li span:last-child { text-align: right; }
+    .ss-bar { height: 10px; }
+    @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
+
+    /* Bottom ticker */
+    .ticker {
+      display: flex;
+      overflow: hidden;
+      border-top: 1px solid var(--red-dim);
+      background: rgba(255, 97, 88, 0.05);
+      font: 0.72rem/30px var(--mono);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .ticker-tag { flex: none; padding: 0 14px; color: #000; background: var(--red); font-weight: 700; }
+    .ticker-run { flex: none; display: flex; animation: ticker 60s linear infinite; }
+    .ticker-run span { padding: 0 28px; }
+    .ticker-run span::before { content: "◆"; margin-right: 28px; color: var(--red); }
 
     @keyframes blink { 50% { opacity: 0; } }
-    @keyframes slide { from { opacity: 0; transform: translateX(-18px); } }
+    @keyframes boot-line { to { opacity: 1; } }
+    @keyframes boot-out { to { opacity: 0; visibility: hidden; } }
+    @keyframes sweep { to { top: 100%; } }
+    @keyframes ticker { to { transform: translateX(-50%); } }
+    /* Holo panels coming on: a couple of flickers while sliding in */
+    @keyframes flicker-in {
+      0% { opacity: 0; transform: translateX(-14px); }
+      30% { opacity: 0.7; }
+      38% { opacity: 0.15; }
+      50% { opacity: 0.9; }
+      58% { opacity: 0.4; }
+      100% { opacity: 1; transform: none; }
+    }
+    @keyframes glitch-text {
+      0% { text-shadow: -3px 0 var(--cyan), 3px 0 var(--yellow); transform: translateX(2px); }
+      50% { text-shadow: 3px 0 var(--cyan), -3px 0 var(--red); transform: translateX(-2px); }
+      100% { text-shadow: none; transform: none; }
+    }
     /* Hidden most of the time, then short bursts of offset coloured slices */
     @keyframes glitch-a {
       0%, 86%, 100% { clip-path: inset(50% 0 50% 0); transform: none; }
@@ -442,30 +645,55 @@
       95% { clip-path: inset(40% 0 30% 0); transform: translate(3px, 0); }
     }
 
+    @media (max-width: 1240px) { .kana { display: none; } }
     @media (max-width: 860px) {
-      main { grid-template-columns: minmax(0, 1fr); padding: 28px 16px 40px; }
+      main { grid-template-columns: minmax(0, 1fr); padding: 24px 16px 32px; }
       .bar { padding: 22px 16px 0; }
-      .slab { min-height: 260px; }
+      .slab { min-height: 280px; }
     }
     @media (max-width: 460px) {
-      .search input { flex-basis: 100%; }
+      .prompt { flex-basis: 100%; }
       .search input::placeholder { letter-spacing: 0.08em; }
-      .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
+      .search button { flex: 1; justify-content: center; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
+      .search button kbd { display: none; }
       .cards { grid-template-columns: minmax(0, 1fr); }
       .card { min-height: 120px; }
+      .matrix { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
+      .boot { display: none; }
     }
   </style>
+  <script>
+    // The boot sequence only plays on the first visit of the tab session
+    try { if (sessionStorage.getItem("booted")) document.documentElement.classList.add("boot-skip"); sessionStorage.setItem("booted", "1"); } catch {}
+  </script>
 </head>
 <body>
+  <div class="boot" aria-hidden="true" onclick="this.remove()">
+    <p>&gt; Netwatch subnet handshake ............ <span class="ok">OK</span></p>
+    <p>&gt; Jacking in: <b>{{$host}}</b></p>
+    <p>&gt; Breach protocol &nbsp;1C BD 55 E9 7A ...... <span class="ok">ICE bypassed</span></p>
+    <p>&gt; Loading daemons: Jellyfin · Radarr · Sonarr · Transmission · Prowlarr</p>
+    <p>&gt; Neural link stable</p>
+    <p>&gt; Wake up, samurai_</p>
+  </div>
+  <div class="kana" aria-hidden="true">メディアサーバー ／ ナイトシティ</div>
+
   <header>
-    <div class="hazard"></div>
+    <div class="hud-line"></div>
     <div class="bar">
-      <h1 class="glitch" data-text="Media Server">Media Server</h1>
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <div>
+          <small>Subnet // Home</small>
+          <h1 class="glitch" data-text="Media Server">Media Server</h1>
+        </div>
+      </div>
       <div class="status">
-        <span>Host <b>{{$host}}</b></span>
+        <span>Net <b>{{$host}}</b><span class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
+        <span class="clock" id="clock"></span>
         <span class="online">Online</span>
         <nav class="styles" aria-label="Style">
           <a href="/style/reactor">Reactor</a>
@@ -477,52 +705,68 @@
 
   <main>
     <form class="search" action="/search" role="search" target="_blank">
-      <input type="search" name="q" required autocomplete="off"
-             placeholder="Search a movie or a TV show" aria-label="Search a movie or a TV show">
-      <button name="in" value="jellyfin" title="Search in Jellyfin">▶ Watch</button>
-      <button name="in" value="radarr" title="Add a movie with Radarr">+ Movie</button>
-      <button name="in" value="sonarr" title="Add a TV show with Sonarr">+ TV show</button>
+      <label class="prompt">
+        <input type="search" name="q" required autocomplete="off"
+               placeholder="Search a movie or a TV show" aria-label="Search a movie or a TV show">
+      </label>
+      <button name="in" value="jellyfin" title="Search in Jellyfin"><kbd aria-hidden="true">↵</kbd>Watch</button>
+      <button name="in" value="radarr" title="Add a movie with Radarr"><kbd aria-hidden="true">+</kbd>Movie</button>
+      <button name="in" value="sonarr" title="Add a TV show with Sonarr"><kbd aria-hidden="true">+</kbd>TV show</button>
     </form>
 
-    <a class="slab" href="http://{{$host}}:8096" target="_blank" rel="noopener">
-      <span class="slab-tag">00 // Stream</span>
-      <span class="slab-name">Jellyfin</span>
-      <span class="slab-sub">Movies and TV shows, ready to watch</span>
-      <span class="slab-foot">
-        <span class="cta">▶ Watch</span>
-        <span class="code"></span>
-      </span>
-    </a>
+    <section class="job">
+      <h2 class="label tracked">Main job <small>Tracked</small></h2>
+      <a class="slab" href="http://{{$host}}:8096" target="_blank" rel="noopener">
+        <span class="scan" aria-hidden="true"></span>
+        <span class="slab-tag">00 // Stream</span>
+        <span class="matrix" aria-hidden="true">
+          <span>1C</span><span>BD</span><span>55</span><span>E9</span><span>7A</span>
+          <span>BD</span><span class="hit">E9</span><span>1C</span><span>FF</span><span>55</span>
+          <span>55</span><span>7A</span><span>BD</span><span>1C</span><span>E9</span>
+        </span>
+        <span class="slab-name">Jellyfin</span>
+        <span class="slab-sub"><em>Reward</em>Movies and TV shows, ready to watch</span>
+        <span class="slab-foot">
+          <span class="cta"><kbd aria-hidden="true">↵</kbd>Watch</span>
+          <span class="code"></span>
+        </span>
+      </a>
+    </section>
 
-    <div class="cards">
-      <a class="card" href="http://{{$host}}:7878" target="_blank" rel="noopener">
-        <span class="num">01</span>
-        <span class="port">:7878</span>
-        <span class="name">Radarr</span>
-        <span class="what">Movies</span>
-      </a>
-      <a class="card" href="http://{{$host}}:8989" target="_blank" rel="noopener">
-        <span class="num">02</span>
-        <span class="port">:8989</span>
-        <span class="name">Sonarr</span>
-        <span class="what">TV shows</span>
-      </a>
-      <a class="card" href="http://{{$host}}:9091" target="_blank" rel="noopener">
-        <span class="num">03</span>
-        <span class="port">:9091</span>
-        <span class="name">Transmission</span>
-        <span class="what">Downloads</span>
-      </a>
-      <a class="card" href="http://{{$host}}:9696" target="_blank" rel="noopener">
-        <span class="num">04</span>
-        <span class="port">:9696</span>
-        <span class="name">Prowlarr</span>
-        <span class="what">Indexers</span>
-      </a>
-    </div>
+    <section class="job">
+      <h2 class="label">Side jobs <small>04</small></h2>
+      <div class="cards">
+        <a class="card" href="http://{{$host}}:7878" target="_blank" rel="noopener">
+          <span class="scan" aria-hidden="true"></span>
+          <span class="card-head"><b>01</b><span>Port :7878</span></span>
+          <span class="name">Radarr</span>
+          <span class="what">Movies</span>
+        </a>
+        <a class="card" href="http://{{$host}}:8989" target="_blank" rel="noopener">
+          <span class="scan" aria-hidden="true"></span>
+          <span class="card-head"><b>02</b><span>Port :8989</span></span>
+          <span class="name">Sonarr</span>
+          <span class="what">TV shows</span>
+        </a>
+        <a class="card" href="http://{{$host}}:9091" target="_blank" rel="noopener">
+          <span class="scan" aria-hidden="true"></span>
+          <span class="card-head"><b>03</b><span>Port :9091</span></span>
+          <span class="name">Transmission</span>
+          <span class="what">Downloads</span>
+        </a>
+        <a class="card" href="http://{{$host}}:9696" target="_blank" rel="noopener">
+          <span class="scan" aria-hidden="true"></span>
+          <span class="card-head"><b>04</b><span>Port :9696</span></span>
+          <span class="name">Prowlarr</span>
+          <span class="what">Indexers</span>
+        </a>
+      </div>
+    </section>
+
+    <h2 class="label wide telemetry">Telemetry</h2>
 
     <div class="bot storage" id="storage" role="group" hidden aria-label="Storage used">
-      <div class="bot-head"><span>00</span><span class="name">Storage</span></div>
+      <div class="bot-head"><span>00</span><span class="name">Storage</span><span>Memory</span></div>
       <div class="st-row"><span data-st="used"></span><span><span data-st="free"></span> · <span data-st="pct"></span></span></div>
       <span class="st-bar"><i data-st="fill"></i></span>
     </div>
@@ -546,6 +790,35 @@
       <div class="bot-head bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></div>
     </a>
   </main>
+
+  <footer class="ticker" aria-hidden="true">
+    <span class="ticker-tag">N54 News</span>
+    <span class="ticker-run">
+      {{- range until 2}}
+      <span>Uplink {{$host}} stable</span>
+      <span>Jellyfin streaming on :8096</span>
+      <span>NCPD scanner: no bounty on this subnet</span>
+      <span>Radarr and Sonarr watching the feeds</span>
+      <span>Transmission tunnelled through Gluetun</span>
+      <span>Weather over Night City: acid rain, light</span>
+      <span>Stay safe, choom</span>
+      {{- end}}
+    </span>
+  </footer>
+
+  <script>
+    // HUD clock, dated in 2077
+    (() => {
+      const el = document.getElementById("clock");
+      const pad = (n) => String(n).padStart(2, "0");
+      const tick = () => {
+        const d = new Date();
+        el.textContent = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.2077 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      };
+      tick();
+      setInterval(tick, 10000);
+    })();
+  </script>
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
