@@ -1,4 +1,4 @@
-{{- /* "Reactor" look. The links reuse the name or IP typed to reach this page */ -}}
+{{- /* "Reactor" look, after Iron Man's helmet HUD and J.A.R.V.I.S. The links reuse the name or IP typed to reach this page */ -}}
 {{- $host := .Host -}}
 <!doctype html>
 <html lang="en">
@@ -6,7 +6,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Media Server</title>
+  <link rel="preload" href="/fonts/michroma.woff2" as="font" type="font/woff2" crossorigin>
   <style>
+    /* Michroma (SIL OFL, fonts/OFL-michroma.txt): wide, Stark Industries-like lettering */
+    @font-face { font-family: "Michroma"; font-display: swap; src: url(/fonts/michroma.woff2) format("woff2"); }
+
     :root {
       color-scheme: dark;
       --bg: #02070d;
@@ -15,8 +19,10 @@
       --cyan-faint: rgba(111, 227, 255, 0.16);
       --grid: rgba(111, 227, 255, 0.045);
       --gold: #ffc857;
+      --red: #ff4b3e;
       --text: #d9f6ff;
       --muted: #7fa9b8;
+      --wide: "Michroma", "Eurostile", "Microgramma", "Arial Black", sans-serif;
       --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     }
     * { box-sizing: border-box; }
@@ -34,16 +40,67 @@
         linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 44px 100%,
         var(--bg);
     }
-    /* Scanlines and vignette over the whole screen */
+    /* Scanlines, and the inside of the helmet: dark curved edges */
     body::after {
       content: "";
       position: fixed;
       inset: 0;
+      z-index: 50;
       pointer-events: none;
       background:
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
-        radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55));
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse 75% 85% at 50% 48%, transparent 62%, rgba(0, 0, 0, 0.7));
     }
+    a { color: inherit; text-decoration: none; outline: none; }
+
+    /* Helmet frame: curved strokes in the corners, drawn at any screen size */
+    .helmet { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
+    .helmet path { fill: none; stroke: var(--cyan-soft); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+    .helmet .gold { stroke: rgba(255, 200, 87, 0.55); }
+    header, .compass, main, .jarvis { position: relative; z-index: 1; }
+
+    /* Power-up: rings open from the centre, J.A.R.V.I.S. runs its checks. Once per tab session */
+    .boot {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      background: var(--bg);
+      animation: boot-out 0.4s 2.3s ease-in forwards;
+    }
+    .boot-rings { position: absolute; width: 60vmin; aspect-ratio: 1; }
+    .boot-rings i {
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--cyan);
+      border-radius: 50%;
+      opacity: 0;
+      animation: ring-open 1.6s ease-out forwards;
+    }
+    .boot-rings i:nth-child(2) { inset: 12%; border-style: dashed; animation-delay: 0.15s; }
+    .boot-rings i:nth-child(3) { inset: 26%; border-width: 3px; animation-delay: 0.3s; }
+    .boot-text {
+      position: relative;
+      display: grid;
+      gap: 6px;
+      text-align: center;
+      font: 0.78rem/1.5 var(--mono);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 40px 70px;
+      background: radial-gradient(closest-side, rgba(2, 7, 13, 0.92) 75%, transparent);
+    }
+    .boot-text strong { font: 1.6rem var(--wide); letter-spacing: 0.25em; color: var(--cyan); text-shadow: 0 0 18px var(--cyan); }
+    .boot-text p { margin: 0; opacity: 0; animation: show 0.01s forwards; }
+    .boot-text p:nth-child(1) { animation-delay: 0.2s; }
+    .boot-text p:nth-child(2) { animation-delay: 0.6s; }
+    .boot-text p:nth-child(3) { animation-delay: 0.9s; }
+    .boot-text p:nth-child(4) { animation-delay: 1.2s; }
+    .boot-text p:nth-child(5) { animation-delay: 1.6s; color: var(--gold); }
+    .boot-text b { font-weight: inherit; color: var(--cyan); }
+    .boot-skip .boot { display: none; }
 
     /* Top bar */
     header {
@@ -51,22 +108,21 @@
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 8px 24px;
-      padding: 18px 24px;
-      border-bottom: 1px solid var(--cyan-faint);
-      font-family: var(--mono);
-      font-size: 0.8rem;
+      gap: 10px 24px;
+      padding: 18px 40px 14px;
+      font: 0.75rem var(--mono);
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--muted);
     }
+    .brand small { display: block; margin-bottom: 4px; color: var(--muted); }
     h1 {
       margin: 0;
-      font: inherit;
+      font: 1.35rem var(--wide);
+      letter-spacing: 0.22em;
       color: var(--cyan);
-      text-shadow: 0 0 12px var(--cyan-soft);
+      text-shadow: 0 0 14px var(--cyan-soft);
     }
-    h1::before { content: "// "; color: var(--muted); }
     .status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; }
     .status b { font-weight: inherit; color: var(--text); text-transform: none; letter-spacing: 0.05em; }
     .online { color: var(--cyan); }
@@ -83,23 +139,78 @@
     }
     /* Style switch: the current look is lit, the other one is a link */
     .styles { display: flex; }
-    .styles > * {
-      padding: 4px 10px;
-      border: 1px solid var(--cyan-soft);
-      color: var(--muted);
-    }
+    .styles > * { padding: 4px 10px; border: 1px solid var(--cyan-soft); color: var(--muted); }
     .styles > * + * { margin-left: -1px; }
-    .styles span {
-      color: var(--bg);
-      background: var(--cyan);
-      border-color: var(--cyan);
-      box-shadow: 0 0 12px var(--cyan-soft);
-    }
-    .styles a:hover, .styles a:focus-visible {
+    .styles span { color: var(--bg); background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan-soft); }
+    .styles a:hover, .styles a:focus-visible { position: relative; color: var(--gold); border-color: var(--gold); }
+
+    /* Heading tape, drifting slowly as if the head turned */
+    .compass {
       position: relative;
-      color: var(--gold);
-      border-color: var(--gold);
+      height: 34px;
+      margin: 0 auto;
+      width: min(560px, 80vw);
+      overflow: hidden;
+      font: 0.65rem/1 var(--mono);
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      -webkit-mask: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+      mask: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
     }
+    .compass-run {
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: flex;
+      height: 100%;
+      animation: heading 26s ease-in-out infinite alternate;
+    }
+    .compass-run span {
+      flex: none;
+      width: 60px;
+      padding-top: 16px;
+      text-align: center;
+      background:
+        linear-gradient(var(--cyan-soft), var(--cyan-soft)) 50% 0 / 1px 10px no-repeat,
+        linear-gradient(var(--cyan-faint), var(--cyan-faint)) 0 0 / 1px 5px no-repeat;
+    }
+    .compass::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      border: 6px solid transparent;
+      border-bottom-color: var(--gold);
+      transform: translateX(-50%);
+    }
+
+    /* Altitude and thrust ladders on the sides, decoration only */
+    .ladder {
+      position: fixed;
+      top: 50%;
+      z-index: 41;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transform: translateY(-50%);
+      font: 0.62rem var(--mono);
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      pointer-events: none;
+    }
+    .ladder.left { left: 26px; }
+    .ladder.right { right: 26px; }
+    .ladder i {
+      width: 18px;
+      height: 260px;
+      background: repeating-linear-gradient(0deg, var(--cyan-soft) 0 1px, transparent 1px 13px);
+      -webkit-mask: linear-gradient(transparent, #000 20%, #000 80%, transparent);
+      mask: linear-gradient(transparent, #000 20%, #000 80%, transparent);
+      animation: climb 6s linear infinite;
+    }
+    .ladder.right i { animation-direction: reverse; animation-duration: 9s; }
+    .ladder b { font-weight: inherit; color: var(--gold); }
 
     /* Layout: two modules on each side of the reactor */
     main {
@@ -114,13 +225,12 @@
         "sto sto sto"
         "bot bot bot"
         "sap sap sap";
-      gap: 28px 48px;
+      gap: 28px 56px;
       width: 100%;
       max-width: 1080px;
       margin: 0 auto;
-      padding: 40px 24px 56px;
+      padding: 24px 24px 48px;
     }
-    a { text-decoration: none; outline: none; }
 
     /* Search: one field, one button per app (see /search in the Caddyfile) */
     .search {
@@ -150,16 +260,8 @@
       letter-spacing: 0.05em;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .search input::placeholder {
-      color: var(--muted);
-      font-size: 0.8rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-    }
-    .search input:focus {
-      border-color: var(--cyan);
-      box-shadow: 0 0 18px var(--cyan-soft), inset 0 0 14px rgba(111, 227, 255, 0.12);
-    }
+    .search input::placeholder { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase; }
+    .search input:focus { border-color: var(--cyan); box-shadow: 0 0 18px var(--cyan-soft), inset 0 0 14px rgba(111, 227, 255, 0.12); }
     .search button {
       padding: 0 18px;
       color: var(--cyan);
@@ -170,11 +272,7 @@
       cursor: pointer;
       transition: color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    .search button:first-of-type {
-      color: var(--bg);
-      background: var(--cyan);
-      border-color: var(--cyan);
-    }
+    .search button:first-of-type { color: var(--bg); background: var(--cyan); border-color: var(--cyan); }
     .search button:hover, .search button:focus-visible {
       color: var(--bg);
       background: var(--gold);
@@ -190,8 +288,9 @@
       position: relative;
       display: grid;
       place-items: center;
-      width: min(72vw, 320px);
+      width: min(68vw, 320px);
       aspect-ratio: 1;
+      margin: 26px 0;
       border-radius: 50%;
       color: var(--c);
       filter: drop-shadow(0 0 14px rgba(111, 227, 255, 0.45));
@@ -199,6 +298,9 @@
       animation: boot 0.9s ease-out both;
     }
     .ring { position: absolute; border-radius: 50%; }
+    /* Engraved text turning around the casing */
+    .engraving { inset: -12%; width: 124%; height: 124%; overflow: visible; animation: spin 60s linear infinite; }
+    .engraving text { font: 3.6px var(--wide); letter-spacing: 0.9px; fill: var(--c); opacity: 0.7; }
     .ticks {
       inset: 0;
       opacity: 0.55;
@@ -217,6 +319,7 @@
       mask: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
       animation: spin 14s linear infinite reverse;
     }
+    /* The ten copper coils of the original reactor */
     .cells {
       inset: 15%;
       background: repeating-conic-gradient(from 3deg, var(--c) 0 30deg, transparent 30deg 36deg);
@@ -234,28 +337,36 @@
       border: 2px solid var(--c);
       border-radius: 50%;
       text-align: center;
-      background: radial-gradient(circle, #10394b 0%, #04121a 72%);
-      box-shadow: inset 0 0 26px var(--cyan-soft);
+      background: radial-gradient(circle, #1d6a86 0%, #0b2b3a 45%, #04121a 72%);
+      box-shadow: inset 0 0 26px var(--cyan-soft), 0 0 30px rgba(111, 227, 255, 0.35);
+      overflow: hidden;
+    }
+    /* Triangle of the new element reactor, glowing behind the name */
+    .core::before {
+      content: "";
+      position: absolute;
+      inset: 18% 14% 22%;
+      border: 0;
+      background: var(--c);
+      opacity: 0.22;
+      clip-path: polygon(50% 0, 100% 100%, 0 100%, 50% 0, 50% 14%, 13% 92%, 87% 92%, 50% 14%);
+      animation: pulse 3.2s ease-in-out infinite;
     }
     .core-name {
-      font-size: clamp(0.95rem, 4.4vw, 1.25rem);
-      font-weight: 700;
+      position: relative;
+      font: clamp(0.72rem, 3.4vw, 0.95rem) var(--wide);
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: #fff;
       text-shadow: 0 0 14px var(--c);
     }
-    .core-sub {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-    }
+    .core-sub { position: relative; font: 0.7rem var(--mono); letter-spacing: 0.22em; text-transform: uppercase; }
     .reactor:hover, .reactor:focus-visible {
       --c: var(--gold);
       transform: scale(1.04);
       filter: drop-shadow(0 0 18px rgba(255, 200, 87, 0.55));
     }
+    .reactor:hover .arcs, .reactor:focus-visible .arcs { animation-duration: 3s; }
 
     /* Modules = the other apps */
     .panel {
@@ -283,21 +394,61 @@
     .p2 { grid-area: p2; animation-delay: 0.25s; }
     .p3 { grid-area: p3; animation-delay: 0.35s; }
     .p4 { grid-area: p4; animation-delay: 0.45s; }
-    .tag, .port {
-      font-family: var(--mono);
-      font-size: 0.72rem;
+    /* Callout line from each module to the reactor, like the HUD labels its targets */
+    .link {
+      position: absolute;
+      top: 50%;
+      width: 48px;
+      height: 1px;
+      background: var(--cyan-soft);
+    }
+    .link::after {
+      content: "";
+      position: absolute;
+      top: -3px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--c);
+      box-shadow: 0 0 8px var(--c);
+    }
+    .p1 .link, .p3 .link { left: 100%; }
+    .p1 .link::after, .p3 .link::after { right: 0; }
+    .p2 .link, .p4 .link { right: 100%; }
+    .p2 .link::after, .p4 .link::after { left: 0; }
+    /* Target lock: a dashed reticle turns and closes in on the hovered module */
+    .lock {
+      position: absolute;
+      right: 18px;
+      bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font: 0.6rem var(--mono);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: var(--gold);
+      opacity: 0;
+      transition: opacity 0.2s;
     }
+    .lock::after {
+      content: "";
+      width: 22px;
+      height: 22px;
+      border: 1px dashed var(--gold);
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 4px var(--bg), inset 0 0 0 5px var(--gold);
+    }
+    .panel:hover .lock, .panel:focus-visible .lock { opacity: 1; }
+    .panel:hover .lock::after, .panel:focus-visible .lock::after { animation: lock-on 0.5s ease-out both, spin 3s 0.5s linear infinite; }
+    .tag, .port { font: 0.72rem var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
     .tag { display: block; }
     .tag i { font-style: normal; color: var(--c); }
     .name {
       display: block;
-      margin-top: 6px;
-      font-size: 1.45rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
+      margin-top: 8px;
+      font: 1.1rem var(--wide);
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--c);
       text-shadow: 0 0 12px var(--cyan-soft);
@@ -311,19 +462,11 @@
     .panel:hover .name, .panel:focus-visible .name { text-shadow: 0 0 12px rgba(255, 200, 87, 0.5); }
 
     /* Sapling Sunrise card: hidden until the tracker answers on :8081 (see sapling-sunrise.js) */
-    .ss-list {
-      display: grid;
-      gap: 8px;
-      margin: 14px 0 0;
-      padding: 0;
-      list-style: none;
-      font-family: var(--mono);
-      font-size: 0.8rem;
-    }
+    .ss-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; font: 0.8rem var(--mono); }
     .ss-list li { display: grid; grid-template-columns: 1.2fr 1.4fr 1.6fr 0.8fr; gap: 12px; align-items: center; }
     .ss-list li span:last-child { text-align: right; }
-    .ss-bar { display: block; height: 8px; background: rgba(255, 255, 255, 0.12); }
-    .ss-bar i { display: block; height: 100%; background: var(--cyan); }
+    .ss-bar { display: block; height: 6px; background: var(--cyan-faint); }
+    .ss-bar i { display: block; height: 100%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
     @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
 
     /* Trading bot card: hidden until the bot answers on :8080 (see trading-bot.js) */
@@ -333,29 +476,18 @@
     .bot .tag { display: flex; flex-wrap: wrap; gap: 6px 14px; }
     .bot .tag em { font-style: normal; padding: 0 6px; color: var(--bg); background: var(--gold); }
     .bot .tag .up { color: var(--cyan); }
-    .bot .tag .down { color: var(--gold); }
+    .bot .tag .down { color: var(--red); }
     .bot-stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 14px 24px;
       margin-top: 14px;
     }
-    .bot-stats dt {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    .bot-stats dd {
-      margin: 2px 0 0;
-      font-family: var(--mono);
-      font-size: 1.15rem;
-      color: var(--text);
-    }
+    .bot-stats dt { font: 0.68rem var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+    .bot-stats dd { margin: 2px 0 0; font: 1.15rem var(--mono); color: var(--text); }
     .bot-stats dd small { font-size: 0.75rem; color: var(--muted); }
     .bot .up { color: #7dffb3; }
-    .bot .down { color: #ff7d8a; }
+    .bot .down { color: var(--red); }
     .bot-list {
       display: grid;
       gap: 4px;
@@ -363,24 +495,67 @@
       padding: 12px 0 0;
       border-top: 1px solid var(--cyan-faint);
       list-style: none;
-      font-family: var(--mono);
-      font-size: 0.8rem;
+      font: 0.8rem var(--mono);
     }
     .bot-list li { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr; gap: 12px; }
     .bot-list li span:last-child { text-align: right; }
     .bot-foot { display: block; margin-top: 12px; }
     .storage { grid-area: sto; pointer-events: none; animation-delay: 0.5s; }
-    .st-row { display: flex; justify-content: space-between; gap: 14px; margin-top: 14px; font-family: var(--mono); font-size: 0.85rem; }
-    .st-bar { display: block; height: 10px; margin-top: 8px; background: rgba(255, 255, 255, 0.12); }
-    .st-bar i { display: block; height: 100%; background: var(--cyan); }
-    .st-bar i.full { background: var(--gold); }
+    .st-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; margin-top: 14px; font: 0.85rem var(--mono); }
+    .st-row > span { white-space: nowrap; }
+    /* Gauge with a graduated scale under it */
+    .st-bar { display: block; height: 10px; margin-top: 8px; background: var(--cyan-faint); }
+    .st-bar i { display: block; height: 100%; background: linear-gradient(90deg, rgba(111, 227, 255, 0.4), var(--cyan)); box-shadow: 0 0 10px var(--cyan); }
+    .st-bar i.full { background: var(--red); box-shadow: 0 0 10px var(--red); }
+    .st-scale {
+      display: flex;
+      justify-content: space-between;
+      height: 14px;
+      padding-top: 6px;
+      font: 0.58rem var(--mono);
+      color: var(--muted);
+      background: repeating-linear-gradient(90deg, var(--cyan-soft) 0 1px, transparent 1px 10%) 0 0 / 100% 4px no-repeat;
+    }
     .sapling { grid-area: sap; animation-delay: 0.65s; }
+
+    /* J.A.R.V.I.S. speaking at the bottom: voice bars and one line at a time (see the script below) */
+    .jarvis {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px 26px;
+      font: 0.8rem var(--mono);
+      letter-spacing: 0.08em;
+      color: var(--text);
+    }
+    .jarvis-name { flex: none; font: 0.7rem var(--wide); letter-spacing: 0.2em; color: var(--cyan); }
+    .voice { flex: none; display: flex; align-items: center; gap: 3px; height: 22px; }
+    .voice i { width: 3px; height: 100%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); transform: scaleY(0.2); }
+    .talking .voice i { animation: voice 0.5s ease-in-out infinite alternate; }
+    .voice i:nth-child(2) { animation-delay: -0.2s !important; }
+    .voice i:nth-child(3) { animation-delay: -0.35s !important; }
+    .voice i:nth-child(4) { animation-delay: -0.1s !important; }
+    .voice i:nth-child(5) { animation-delay: -0.4s !important; }
+    .jarvis-line { min-width: 0; padding-left: 16px; border-left: 1px solid var(--cyan-faint); }
+    .jarvis-line::after { content: "▍"; margin-left: 2px; color: var(--cyan); animation: blink 1s steps(1) infinite; }
 
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 50% { opacity: 0.55; } }
     @keyframes blink { 50% { opacity: 0.25; } }
     @keyframes boot { from { opacity: 0; transform: scale(0.94); } }
+    @keyframes show { to { opacity: 1; } }
+    @keyframes boot-out { to { opacity: 0; visibility: hidden; transform: scale(1.08); } }
+    @keyframes ring-open { 0% { opacity: 0; transform: scale(0.2); } 60% { opacity: 1; } 100% { opacity: 0.6; transform: none; } }
+    @keyframes heading { to { transform: translateX(-540px); } }
+    @keyframes climb { to { background-position: 0 -130px; } }
+    @keyframes lock-on { from { transform: scale(2.4); opacity: 0; } }
+    @keyframes voice { to { transform: scaleY(1); } }
 
+    @media (max-width: 1240px) { .ladder { display: none; } }
+    @media (max-width: 980px) { .helmet { display: none; } }
     @media (max-width: 980px) {
       main {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -393,10 +568,11 @@
           "bot bot"
           "sap sap";
         gap: 16px;
-        padding: 32px 16px 40px;
+        padding: 20px 16px 36px;
       }
-      .reactor { margin-bottom: 20px; }
+      .link { display: none; }
       header { padding: 14px 16px; }
+      .jarvis { padding: 0 16px 20px; }
     }
     @media (max-width: 460px) {
       .search input { flex-basis: 100%; }
@@ -406,17 +582,51 @@
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap";
       }
+      h1 { font-size: 1.1rem; }
+      .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
+      .jarvis-line { flex-basis: 100%; padding-left: 0; border: 0; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
+      .boot { display: none; }
     }
   </style>
+  <script>
+    // The power-up only plays on the first visit of the tab session
+    try { if (sessionStorage.getItem("booted-reactor")) document.documentElement.classList.add("boot-skip"); sessionStorage.setItem("booted-reactor", "1"); } catch {}
+  </script>
 </head>
 <body>
+  <div class="boot" aria-hidden="true" onclick="this.remove()">
+    <div class="boot-rings"><i></i><i></i><i></i></div>
+    <div class="boot-text">
+      <p><strong>J.A.R.V.I.S.</strong></p>
+      <p>Stark Industries secure uplink · <b>{{$host}}</b></p>
+      <p>Arc reactor ........ online</p>
+      <p>Modules: Jellyfin · Radarr · Sonarr · Transmission · Prowlarr</p>
+      <p>Welcome home, sir</p>
+    </div>
+  </div>
+
+  <svg class="helmet" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M1.2 40 Q1.2 14 9 9" />
+    <path d="M91 9 Q98.8 14 98.8 40" />
+    <path d="M1.2 62 Q1.2 92 12 98.6" />
+    <path d="M88 98.6 Q98.8 92 98.8 62" />
+    <path class="gold" d="M3 44 Q2.4 51 3 58" />
+    <path class="gold" d="M97 44 Q97.6 51 97 58" />
+  </svg>
+  <div class="ladder left" aria-hidden="true"><span>ALT</span><i></i><b>0247</b></div>
+  <div class="ladder right" aria-hidden="true"><span>THR</span><i></i><b>100%</b></div>
+
   <header>
-    <h1>Media Server</h1>
+    <div class="brand">
+      <small>Stark Industries // Home</small>
+      <h1>Media Server</h1>
+    </div>
     <div class="status">
       <span>Host <b>{{$host}}</b></span>
+      <span id="clock"></span>
       <span class="online">Online</span>
       <nav class="styles" aria-label="Style">
         <span aria-current="true">Reactor</span>
@@ -424,6 +634,11 @@
       </nav>
     </div>
   </header>
+  <div class="compass" aria-hidden="true">
+    <div class="compass-run">
+      {{- range list "N" "015" "030" "045" "060" "075" "E" "105" "120" "135" "150" "165" "S" "195" "210" "225" "240" "255" "W" "285" "300" "315" "330" "345" "N"}}<span>{{.}}</span>{{end -}}
+    </div>
+  </div>
 
   <main>
     <form class="search" action="/search" role="search" target="_blank">
@@ -435,6 +650,10 @@
     </form>
 
     <a class="reactor" href="http://{{$host}}:8096" target="_blank" rel="noopener" aria-label="Jellyfin: watch movies and TV shows">
+      <svg class="ring engraving" viewBox="0 0 100 100" aria-hidden="true">
+        <defs><path id="casing" d="M50 50 m-46 0 a46 46 0 1 1 92 0 a46 46 0 1 1 -92 0" /></defs>
+        <text><textPath href="#casing">STARK INDUSTRIES · ARC REACTOR · MARK VI · OUTPUT 3 GJ/S · STARK INDUSTRIES · ARC REACTOR · MARK VI ·</textPath></text>
+      </svg>
       <span class="ring ticks"></span>
       <span class="ring arcs"></span>
       <span class="ring cells"></span>
@@ -445,30 +664,39 @@
     </a>
 
     <a class="panel p1" href="http://{{$host}}:7878" target="_blank" rel="noopener">
+      <span class="link" aria-hidden="true"></span>
       <span class="tag"><i>01</i> // Movies</span>
       <span class="name">Radarr</span>
       <span class="port">:7878</span>
+      <span class="lock" aria-hidden="true">Locked</span>
     </a>
     <a class="panel p2" href="http://{{$host}}:8989" target="_blank" rel="noopener">
+      <span class="link" aria-hidden="true"></span>
       <span class="tag"><i>02</i> // TV shows</span>
       <span class="name">Sonarr</span>
       <span class="port">:8989</span>
+      <span class="lock" aria-hidden="true">Locked</span>
     </a>
     <a class="panel p3" href="http://{{$host}}:9091" target="_blank" rel="noopener">
+      <span class="link" aria-hidden="true"></span>
       <span class="tag"><i>03</i> // Downloads</span>
       <span class="name">Transmission</span>
       <span class="port">:9091</span>
+      <span class="lock" aria-hidden="true">Locked</span>
     </a>
     <a class="panel p4" href="http://{{$host}}:9696" target="_blank" rel="noopener">
+      <span class="link" aria-hidden="true"></span>
       <span class="tag"><i>04</i> // Indexers</span>
       <span class="name">Prowlarr</span>
       <span class="port">:9696</span>
+      <span class="lock" aria-hidden="true">Locked</span>
     </a>
 
     <div class="panel bot storage" id="storage" role="group" hidden aria-label="Storage used">
       <span class="tag"><i>00</i> // Storage</span>
       <div class="st-row"><span data-st="used"></span><span><span data-st="free"></span> · <span data-st="pct"></span></span></div>
       <span class="st-bar"><i data-st="fill"></i></span>
+      <span class="st-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></span>
     </div>
 
     <a class="panel bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
@@ -490,6 +718,53 @@
       <span class="tag bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></span>
     </a>
   </main>
+
+  <footer class="jarvis" id="jarvis" aria-live="polite">
+    <span class="jarvis-name">J.A.R.V.I.S.</span>
+    <span class="voice" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+    <span class="jarvis-line" id="jarvis-line"></span>
+  </footer>
+
+  <script>
+    (() => {
+      const pad = (n) => String(n).padStart(2, "0");
+      const clock = document.getElementById("clock");
+      const tick = () => { const d = new Date(); clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+      tick();
+      setInterval(tick, 10000);
+
+      // J.A.R.V.I.S. types one line, pauses, then the next. Storage and trading lines
+      // read what storage.js and trading-bot.js put on the page, when their card is shown.
+      const box = document.getElementById("jarvis");
+      const out = document.getElementById("jarvis-line");
+      const text = (sel) => document.querySelector(sel)?.textContent.trim();
+      const shown = (id) => !document.getElementById(id)?.hidden;
+      const lines = () => {
+        const h = new Date().getHours();
+        const part = h < 5 ? "Working late again" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+        const l = [`${part}, sir. All systems are online.`, "Jellyfin is ready whenever you are."];
+        if (shown("storage")) l.push(`Storage at ${text('[data-st="pct"]')}, ${text('[data-st="free"]')} left.`);
+        if (shown("trading-bot")) l.push(`The trading bot reports ${text('[data-tb="pnl"]')} so far.`);
+        l.push("Type a title above and I will find it.", "Transmission stays behind the VPN, as instructed.", "Uplink {{$host}} is stable.");
+        return l;
+      };
+      const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let i = 0;
+      const say = () => {
+        const all = lines();
+        const line = all[i++ % all.length];
+        if (still) { out.textContent = line; setTimeout(say, 8000); return; }
+        let n = 0;
+        box.classList.add("talking");
+        const type = setInterval(() => {
+          out.textContent = line.slice(0, ++n);
+          if (n >= line.length) { clearInterval(type); box.classList.remove("talking"); setTimeout(say, 6000); }
+        }, 32);
+      };
+      // Wait for the power-up to finish the first time
+      setTimeout(say, document.documentElement.classList.contains("boot-skip") ? 300 : 2600);
+    })();
+  </script>
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
