@@ -1,29 +1,27 @@
 {{- /* "Reactor" look, after Iron Man's helmet HUD and J.A.R.V.I.S. The links reuse the name or IP typed to reach this page */ -}}
 {{- $host := .Host -}}
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="reactor">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Media Server</title>
-  <link rel="preload" href="/fonts/michroma.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/theme/fonts/michroma.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Colours and fonts come from the theme kit shared with the other projects (theme/README.md) -->
+  <link rel="stylesheet" href="/theme/theme.css">
   <style>
-    /* Michroma (SIL OFL, fonts/OFL-michroma.txt): wide, Stark Industries-like lettering */
-    @font-face { font-family: "Michroma"; font-display: swap; src: url(/fonts/michroma.woff2) format("woff2"); }
-
     :root {
-      color-scheme: dark;
-      --bg: #02070d;
-      --cyan: #6fe3ff;
-      --cyan-soft: rgba(111, 227, 255, 0.45);
-      --cyan-faint: rgba(111, 227, 255, 0.16);
+      --bg: var(--t-bg);
+      --cyan: var(--t-accent);
+      --cyan-soft: var(--t-accent-soft);
+      --cyan-faint: var(--t-line);
       --grid: rgba(111, 227, 255, 0.045);
-      --gold: #ffc857;
-      --red: #ff4b3e;
-      --text: #d9f6ff;
-      --muted: #7fa9b8;
-      --wide: "Michroma", "Eurostile", "Microgramma", "Arial Black", sans-serif;
-      --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --gold: var(--t-highlight);
+      --red: var(--t-down);
+      --text: var(--t-text);
+      --muted: var(--t-muted);
+      --wide: var(--t-font-display);
+      --mono: var(--t-font-mono);
     }
     * { box-sizing: border-box; }
     html { height: 100%; }
@@ -390,6 +388,7 @@
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       animation: boot 0.7s ease-out both;
     }
+    .panel[hidden] { display: none; }
     .p1 { grid-area: p1; animation-delay: 0.15s; }
     .p2 { grid-area: p2; animation-delay: 0.25s; }
     .p3 { grid-area: p3; animation-delay: 0.35s; }

@@ -1,0 +1,284 @@
+/* Hub theme kit: the looks of the home page (Reactor, Cyberpunk), for any personal project.
+   How to use it from a project: see README.md next to this file.
+
+   1. Tokens: one set of --t-* variables per look, on <html data-theme="...">.
+   2. Components: .t-* classes. Every rule starts with [data-theme] so it wins over the
+      project's own CSS, which stays as the fallback look when the hub does not answer. */
+
+@font-face { font-family: "Michroma"; font-display: swap; src: url(fonts/michroma.woff2) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(fonts/rajdhani-500.woff2) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(fonts/rajdhani-600.woff2) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(fonts/rajdhani-700.woff2) format("woff2"); }
+
+/* ---------- tokens ---------- */
+
+/* Iron Man helmet HUD: cyan light, gold highlights */
+:root[data-theme="reactor"] {
+  color-scheme: dark;
+  --t-bg: #02070d;
+  --t-surface: rgba(111, 227, 255, 0.05);
+  --t-line: rgba(111, 227, 255, 0.16);
+  --t-text: #d9f6ff;
+  --t-muted: #7fa9b8;
+  --t-accent: #6fe3ff;        /* titles, links, frames */
+  --t-accent-soft: rgba(111, 227, 255, 0.45);
+  --t-accent-faint: rgba(111, 227, 255, 0.06);
+  --t-accent-2: #ffc857;      /* second colour, hover */
+  --t-highlight: #ffc857;     /* the one thing that matters: badge, main action */
+  --t-on-highlight: #02070d;
+  --t-progress: #6fe3ff;
+  --t-up: #7dffb3;
+  --t-down: #ff4b3e;
+  --t-series-1: #6fe3ff;      /* chart lines, in order */
+  --t-series-2: #7dffb3;
+  --t-series-3: #ff7d8a;
+  --t-series-4: #d9f6ff;
+  --t-font-display: "Michroma", "Eurostile", "Microgramma", "Arial Black", sans-serif;
+  --t-font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --t-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --t-glow: 0 0 12px rgba(111, 227, 255, 0.45);
+}
+
+/* Cyberpunk 2077 in-game menus: salmon red UI, cyan data, yellow for what is tracked */
+:root[data-theme="cyberpunk"] {
+  color-scheme: dark;
+  --t-bg: #07080d;
+  --t-surface: rgba(14, 12, 20, 0.92);
+  --t-line: rgba(255, 97, 88, 0.24);
+  --t-text: #f1e9e4;
+  --t-muted: #a2726d;
+  --t-accent: #ff6158;
+  --t-accent-soft: rgba(255, 97, 88, 0.42);
+  --t-accent-faint: rgba(255, 97, 88, 0.09);
+  --t-accent-2: #5ef6ff;
+  --t-highlight: #f3e600;
+  --t-on-highlight: #000;
+  --t-progress: #5ef6ff;
+  --t-up: #39ff88;
+  --t-down: #ff3b5c;
+  --t-series-1: #5ef6ff;
+  --t-series-2: #f3e600;
+  --t-series-3: #ff6158;
+  --t-series-4: #f1e9e4;
+  --t-font-display: "Rajdhani", "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif;
+  --t-font-body: "Rajdhani", "Avenir Next Condensed", system-ui, sans-serif;
+  --t-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --t-glow: 0 0 16px rgba(255, 97, 88, 0.45);
+}
+
+/* ---------- page: <body class="t-app"> ---------- */
+
+/* Fixed layers cover the whole window, however short the page is */
+:root[data-theme] { background: var(--t-bg); }
+[data-theme] body.t-app {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--t-text);
+  font-family: var(--t-font-body);
+}
+[data-theme="reactor"] body.t-app {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(40, 150, 195, 0.2), transparent 60%),
+    linear-gradient(rgba(111, 227, 255, 0.045) 1px, transparent 1px) 0 0 / 100% 44px,
+    linear-gradient(90deg, rgba(111, 227, 255, 0.045) 1px, transparent 1px) 0 0 / 44px 100%,
+    var(--t-bg);
+  background-attachment: fixed;
+}
+[data-theme="cyberpunk"] body.t-app {
+  font-weight: 500;
+  font-size: 17px;
+  background:
+    radial-gradient(ellipse at 85% 110%, rgba(255, 97, 88, 0.18), transparent 55%),
+    radial-gradient(ellipse at 5% -10%, rgba(94, 246, 255, 0.08), transparent 50%),
+    linear-gradient(rgba(255, 97, 88, 0.05) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(255, 97, 88, 0.05) 1px, transparent 1px) 0 0 / 48px 48px,
+    var(--t-bg);
+  background-attachment: fixed;
+}
+/* Scanlines and vignette over the whole screen */
+[data-theme] body.t-app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.5));
+}
+[data-theme] body.t-app a { color: var(--t-accent); }
+[data-theme] body.t-app a:hover { color: var(--t-accent-2); }
+
+/* ---------- hub bar, added by theme.js at the top of a .t-app page ---------- */
+
+[data-theme] .t-hubbar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--t-line);
+  font: 0.7rem/1.6 var(--t-font-mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+}
+[data-theme="cyberpunk"] .t-hubbar { border-top: 3px solid var(--t-accent); background: rgba(255, 97, 88, 0.05); }
+[data-theme] .t-hubbar a.t-hubbar-home { color: var(--t-accent); text-decoration: none; }
+[data-theme] .t-hubbar a.t-hubbar-home::before { content: "◂ "; }
+[data-theme] .t-hubbar a.t-hubbar-home:hover { color: var(--t-accent-2); }
+[data-theme] .t-hubbar-name { color: var(--t-text); }
+[data-theme] .t-hubbar-themes { display: flex; margin-left: auto; }
+[data-theme] .t-hubbar-themes button {
+  padding: 2px 10px;
+  border: 1px solid var(--t-accent-soft);
+  border-radius: 0;
+  color: var(--t-muted);
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+[data-theme] .t-hubbar-themes button + button { margin-left: -1px; }
+[data-theme] .t-hubbar-themes button[aria-pressed="true"] { color: var(--t-on-highlight); background: var(--t-accent); border-color: var(--t-accent); font-weight: 700; }
+[data-theme] .t-hubbar-themes button:hover { color: var(--t-on-highlight); background: var(--t-accent-2); border-color: var(--t-accent-2); }
+
+/* ---------- title and section headings ---------- */
+
+[data-theme] .t-title {
+  margin: 0;
+  font-family: var(--t-font-display);
+  text-transform: uppercase;
+  color: var(--t-accent);
+  text-shadow: var(--t-glow);
+}
+[data-theme="reactor"] .t-title { font-size: 1.3rem; font-weight: 400; letter-spacing: 0.2em; }
+[data-theme="cyberpunk"] .t-title { font-size: 2.4rem; font-weight: 700; line-height: 1; letter-spacing: 0.04em; }
+
+/* <h2 class="t-heading"><i>01</i>Name</h2>: the <i> is an optional counter */
+[data-theme] .t-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-transform: uppercase;
+  color: var(--t-accent);
+}
+[data-theme] .t-heading i { font: normal 0.75em var(--t-font-mono); color: var(--t-muted); }
+[data-theme="reactor"] .t-heading { font: 400 0.8rem var(--t-font-mono); letter-spacing: 0.2em; }
+[data-theme="reactor"] .t-heading::before { content: "//"; color: var(--t-muted); }
+[data-theme="cyberpunk"] .t-heading { font: 700 0.95rem var(--t-font-display); letter-spacing: 0.3em; }
+[data-theme="cyberpunk"] .t-heading::before { content: ""; flex: none; width: 8px; height: 8px; background: currentColor; transform: rotate(45deg); }
+[data-theme="cyberpunk"] .t-heading::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--t-accent-soft), transparent); }
+
+[data-theme] .t-label { font: 0.7rem var(--t-font-mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--t-muted); }
+
+/* ---------- panel ---------- */
+
+/* Reactor: corner brackets of light on a faint glass pane */
+[data-theme="reactor"] .t-panel {
+  --c: var(--t-accent);
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / 16px 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top left / 2px 16px no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / 16px 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / 2px 16px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / 16px 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / 2px 16px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / 16px 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / 2px 16px no-repeat,
+    linear-gradient(135deg, rgba(111, 227, 255, 0.1), rgba(111, 227, 255, 0.02));
+  box-shadow: inset 0 0 0 1px var(--t-line);
+}
+/* Cyberpunk: thin red frame with a cut corner and a red edge on the left */
+[data-theme="cyberpunk"] .t-panel {
+  border: 1px solid var(--t-accent-soft);
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
+  background:
+    linear-gradient(315deg, transparent 0 12px, var(--t-accent-soft) 12px 13.5px, transparent 13.5px) bottom right / 18px 18px no-repeat,
+    linear-gradient(135deg, var(--t-accent-faint), transparent 60%),
+    var(--t-surface);
+  box-shadow: inset 3px 0 0 var(--t-accent);
+}
+/* Make one panel stand out: the main action, the tracked item */
+[data-theme="reactor"] .t-panel.t-main { --c: var(--t-highlight); }
+[data-theme="cyberpunk"] .t-panel.t-main { border-color: var(--t-highlight); box-shadow: inset 4px 0 0 var(--t-highlight); }
+
+/* ---------- figures: <dl class="t-stats"><div><dt>..</dt><dd>..</dd></div></dl> ---------- */
+
+[data-theme] .t-stats dt { font-family: var(--t-font-mono); font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--t-muted); }
+[data-theme] .t-stats dd { margin-left: 0; color: var(--t-text); }
+[data-theme] .t-stats dd small { color: var(--t-muted); }
+[data-theme="reactor"] .t-stats dd { font-family: var(--t-font-mono); }
+[data-theme="cyberpunk"] .t-stats > div { padding-left: 10px; border-left: 1px solid var(--t-accent-soft); }
+[data-theme="cyberpunk"] .t-stats dt { font: 600 0.75rem var(--t-font-display); letter-spacing: 0.22em; }
+[data-theme="cyberpunk"] .t-stats dd { font-family: var(--t-font-display); font-weight: 700; font-size: 1.35em; line-height: 1.1; }
+[data-theme="cyberpunk"] .t-stats dd small { font: 0.7rem var(--t-font-mono); }
+
+/* ---------- badge, button, callout ---------- */
+
+[data-theme] .t-badge {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 0;
+  color: var(--t-on-highlight);
+  background: var(--t-highlight);
+  font: normal 700 0.75rem/1.6 var(--t-font-mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+[data-theme="cyberpunk"] .t-badge { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%); }
+
+[data-theme] .t-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--t-accent-soft);
+  border-radius: 0;
+  color: var(--t-accent);
+  background: var(--t-accent-faint);
+  font: 600 0.8rem var(--t-font-display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+[data-theme="reactor"] .t-btn { font: 0.72rem var(--t-font-mono); letter-spacing: 0.2em; }
+[data-theme="cyberpunk"] .t-btn { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%); }
+[data-theme] .t-btn:hover, [data-theme] .t-btn:focus-visible { color: var(--t-on-highlight); background: var(--t-accent-2); border-color: var(--t-accent-2); }
+[data-theme] .t-btn.t-main { color: var(--t-on-highlight); background: var(--t-highlight); border-color: var(--t-highlight); }
+
+/* A remark set apart: reasoning, formula, note */
+[data-theme] .t-callout { border-left: 2px solid var(--t-accent-soft); background: var(--t-accent-faint); }
+[data-theme] .t-callout.t-main { border-left-color: var(--t-highlight); }
+
+/* ---------- gauge: <span class="t-bar"><i style="width: 40%"></i></span> ---------- */
+
+[data-theme] .t-bar { display: block; overflow: hidden; border-radius: 0; background: var(--t-line); }
+[data-theme] .t-bar > i { display: block; height: 100%; border-radius: 0; background: var(--t-progress); box-shadow: 0 0 10px var(--t-progress); }
+[data-theme="reactor"] .t-bar > i { background: linear-gradient(90deg, rgba(111, 227, 255, 0.4), var(--t-progress)); }
+/* Cyberpunk: cut into cells like the cyberdeck RAM */
+[data-theme="cyberpunk"] .t-bar {
+  overflow: visible;
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(5% - 3px), transparent calc(5% - 3px) 5%);
+  mask: repeating-linear-gradient(90deg, #000 0 calc(5% - 3px), transparent calc(5% - 3px) 5%);
+}
+
+/* ---------- table ---------- */
+
+[data-theme] .t-table { border-collapse: collapse; font-family: var(--t-font-mono); color: var(--t-text); }
+[data-theme] .t-table th, [data-theme] .t-table td { border-bottom: 1px solid var(--t-line); }
+[data-theme] .t-table th { font-weight: 400; font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--t-muted); }
+[data-theme="cyberpunk"] .t-table th { font: 600 0.78rem var(--t-font-display); letter-spacing: 0.2em; color: var(--t-accent); }
+[data-theme="cyberpunk"] .t-table tbody tr:hover td { background: var(--t-accent-faint); }
+
+[data-theme] .t-up { color: var(--t-up); }
+[data-theme] .t-down { color: var(--t-down); }
+
+@media (max-width: 600px) { [data-theme] .t-hubbar { padding: 8px 16px; } }

@@ -1,32 +1,28 @@
 {{- /* "Cyberpunk" look, after the Cyberpunk 2077 in-game menus. The links reuse the name or IP typed to reach this page */ -}}
 {{- $host := .Host -}}
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="cyberpunk">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Media Server</title>
-  <link rel="preload" href="/fonts/rajdhani-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/theme/fonts/rajdhani-600.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Colours and fonts come from the theme kit shared with the other projects (theme/README.md) -->
+  <link rel="stylesheet" href="/theme/theme.css">
   <style>
-    /* Rajdhani (SIL OFL, fonts/OFL-rajdhani.txt) is the closest free match to the game's UI font */
-    @font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(/fonts/rajdhani-500.woff2) format("woff2"); }
-    @font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(/fonts/rajdhani-600.woff2) format("woff2"); }
-    @font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(/fonts/rajdhani-700.woff2) format("woff2"); }
-
     :root {
-      color-scheme: dark;
-      --bg: #07080d;
-      --panel: rgba(14, 12, 20, 0.92);
-      --red: #ff6158;
-      --red-dim: rgba(255, 97, 88, 0.42);
-      --red-faint: rgba(255, 97, 88, 0.09);
-      --cyan: #5ef6ff;
-      --yellow: #f3e600;
-      --green: #39ff88;
-      --text: #f1e9e4;
-      --muted: #a2726d;
-      --display: "Rajdhani", "Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
-      --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --bg: var(--t-bg);
+      --panel: var(--t-surface);
+      --red: var(--t-accent);
+      --red-dim: var(--t-accent-soft);
+      --red-faint: var(--t-accent-faint);
+      --cyan: var(--t-accent-2);
+      --yellow: var(--t-highlight);
+      --green: var(--t-up);
+      --text: var(--t-text);
+      --muted: var(--t-muted);
+      --display: var(--t-font-display);
+      --mono: var(--t-font-mono);
       --notch: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
     }
     * { box-sizing: border-box; }

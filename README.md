@@ -204,6 +204,8 @@ Once Docker confirms all containers are `Started`, open your web browser and go 
 
 It is the only address to remember: it links to every app. Each app opens in its own tab, so the home page is always one tab away. It comes in two looks, *Reactor* and *Cyberpunk*; the switch at the top right changes it and each device remembers its own choice.
 
+Your own projects served on the same machine can take the same look and follow the switch: Draupnir and Sapling Sunrise do. How to plug one in: [home/site/theme/README.md](home/site/theme/README.md).
+
 The search bar sends what you type straight to the right app: **Watch** looks for it in your Jellyfin library, **+ Movie** opens Radarr and **+ TV show** opens Sonarr with the search already running, ready to add.
 
 Under the apps, a bar shows how full the data disk is: a small `storage` container measures `DATA_ROOT` every minute and the page reads the result at `/disk.json`. The bar turns to the warning colour at 90 %.

@@ -27,6 +27,11 @@
 		redir * http://{host}:8096/web/#/search?query={re.q.2}
 	}
 
+	# The theme kit is loaded by projects on other ports of this host (see
+	# site/theme/README.md); fonts only load cross-origin with this header
+	@theme path /theme/*
+	header @theme Access-Control-Allow-Origin *
+
 	# /disk.json is the space used on the data disk, written by the storage service
 	handle /disk.json {
 		root * /status
