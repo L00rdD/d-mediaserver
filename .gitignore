@@ -13,3 +13,8 @@ Thumbs.db
 
 # Python bytecode (enclosure/scad2step.py)
 __pycache__/
+
+# sliced print files from Photon Workshop (hundreds of MB)
+*.pm7
+*.pwma
+*.pwmx

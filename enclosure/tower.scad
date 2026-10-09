@@ -20,7 +20,7 @@
 //
 // Printing (ABS-like resin, dark grey or black): trays rim up, lid top down,
 // tilted 10 to 15 degrees on two axes, medium supports under the rim and the
-// bosses. Walls are 2.5 mm, floors 3.5 mm. The floor slots double as drains.
+// bosses. Walls are 2 mm, floors 2.5 mm. The floor slots double as drains.
 //
 // Everything is sized generously on purpose: adjust the component block to the
 // real parts and the rest follows.
@@ -29,8 +29,8 @@ part    = "assembly"; // [assembly, base, riser, hub, compute, disk, lid, screen
 explode = 25;         // gap between stages in the assembly view
 
 /* ---------- shell ---------- */
-wall     = 2.5;
-floor_t  = 3.5;
+wall     = 2;
+floor_t  = 2.5;
 chamfer  = 10;     // 45-degree chamfer on the vertical edges
 inner_w  = 180;    // left-right, inside: the hub (155) and the strip set it
 inner_d  = 100;    // front-back, inside: the Pi behind the screen sets it
@@ -39,7 +39,8 @@ lip_clr  = 0.3;    // clearance between plug and the stage below
 magnets  = true;   // 6 x 2 mm disc magnets, 4 per joint
 magnet_d = 6.4;
 magnet_h = 2.3;
-col_d    = 11;     // corner columns, full height, half sunk in the corner walls; they carry the magnets
+col_d    = 11;     // corner columns, half sunk in the corner walls; they carry the magnets
+col_end  = 8;      // the columns only stand this tall at each end of a stage, where the magnets sit
 
 /* ---------- louvres ---------- */
 louvre_angle = 60;   // from horizontal
@@ -179,6 +180,24 @@ module columns(z0, z1) {
     col_xy() translate([0, 0, z0]) cylinder(d = col_d, h = z1 - z0);
 }
 
+// the corner conduits are hollow between the column ends: a bore that keeps
+// a 2 mm skin on the outside and 2 mm of wall towards the cavity. The conduit
+// centre lies inside the cavity, so the bore is the crescent outside the wall;
+// a small hole at each end, from the centre outwards, drains it into the cavity
+pipe_skin = 2;
+module pipe_bores(h) {
+    if (h > 2 * col_end + 6) {
+        translate([0, 0, col_end]) linear_extrude(h - 2 * col_end) difference() {
+            for (sx = [-1, 1], sy = [-1, 1])
+                translate([sx * (W / 2 - pipe_d / 2 + pipe_out), sy * (D / 2 - pipe_d / 2 + pipe_out)]) circle(d = pipe_d - 2 * pipe_skin);
+            offset(delta = 2) cham(inner_w, inner_d, chamfer - wall);
+        }
+        for (sx = [-1, 1], sy = [-1, 1], z = [col_end + 1.5, h - col_end - 1.5])
+            translate([sx * (W / 2 - pipe_d / 2 + pipe_out), sy * (D / 2 - pipe_d / 2 + pipe_out), z])
+                rotate([0, 0, atan2(sy, sx)]) rotate([0, 90, 0]) cylinder(d = 2.5, h = 5, $fn = 16);
+    }
+}
+
 // magnet pockets at the ends of the columns, cut from the whole stage
 // (the column is half sunk in the wall, so a pocket cut from the column alone
 // would leave a crescent of wall inside it)
@@ -207,9 +226,11 @@ module tray(h, passthrough = true) {
                     linear_extrude(lip_h) cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
                 if (passthrough) rear_passthrough();
             }
-            columns(0, h);
+            columns(0, col_end);
+            columns(h - col_end, h);
         }
         pockets(0, h);
+        pipe_bores(h);
     }
 }
 
@@ -520,6 +541,14 @@ module disk() {
     color(c_body) stops(disk_bay, at = [-inner_w / 2 + disk_bay[0] / 2 + 6, 0], h = 6);
 }
 
+// the pagoda roof, rising from the eave to the ridge
+module roof() {
+    hull() {
+        translate([0, 0, lid_h - 0.01]) linear_extrude(0.02) cham(W + 2 * eave - 4, D + 2 * eave - 4, chamfer + eave);
+        translate([0, 0, lid_h + roof_h - 0.01]) linear_extrude(0.02) cham(W - 70, 14, 4);
+    }
+}
+
 module lid() {
     sx2 = -inner_w / 2 + 42; sy2 = 14;          // the small stack
     top = lid_h + roof_h;                        // roof ridge height
@@ -532,10 +561,7 @@ module lid() {
             color(c_trim) for (sd = ["F", "B"]) on_face(sd, 0, lid_h / 2, band_t) meander2d(face_w, band_h);
             // the eave, then the roof rising to a ridge
             color(c_body) translate([0, 0, lid_h - 3]) linear_extrude(3) cham(W + 2 * eave, D + 2 * eave, chamfer + eave);
-            color(c_body) hull() {
-                translate([0, 0, lid_h - 0.01]) linear_extrude(0.02) cham(W + 2 * eave - 4, D + 2 * eave - 4, chamfer + eave);
-                translate([0, 0, top - 0.01]) linear_extrude(0.02) cham(W - 70, 14, 4);
-            }
+            color(c_body) roof();
             color(c_trim) translate([0, 0, top - 0.01]) linear_extrude(3) cham(W - 60, 8, 2);   // ridge
             // the exhaust stack rises from the roof like a finial, in three tiers
             color(c_body) translate([0, 0, lid_h]) cylinder(d = stack_d + 12, h = roof_h + 3);
@@ -546,6 +572,20 @@ module lid() {
             color(c_body) translate([sx2, sy2, lid_h]) cylinder(d = 30, h = roof_h + stack_h - 4);
             color(c_trim) translate([sx2, sy2, lid_h]) cylinder(d = 38, h = roof_h - 2);
         }
+        // the roof is a shell about 3 mm thick over the plate, clear of the
+        // stacks, drained through four holes in the plate. The cavity follows
+        // the roof slopes 3 mm lower: a tapered extrusion rather than a hull,
+        // which FreeCAD's importer cannot nest in a difference.
+        color(c_body) difference() {
+            let(r0 = [W + 2 * eave - 4, D + 2 * eave - 4], r1 = [W - 70, 14],
+                at = function(t) [for (i = [0, 1]) r0[i] + (r1[i] - r0[i]) * t / roof_h - 2],
+                b = at(3), e = at(roof_h))
+                translate([0, 0, lid_h]) linear_extrude(roof_h - 3, scale = [e[0] / b[0], e[1] / b[1]]) cham(b[0], b[1], chamfer + eave);
+            translate([0, 0, lid_h - 1]) cylinder(d = stack_d + 4, h = roof_h + 2);
+            translate([sx2, sy2, lid_h - 1]) cylinder(d = 34, h = roof_h + 2);
+        }
+        for (sx = [-1, 1], sy = [-1, 1])
+            translate([sx * (inner_w / 2 - 25), sy * (inner_d / 2 - 20), lid_h - floor_t - 1]) cylinder(d = 3, h = floor_t + 2, $fn = 16);
         // the stacks are tubes, open through the roof and the plate
         color(c_body) translate([0, 0, lid_h - floor_t - 1]) cylinder(d = stack_d - 2 * wall, h = roof_h + stack_h + floor_t + 6);
         color(c_body) translate([sx2, sy2, lid_h - floor_t - 1]) cylinder(d = 30 - 2 * wall, h = roof_h + stack_h + floor_t + 2);

@@ -36,9 +36,12 @@ Eight colour schemes to compare are in `renders/colours/`.
 | `lid` | 18 mm + roof | Pagoda roof. 40 mm exhaust fan under the finned main stack; the smaller stack vents passively. |
 
 Each stage has a plug underneath that drops into the stage below. A column
-in each inside corner runs the full height of the stage, half sunk in the
-walls, with a 6 × 2 mm magnet pocket at each end; the plug is notched around
-the columns of the stage below, so column meets column and the magnets hold. A 36 × 14 mm pass-through at the rear of every
+in each inside corner, half sunk in the walls, stands 8 mm tall at each end
+of the stage with a 6 × 2 mm magnet pocket; the plug is notched around
+the columns of the stage below, so column meets column and the magnets hold.
+To save resin the corner conduits are hollow between the column ends, each
+drained into the stage by two 2.5 mm holes, and the pagoda roof is a 3 mm
+shell over the lid plate, drained by four 3 mm holes in the plate. A 36 × 14 mm pass-through at the rear of every
 floor lets the cables run up and down the tower. The lattice pitch and the bands are the same on every stage, so the
 ornament reads as one across the stack; the front only gets the two moon
 windows, low on the base, and the screen.
@@ -52,6 +55,9 @@ Outer size: 190 × 110 mm over the pipes, about 385 mm tall with two disk stages
   `assembly` shows the stack exploded, with ghosts of the parts to check the room.
 - `stl/`: one STL per part, exported from the current parameters. `disk.pwscene`
   is the Photon Workshop scene of the disk stage, with its orientation and supports.
+  `stl/print/` holds the same parts already oriented and tilted for the Photon
+  Mono M7 plate: open them in Photon Workshop, add supports and save. Made by
+  `python3 orient.py`; re-run it after re-exporting the STLs.
 - `step/`: the same parts as STEP (AP214), real solids for CAD tools rather than
   meshes. Made by `scad2step.py`, which runs OpenSCAD for the 2D profiles and
   [FreeCAD](https://www.freecad.org) for the solids and the export; the header of
@@ -72,8 +78,8 @@ Everything is sized generously. Measure the real parts and adjust the
 | `fan` | 40 mm fan assumed (Noctua NF-A4x10 5V PWM). |
 
 Print settings for ABS-like resin: trays rim up, lid top down, tilted 10 to 15°
-on two axes, medium supports under the rim and the bosses. Walls are 2.5 mm,
-floors 3.5 mm; the floor slots and the floor lattice double as drain holes. The lattice openings
+on two axes, medium supports under the rim and the bosses. Walls are 2 mm,
+floors 2.5 mm; the floor slots and the floor lattice double as drain holes. The lattice openings
 are about 7 mm triangles, easy to drain and to clean with a brush. The lid
 prints roof down: the stacks, the eave and the fins need supports.
 
