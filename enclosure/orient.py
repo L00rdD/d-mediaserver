@@ -14,7 +14,7 @@ import pathlib
 import struct
 
 PLATE = (223, 126, 230)
-MARGIN = 3            # kept free around the part on the plate
+MARGIN = 6            # kept free around the part on the plate, for the support feet and the raft
 LIFT = 8              # room left under the part for the supports
 MAX_TILT = 15
 MIN_TILT = 10       # along the plate; across it any tilt from 0 is accepted
