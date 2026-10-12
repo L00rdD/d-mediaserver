@@ -106,8 +106,8 @@ def read_seen():
 
 
 def notify(latest):
+    # No "username": the message keeps the name and avatar given to the webhook in Discord
     payload = {
-        "username": "KPIECE",
         "content": f"Le scan {latest['scan']} de One Piece est sorti ! {latest['url']}",
         "embeds": [{
             "title": f"Scan {latest['scan']}" + (f" : {latest['name']}" if latest["name"] else ""),
