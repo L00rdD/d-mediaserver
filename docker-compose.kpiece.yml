@@ -1,0 +1,21 @@
+# Optional: watches KPIECE (kpiece.fr) for the new One Piece scan (French).
+# kpiece/watch.py checks the site every 5 minutes (every minute around the
+# announced release), writes the latest scan and the date of the next one to
+# kpiece.json for the home page card, and posts the link of each new scan to
+# Discord. Switch it on in .env:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.kpiece.yml
+#   KPIECE_WEBHOOK_URL=https://discord.com/api/webhooks/...   (optional)
+services:
+  kpiece:
+    image: python:3-alpine
+    container_name: kpiece
+    init: true
+    command: ["python", "-u", "/app/watch.py"]
+    environment:
+      - KPIECE_WEBHOOK_URL=${KPIECE_WEBHOOK_URL:-}
+      - TZ=${TZ:-Europe/Paris}
+    volumes:
+      - ./kpiece:/app:ro
+      # kpiece.json (served by the home page) and kpiece-seen, next to disk.json
+      - disk-status:/status
+    restart: unless-stopped

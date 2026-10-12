@@ -222,7 +222,8 @@
         "p3 reactor p4"
         "sto sto sto"
         "bot bot bot"
-        "sap sap sap";
+        "sap sap sap"
+        "kp kp kp";
       gap: 28px 56px;
       width: 100%;
       max-width: 1080px;
@@ -516,6 +517,9 @@
       background: repeating-linear-gradient(90deg, var(--cyan-soft) 0 1px, transparent 1px 10%) 0 0 / 100% 4px no-repeat;
     }
     .sapling { grid-area: sap; animation-delay: 0.65s; }
+    /* One Piece card: hidden until the kpiece service writes /kpiece.json (see kpiece.js) */
+    .kpiece { grid-area: kp; animation-delay: 0.7s; }
+    .kpiece dd { font-variant-numeric: tabular-nums; }
 
     /* J.A.R.V.I.S. speaking at the bottom: voice bars and one line at a time (see the script below) */
     .jarvis {
@@ -565,7 +569,8 @@
           "p3 p4"
           "sto sto"
           "bot bot"
-          "sap sap";
+          "sap sap"
+          "kp kp";
         gap: 16px;
         padding: 20px 16px 36px;
       }
@@ -579,7 +584,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -716,6 +721,16 @@
       <ul class="ss-list" data-ss="list"></ul>
       <span class="tag bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></span>
     </a>
+
+    <a class="panel bot kpiece" id="kpiece" href="https://www.kpiece.fr/" target="_blank" rel="noopener" hidden aria-label="One Piece, read the latest scan on KPIECE">
+      <span class="tag"><i>07</i> // One Piece <span data-kp="arc"></span></span>
+      <dl class="bot-stats">
+        <div><dt>Latest scan</dt><dd><span data-kp="scan">–</span> <small data-kp="name"></small></dd></div>
+        <div><dt>Next scan</dt><dd><span data-kp="next">–</span> <small data-kp="when"></small></dd></div>
+        <div><dt>Countdown</dt><dd data-kp="timer">–</dd></div>
+      </dl>
+      <span class="tag bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></span>
+    </a>
   </main>
 
   <footer class="jarvis" id="jarvis" aria-live="polite">
@@ -733,7 +748,7 @@
       setInterval(tick, 10000);
 
       // J.A.R.V.I.S. types one line, pauses, then the next. Storage and trading lines
-      // read what storage.js and trading-bot.js put on the page, when their card is shown.
+      // read what storage.js, trading-bot.js and kpiece.js put on the page, when their card is shown.
       const box = document.getElementById("jarvis");
       const out = document.getElementById("jarvis-line");
       const text = (sel) => document.querySelector(sel)?.textContent.trim();
@@ -744,6 +759,7 @@
         const l = [`${part}, sir. All systems are online.`, "Jellyfin is ready whenever you are."];
         if (shown("storage")) l.push(`Storage at ${text('[data-st="pct"]')}, ${text('[data-st="free"]')} left.`);
         if (shown("trading-bot")) l.push(`The trading bot reports ${text('[data-tb="pnl"]')} so far.`);
+        if (shown("kpiece")) l.push(`One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
         l.push("Type a title above and I will find it.", "Transmission stays behind the VPN, as instructed.", "Uplink {{$host}} is stable.");
         return l;
       };
@@ -767,5 +783,6 @@
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
+  <script src="/kpiece.js" defer></script>
 </body>
 </html>

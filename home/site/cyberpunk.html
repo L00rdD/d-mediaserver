@@ -495,7 +495,7 @@
     .card:hover, .card:focus-visible { --edge: var(--red); --fill: #2a0f12; }
     .card:hover .name, .card:focus-visible .name { color: var(--red); animation: glitch-text 0.35s steps(2) 1; }
 
-    /* Telemetry cards: storage, trading bot, Sapling Sunrise; each hidden until its source answers */
+    /* Telemetry cards: storage, trading bot, Sapling Sunrise, One Piece; each hidden until its source answers */
     .bot {
       grid-column: 1 / -1;
       position: relative;
@@ -590,6 +590,8 @@
     .ss-list li span:last-child { text-align: right; }
     .ss-bar { height: 10px; }
     @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
+    .kpiece { animation-delay: 0.5s; }
+    .kpiece dd { font-variant-numeric: tabular-nums; }
 
     /* Bottom ticker */
     .ticker {
@@ -785,6 +787,16 @@
       <ul class="ss-list" data-ss="list"></ul>
       <div class="bot-head bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></div>
     </a>
+
+    <a class="bot kpiece" id="kpiece" href="https://www.kpiece.fr/" target="_blank" rel="noopener" hidden aria-label="One Piece, read the latest scan on KPIECE">
+      <div class="bot-head"><span>07</span><span class="name">One Piece</span><span data-kp="arc"></span></div>
+      <dl class="bot-stats">
+        <div><dt>Latest scan</dt><dd><span data-kp="scan">–</span> <small data-kp="name"></small></dd></div>
+        <div><dt>Next scan</dt><dd><span data-kp="next">–</span> <small data-kp="when"></small></dd></div>
+        <div><dt>Countdown</dt><dd data-kp="timer">–</dd></div>
+      </dl>
+      <div class="bot-head bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></div>
+    </a>
   </main>
 
   <footer class="ticker" aria-hidden="true">
@@ -818,5 +830,6 @@
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
+  <script src="/kpiece.js" defer></script>
 </body>
 </html>
