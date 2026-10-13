@@ -19,7 +19,7 @@
 // render to STL. "assembly" shows the whole stack, exploded by `explode`.
 //
 // Printing (ABS-like resin, dark grey or black): trays rim up, lid top down,
-// tilted 10 to 15 degrees on two axes, medium supports under the rim and the
+// tilted 10 to 15 degrees on two axes, heavy supports under the floor and the
 // bosses. Walls are 2 mm, floors 2.5 mm. The floor slots double as drains.
 //
 // Everything is sized generously on purpose: adjust the component block to the
@@ -70,6 +70,7 @@ pi          = [85, 56];
 pi_holes    = [58, 49];       // Pi 4 mounting holes
 pi_stand_h  = 6;
 disk_bay    = [120, 90, 26];  // one 2.5" drive in its enclosure, lying flat (Samsung M3: 111 x 82 x 18)
+disk_x      = 15;             // from the left wall to the drive bay, so its stops clear the corner columns
 fan         = 40; fan_holes = 32; fan_hole_d = 3.2;
 cable       = [36, 14];       // rear cable pass-through in every floor
 pipe_d      = 16;             // corner conduits
@@ -318,15 +319,20 @@ module engrave(txt, x, z, size = 7) {
         linear_extrude(2) text(txt, size = size, font = font, halign = "center", valign = "center");
 }
 
-// four L-shaped stops around a footprint, to keep a part from sliding
+// four L-shaped stops around a footprint, to keep a part from sliding. They
+// stay 1 mm clear of the plug notches, so they never cover a magnet pocket or
+// meet the columns of the stage below
 module stops(size, at = [0, 0], h = 4, clr = 1, leg = 12) {
-    for (sx = [-1, 1], sy = [-1, 1]) {
-        cx = at[0] + sx * (size[0] / 2 + clr);
-        cy = at[1] + sy * (size[1] / 2 + clr);
-        translate([0, 0, -lip_h + floor_t - 0.01]) {
-            translate([sx > 0 ? cx - leg : cx, sy > 0 ? cy : cy - 2, 0]) cube([leg, 2, h]);
-            translate([sx > 0 ? cx : cx - 2, sy > 0 ? cy - leg : cy, 0]) cube([2, leg, h]);
+    difference() {
+        for (sx = [-1, 1], sy = [-1, 1]) {
+            cx = at[0] + sx * (size[0] / 2 + clr);
+            cy = at[1] + sy * (size[1] / 2 + clr);
+            translate([0, 0, -lip_h + floor_t - 0.01]) {
+                translate([sx > 0 ? cx - leg : cx, sy > 0 ? cy : cy - 2, 0]) cube([leg, 2, h]);
+                translate([sx > 0 ? cx : cx - 2, sy > 0 ? cy - leg : cy, 0]) cube([2, leg, h]);
+            }
         }
+        col_xy() translate([0, 0, -lip_h - 1]) cylinder(d = col_d + 2 * lip_clr + 2, h = lip_h + h + 2);
     }
 }
 
@@ -536,9 +542,9 @@ module disk() {
         union() { color(c_body) tray(disk_h); post_rings(disk_h); bands(disk_h); windows(disk_h); color(c_trim) on_face("F", 0, field_z(disk_h), band_t * 2) waves2d(face_w - 4, field_h(disk_h)); }
         windows(disk_h, cut = true);
         // keep the floor solid under the drive stops
-        floor_lattice([for (sx = [-1, 1], sy = [-1, 1]) [-inner_w / 2 + disk_bay[0] / 2 + 6 + sx * (disk_bay[0] / 2 + 1), sy * (disk_bay[1] / 2 + 1), 16]]);
+        floor_lattice([for (sx = [-1, 1], sy = [-1, 1]) [-inner_w / 2 + disk_bay[0] / 2 + disk_x + sx * (disk_bay[0] / 2 + 1), sy * (disk_bay[1] / 2 + 1), 16]]);
     }
-    color(c_body) stops(disk_bay, at = [-inner_w / 2 + disk_bay[0] / 2 + 6, 0], h = 6);
+    color(c_body) stops(disk_bay, at = [-inner_w / 2 + disk_bay[0] / 2 + disk_x, 0], h = 6);
 }
 
 // the pagoda roof, rising from the eave to the ridge
@@ -638,8 +644,8 @@ module assembly() {
     %translate([-hub[0] / 2, inner_d / 2 - hub[1] - 3, z1 - lip_h + floor_t]) cube(hub);
     %translate([-screen[0] / 2, -D / 2, z2 + compute_h / 2 - screen[1] / 2]) cube([screen[0], screen_t, screen[1]]);
     %translate([inner_w / 2 - pi[0] - 6, inner_d / 2 - pi[1] - 3, z2 - lip_h + floor_t + pi_stand_h]) cube([pi[0], pi[1], 20]);
-    %translate([-inner_w / 2 + 6, -disk_bay[1] / 2, z3 - lip_h + floor_t]) cube(disk_bay);
-    %translate([-inner_w / 2 + 6, -disk_bay[1] / 2, z4 - lip_h + floor_t]) cube(disk_bay);
+    %translate([-inner_w / 2 + disk_x, -disk_bay[1] / 2, z3 - lip_h + floor_t]) cube(disk_bay);
+    %translate([-inner_w / 2 + disk_x, -disk_bay[1] / 2, z4 - lip_h + floor_t]) cube(disk_bay);
 }
 
 if (part == "assembly")    assembly();

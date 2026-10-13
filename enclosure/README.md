@@ -53,11 +53,21 @@ Outer size: 190 × 110 mm over the pipes, about 385 mm tall with two disk stages
 - `tower.scad`: the parametric model. Open it in [OpenSCAD](https://openscad.org),
   pick a `part` at the top (or `openscad -D 'part="base"' -o base.stl tower.scad`).
   `assembly` shows the stack exploded, with ghosts of the parts to check the room.
-- `stl/`: one STL per part, exported from the current parameters. `disk.pwscene`
-  is the Photon Workshop scene of the disk stage, with its orientation and supports.
+- `stl/`: one STL per part, exported from the current parameters.
   `stl/print/` holds the same parts already oriented and tilted for the Photon
   Mono M7 plate: open them in Photon Workshop, add supports and save. Made by
   `python3 orient.py`; re-run it after re-exporting the STLs.
+  Two test coupons cut from the oriented disk stage, to check supports and
+  exposure for a fraction of the resin: `stl/print/disk-coupon.stl` is the low
+  corner (`coupon.scad`), `stl/print/disk-coupon-high.stl` the highest corner,
+  42 mm above the plate on the tallest supports (`coupon_high.scad`; a small pin
+  standing on the plate beside it keeps it 26 mm up, since Workshop drops models
+  to the plate when it generates supports; do not move it down). The high
+  corner printed clean on 2026-10-13, so `orient.py` now tilts every part as far
+  as it can while keeping its highest supported point within those 40 mm (42 with
+  the Workshop lift). Only the lid cannot: roof down, the top of its eave stands
+  at least 46 mm up, 50 mm as oriented. `stl/print/lid-coupon.stl`
+  (`coupon_lid.scad`) is that corner, held 19 mm up by the same kind of pin.
 - `step/`: the same parts as STEP (AP214), real solids for CAD tools rather than
   meshes. Made by `scad2step.py`, which runs OpenSCAD for the 2D profiles and
   [FreeCAD](https://www.freecad.org) for the solids and the export; the header of
@@ -78,10 +88,34 @@ Everything is sized generously. Measure the real parts and adjust the
 | `fan` | 40 mm fan assumed (Noctua NF-A4x10 5V PWM). |
 
 Print settings for ABS-like resin: trays rim up, lid top down, tilted 10 to 15°
-on two axes, medium supports under the rim and the bosses. Walls are 2 mm,
+on two axes, heavy supports (Photon Workshop "heavy": 0.5 to 0.6 mm tips, 2 mm
+trunks), dense under the floor pads, the columns and the highest corner; lift
+and retract at 4 mm/s rather than 6 for this viscous resin, exposure at the
+Workshop profile (2.2 s per 50 µm layer, black ABS-Like Pro 2). The first disk
+print, on light supports, tore off at its highest corner. Walls are 2 mm,
 floors 2.5 mm; the floor slots and the floor lattice double as drain holes. The lattice openings
 are about 7 mm triangles, easy to drain and to clean with a brush. The lid
 prints roof down: the stacks, the eave and the fins need supports.
+
+Print order, from the safest to the riskiest, each one with the recipe proven
+by the one before it:
+
+| # | File in `stl/print/` | Tilt | Height on the plate | Resin (without supports) | Highest supported point |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | `disk.stl` | 6° × 10°, rear low | 78 mm | 89 ml | 40 mm (proven by the coupon) |
+| 2 | `disk.stl` again, for the second drive | | | 89 ml | |
+| 3 | `hub.stl` | 4° × 11°, rear low | 80 mm | 85 ml | 40 mm |
+| 4 | `lid-coupon.stl` | as the lid | 54 mm | 24 ml | 50 mm |
+| 5 | `lid.stl`, once the coupon is clean | 0° × 10°, roof down | 73 mm | 193 ml | 50 mm |
+| 6 | `compute.stl` | 0° × 11° | 163 mm | 219 ml | 34 mm |
+| 7 | `base.stl` | 0° × 10° | 166 mm | 234 ml | 31 mm |
+| – | `screen_clip.stl` × 2 | 15° × 13° | 42 mm | 4 ml each | small, any support |
+| – | `riser.stl`, only if a stage lacks height | 6° × 10°, rear low | 77 mm | 84 ml | 40 mm |
+
+The base and the compute stage are too wide to tilt across the plate at all,
+but their supports stay lower than the disk's; they are the tallest and the
+heaviest prints, which is why they come last. Count about 1 l of resin for the
+standard tower, plus 20 to 30 % for the supports.
 
 ## Hardware
 
