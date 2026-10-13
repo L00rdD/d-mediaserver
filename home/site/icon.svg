@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="A play button at the core of a glowing reactor ring">
+  <defs>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe08a"/>
+      <stop offset="0.5" stop-color="#ffc857"/>
+      <stop offset="1" stop-color="#b8841f"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#6fe3ff" filter="url(#glow)">
+    <!-- outer casing -->
+    <circle cx="80" cy="80" r="62" stroke-width="5"/>
+    <!-- the ten coils of the reactor, one per disk in the pool -->
+    <circle cx="80" cy="80" r="50" stroke-width="12" stroke-dasharray="23.4 8" stroke-dashoffset="-4" stroke-opacity="0.85" transform="rotate(-90 80 80)"/>
+    <!-- inner ring -->
+    <circle cx="80" cy="80" r="36" stroke-width="3"/>
+  </g>
+  <!-- play, at the core -->
+  <path d="M70 62 L98 80 L70 98 Z" fill="url(#core)" stroke="url(#core)" stroke-width="6" stroke-linejoin="round" filter="url(#glow)"/>
+</svg>
