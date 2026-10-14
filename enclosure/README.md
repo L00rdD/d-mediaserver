@@ -31,7 +31,7 @@ Eight colour schemes to compare are in `renders/colours/`.
 | `base` | 130 mm | 3-outlet power strip lying flat (up to 175 × 65 × 48 mm; a Legrand extra-flat 3-way is 167 × 55 × 38), both bricks plugged in, standing up to 80 mm tall. Mains cord and Ethernet leave through two slots in the rear wall. Air comes in through the floor slots, on rubber feet. |
 | `riser` | 30 mm | Empty. Slip one under any stage that needs more height, for a taller brick or a thicker drive. |
 | `hub` | 34 mm | The 7-port hub, USB ports facing the rear through a slot. |
-| `compute` | 124 mm | The screen, sunk in a pocket of the front face and held from inside by two `screen_clip` bars. The Pi on four standoffs at the right rear, ports facing inwards, so every cable stays inside. |
+| `compute` | 124 mm | The screen, sunk in a pocket of the front face and held from inside by two `screen_clip` bars. The Pi 4 on four 14 mm standoffs at the left rear: USB and Ethernet face the middle, USB-C and micro-HDMI face the back of the screen (about 30 mm of room, so angled plugs), GPIO to the rear wall. Every cable stays inside. |
 | `disk` | 32 mm | One 2.5" drive in its enclosure. Print one per drive, stack as many as needed. |
 | `lid` | 18 mm + roof | Pagoda roof. 40 mm exhaust fan under the finned main stack; the smaller stack vents passively. |
 
@@ -125,5 +125,5 @@ standard tower, plus 20 to 30 % for the supports.
 - 4 M2.5 × 6 screws for the Pi, 4 M3 × 8 for the screen clips, 4 M3 × 20 for the fan
 - 4 self-adhesive rubber feet, 12 mm
 - Noctua NF-A4x10 5V PWM fan, driven from the Pi GPIO
-- Short cables: micro-HDMI to HDMI, USB-A to micro-USB (screen), USB-C (Pi power)
+- Short cables: micro-HDMI to HDMI and USB-C (Pi power), both with a 90° plug at the Pi end; USB-A to micro-USB (screen)
 - Optional: a 5 V addressable LED strip (WS2812) on the Pi GPIO, stuck inside behind the louvres

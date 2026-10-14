@@ -68,7 +68,7 @@ screen_t    = 4;              // frame thickness sunk into the front pocket
 screen_lip  = 3;              // front wall overlap on the frame edge
 pi          = [85, 56];
 pi_holes    = [58, 49];       // Pi 4 mounting holes
-pi_stand_h  = 6;
+pi_stand_h  = 14;             // the board clears the corner column and the cables run under it
 disk_bay    = [120, 90, 26];  // one 2.5" drive in its enclosure, lying flat (Samsung M3: 111 x 82 x 18)
 disk_x      = 15;             // from the left wall to the drive bay, so its stops clear the corner columns
 fan         = 40; fan_holes = 32; fan_hole_d = 3.2;
@@ -495,7 +495,12 @@ module hub_stage() {
 module compute() {
     win   = [screen[0] - 2 * screen_lip, screen[1] - 2 * screen_lip];
     zc    = compute_h / 2;               // screen centred on the front face
-    pi_at = [inner_w / 2 - pi[0] / 2 - 6, inner_d / 2 - pi[1] / 2 - 3];  // right-rear, ports facing inwards
+    // Pi 4 at the left rear: USB and ethernet face the middle, USB-C and
+    // micro-HDMI face the back of the screen, GPIO the rear wall. 6 mm off the
+    // left wall and 9 off the rear one, so the standoffs clear the magnet pocket
+    // of the corner column and the cable pass-through. pi_at is the centre of
+    // the holes, which sit 3.5 mm from the end away from the USB
+    pi_at = [-inner_w / 2 + 6 + 3.5 + pi_holes[0] / 2, inner_d / 2 - pi[1] / 2 - 9];
     bez   = [screen[0] + 16, screen[1] + 16];   // raised bezel, 3 mm proud, two corners cut
     difference() {
         union() {
@@ -529,8 +534,9 @@ module compute() {
     color(c_body) for (sx = [-1, 1], sz = [-1, 1])
         translate([sx * (screen[0] / 2 + 6), -inner_d / 2 + screen_t + 1, zc + sz * (screen[1] / 2 + 6)])
             rotate([-90, 0, 0]) difference() { cylinder(d = 7, h = 8); cylinder(d = 2.4, h = 9); }
-    // Pi standoffs; the USB and ethernet ports face the middle of the stage,
-    // every cable stays inside and goes down through the rear pass-through
+    // Pi standoffs, tall enough for the board to pass over the corner column and
+    // the edge of the rear pass-through; every cable stays inside and goes down
+    // through the pass-through
     color(c_body) translate([pi_at[0], pi_at[1], -lip_h + floor_t - 0.01])
         for (sx = [-1, 1], sy = [-1, 1])
             translate([sx * pi_holes[0] / 2, sy * pi_holes[1] / 2, 0])
@@ -643,7 +649,7 @@ module assembly() {
     %translate([-strip[0] / 2, -strip[1] / 2, -lip_h + floor_t]) cube(strip);
     %translate([-hub[0] / 2, inner_d / 2 - hub[1] - 3, z1 - lip_h + floor_t]) cube(hub);
     %translate([-screen[0] / 2, -D / 2, z2 + compute_h / 2 - screen[1] / 2]) cube([screen[0], screen_t, screen[1]]);
-    %translate([inner_w / 2 - pi[0] - 6, inner_d / 2 - pi[1] - 3, z2 - lip_h + floor_t + pi_stand_h]) cube([pi[0], pi[1], 20]);
+    %translate([-inner_w / 2 + 6, inner_d / 2 - pi[1] - 9, z2 - lip_h + floor_t + pi_stand_h]) cube([pi[0], pi[1], 20]);
     %translate([-inner_w / 2 + disk_x, -disk_bay[1] / 2, z3 - lip_h + floor_t]) cube(disk_bay);
     %translate([-inner_w / 2 + disk_x, -disk_bay[1] / 2, z4 - lip_h + floor_t]) cube(disk_bay);
 }
