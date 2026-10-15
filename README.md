@@ -209,7 +209,7 @@ Once Docker confirms all containers are `Started`, open your web browser and go 
 
 It is the only address to remember: it links to every app. Each app opens in its own tab, so the home page is always one tab away. It comes in two looks, *Reactor* and *Cyberpunk*; the switch at the top right changes it and each device remembers its own choice.
 
-Your own projects served on the same machine can take the same look and follow the switch: Draupnir and Sapling Sunrise do. How to plug one in: [home/site/theme/README.md](home/site/theme/README.md).
+Your own projects served on the same machine can take the same look and follow the switch: see [Add Your Own Apps](#-add-your-own-apps).
 
 The search bar sends what you type straight to the right app: **Watch** looks for it in your Jellyfin library, **+ Movie** opens Radarr and **+ TV show** opens Sonarr with the search already running, ready to add.
 
@@ -300,13 +300,46 @@ See what it did: `journalctl -u mediaserver-watchdog -n 20`. Run it now: `sudo s
 
 ---
 
-## 📈 Trading Bot Card (optional)
+## 🧩 Add Your Own Apps
 
-The home page shows a card for a [trading bot](https://github.com/L00rdD/trading-bot) running on the same machine: equity, total gain, open positions, realized P&L and fees. Like the other apps, the bot serves its own dashboard on its port (8080); the card reads `/api/status.json` there and links to it. Nothing to configure here: when nothing answers on port 8080, the card stays hidden.
+The Pi has room for your own projects next to the media stack: a dashboard, a bot, a tracker. Each one runs in its own container, can wear the hub's look and can get a live card on the home page.
 
-## 🌱 Sapling Sunrise Card (optional)
+### 1. Run it in its own Compose project
 
-The home page shows a card for [Sapling Sunrise](https://github.com/L00rdD/sapling-sunrise), a growth tracker running on the same machine: one progress bar per plant (germination, cold stratification, seedlings...) and the days left in the current phase. The tracker serves its own dashboard and status on its port (8081); the card reads `/api/status.json` there and links to it. Nothing to configure here: when nothing answers on port 8081, the card stays hidden. Reminders go to Discord from the tracker itself.
+Keep your project in its own folder with its own `docker-compose.yml`, so it is started, updated and stopped without touching the media stack:
+
+```yaml
+services:
+  my-app:
+    build: .                     # or image: <your image>
+    container_name: my-app
+    ports:
+      - 8080:8080                # a free port, see below
+    volumes:
+      - ./data:/app/data         # or /mnt/storage/... for bulky files
+    restart: unless-stopped
+```
+
+```bash
+docker compose up -d
+```
+
+Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 9696, 9091, 8191 and 51413. `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#-watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
+
+### 2. Give it the hub's look
+
+Your pages can take the *Reactor* or *Cyberpunk* look and follow the switch of the home page, without copying any style: load the theme kit the hub serves at `http://<host>/theme/`, put `class="t-app"` on `<body>` and use the `--t-*` colours and `.t-*` components. Everything is in [home/site/theme/README.md](home/site/theme/README.md).
+
+### 3. Show a card on the home page
+
+The home page can show a live summary of your app, which opens the app when clicked.
+
+1. **Serve a status file.** Your app answers `GET /api/status.json` on its port, with the header `Access-Control-Allow-Origin: *` (the home page reads it from another port). The content is up to you: the figures you want on the card and an `updated_at` date.
+2. **Add the card to both looks**, [`reactor.html`](home/site/reactor.html) and [`cyberpunk.html`](home/site/cyberpunk.html). Copy the card that points at port `8081` (`id="sapling-sunrise"`), give it your own `id`, title and port, and keep `hidden`: the card only shows once your app answers. In `reactor.html`, also give it a place in the three `grid-template-areas` lists (wide screen, tablet, phone): copy the `sap` line.
+3. **Fill it with a script.** Copy [`sapling-sunrise.js`](home/site/sapling-sunrise.js): it fetches `http://<host>:8081/api/status.json`, writes the values into the card's `data-*` elements and removes `hidden`. When the app does not answer, it does nothing and the card stays hidden. Load your script at the bottom of both pages, next to the other ones.
+4. **Deploy:** `git pull` on the Pi. The site folder is mounted into the `home` container, so a reload of the page is enough.
+
+The page already holds two such cards, on ports 8080 and 8081, for projects of the author. On a machine where nothing answers on those ports they stay hidden: replace them with yours or leave them.
 
 ## 🏴‍☠️ One Piece Scans (optional)
 
