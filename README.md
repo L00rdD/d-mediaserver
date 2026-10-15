@@ -99,6 +99,13 @@ printf '[Unit]\nRequiresMountsFor=/mnt/storage\n' | sudo tee /etc/systemd/system
 sudo systemctl daemon-reload
 ```
 
+The flip side: when a drive drops off the USB bus, even for a second, systemd unmounts it and stops Docker with every app, and nothing starts them again once the drive is back. The watchdog fixes that. Every minute it mounts again a drive that came back, then the pool, then starts Docker, and it posts to Discord when something stays broken (drive missing, Docker down, a container stopped or unhealthy, home page not answering) and when everything is back:
+```bash
+sudo ./watchdog/install.sh
+```
+
+It posts to `WATCHDOG_WEBHOOK_URL` in `.env`, or to `AUTOHEAL_WEBHOOK_URL` if that one is not set. A Pi that is off or offline cannot post anything: for that, create a free check on [healthchecks.io](https://healthchecks.io) (period 1 minute, grace 5 minutes, Discord integration) and put its ping URL in `WATCHDOG_PING_URL`. The watchdog pings it while all is well, and healthchecks.io warns you when the pings stop. `journalctl -u mediaserver-watchdog` shows what it did.
+
 Cap the container logs, so an app that loops on an error can never fill the SD card (30 MB per container at most):
 ```bash
 printf '{\n  "log-driver": "json-file",\n  "log-opts": { "max-size": "10m", "max-file": "3" }\n}\n' | sudo tee /etc/docker/daemon.json

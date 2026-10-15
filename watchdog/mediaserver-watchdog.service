@@ -1,0 +1,9 @@
+[Unit]
+Description=Media server watchdog: remount the drives, restart Docker, alert on Discord
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 @PROJECT@/watchdog/watchdog.py
+TimeoutStartSec=5min
