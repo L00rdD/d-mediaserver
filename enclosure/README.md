@@ -8,7 +8,10 @@ with its bricks. Designed for resin printing on an Anycubic Photon Mono M7
 The look: a lantern pagoda, made for a living room of katanas and dragons
 rather than a grey box next to the router. Every stage has latticed windows
 (asanoha, the hemp-leaf lattice) on its sides and its back, cut right
-through the wall so the tower breathes through them; a meander band runs
+through the wall so the tower breathes through them. The two tall stages,
+base and compute, get two tiers of smaller windows instead, split by a meander
+band and set in fields of waves, so their walls keep the rhythm of the short
+stages; the screen's bezel carries a meander too. A meander band runs
 along the top and the bottom of every stage, the solid fields carry seigaiha
 waves in relief, the corner posts wear three rings per stage, and the lid is
 a pagoda roof with an eave and a ridge, the two exhaust stacks rising from
@@ -88,27 +91,65 @@ Everything is sized generously. Measure the real parts and adjust the
 | `fan` | 40 mm fan assumed (Noctua NF-A4x10 5V PWM). |
 
 Print settings for ABS-like resin: trays rim up, lid top down, tilted 10 to 15°
-on two axes, heavy supports (Photon Workshop "heavy": 0.5 to 0.6 mm tips, 2 mm
-trunks), dense under the floor pads, the columns and the highest corner; lift
-and retract at 4 mm/s rather than 6 for this viscous resin, exposure at the
-Workshop profile (2.2 s per 50 µm layer, black ABS-Like Pro 2). The first disk
-print, on light supports, tore off at its highest corner. Walls are 2 mm,
-floors 2.5 mm; the floor slots and the floor lattice double as drain holes. The lattice openings
-are about 7 mm triangles, easy to drain and to clean with a brush. The lid
-prints roof down: the stacks, the eave and the fins need supports.
+on two axes, heavy supports (Photon Workshop "Heavy": 0.55 mm tips, 1.6 mm
+trunks, cross bars every 5 mm), dense under the floor pads, the columns and the
+highest corner; exposure at the Workshop profile (2.2 s per 50 µm layer, 5
+bottom layers at 35 s, black ABS-Like Pro 2). The first disk print, on light
+supports, tore off at its highest corner.
 
-Print order, from the safest to the riskiest, each one with the recipe proven
-by the one before it:
+The compute stage failed on 2026-10-14 with that profile as shipped: the raft
+stayed on the plate, but the supports tore out of it at one end and the whole
+floor came out rippled. The stock "Heavy" raft is a 0.8 mm honeycomb with 4 mm
+holes and the trunks stand on it with no foot (platform foot off), and the lift
+was the stock 8 mm at 6 mm/s with no pause. That held the disk (89 ml) and not
+the compute (242 ml plus supports, twice the layers). For the compute, the base
+and anything over about 100 ml, change the profile before slicing:
+
+| Workshop setting | Stock "Heavy" | "Heavy tower" (lid) | "Heavy compute" (compute, base) |
+| :--- | :--- | :--- | :--- |
+| Raft holes | on, 4 mm | off (solid raft) | off |
+| Raft thickness | 0.8 mm (16 layers) | 1.0 mm (20 layers: the 5 bottom + 15 transition layers, no raft layer at plain exposure) | 1.0 mm |
+| Platform foot (support bottom) | off | on, 3 mm radius | on, 3 mm radius |
+| Tip contact / depth in the part | 0.55 / 0.4 mm | unchanged | 0.7 / 0.5 mm |
+| Anchor spacing (support density) | 3 mm | unchanged | 2 mm |
+| Lift (resin profile "tower") | 8 mm at 6 mm/s, one stage | 10 mm in two stages: 4 mm at 3 mm/s, then 6 mm at 6 mm/s | same |
+| Retract | 6 mm/s | 4 mm/s | same |
+| Wait before lift | 0 s | 1 s | same |
+| Exposure | 2.2 s, bottom 5 × 35 s | unchanged | unchanged |
+
+`workshop_profile.py` installs the two support profiles and the resin profile
+(quit Workshop first, it rewrites its files on exit). The numbers follow what
+large-print users and Anycubic's own M7 troubleshooting report: supports tear
+at the raft when the lift is too short for the film to let go, so the lift
+distance goes up before anything else; a slow first stage helps most people
+but ACF users warn that a crawl separates worse, hence 3 mm/s rather than 2;
+a raft thicker than the bottom + transition layers warps and lets go, hence
+1.0 mm; ABS-Like Pro 2 stays flexible while printing and wants fat tips. Keep
+the room and the resin at 25 °C or more (the M7 has no heater; under 20 °C
+Anycubic says +30 % exposure and -30 % Z speed), and check the plate with a
+ruler against a light: dished plates are common on the M7 line and fail at the
+centre first. The compute profile is
+the stiffer one because it is the compute's floor that rippled: fatter tips
+sunk deeper, trees closer together. The hub proves nothing the disk has not: it
+is the same tray within 2 mm and 4 ml. Nothing over 89 ml has printed yet, so
+the compute goes from the proven disk straight to 242 ml on a profile that has
+never run: a known risk, taken to check the fit of the real parts first. Walls are 2 mm, floors 2.5 mm; the floor slots and
+the floor lattice double as drain holes. The lattice openings are about 7 mm
+triangles, easy to drain and to clean with a brush. The lid prints roof down:
+the stacks, the eave and the fins need supports.
+
+Print order: the stages that hold the parts first, to check the fit, the roof
+last.
 
 | # | File in `stl/print/` | Tilt | Height on the plate | Resin (without supports) | Highest supported point |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | `disk.stl` | 6° × 10°, rear low | 78 mm | 89 ml | 40 mm (proven by the coupon) |
+| 1 | `disk.stl` (printed 2026-10-13, clean) | 6° × 10°, rear low | 78 mm | 89 ml | 40 mm (proven by the coupon) |
 | 2 | `disk.stl` again, for the second drive | | | 89 ml | |
-| 3 | `hub.stl` | 4° × 11°, rear low | 80 mm | 85 ml | 40 mm |
-| 4 | `lid-coupon.stl` | as the lid | 54 mm | 24 ml | 50 mm |
-| 5 | `lid.stl`, once the coupon is clean | 0° × 10°, roof down | 73 mm | 193 ml | 50 mm |
-| 6 | `compute.stl` | 0° × 11° | 163 mm | 219 ml | 34 mm |
-| 7 | `base.stl` | 0° × 10° | 166 mm | 234 ml | 31 mm |
+| 3 | `compute.stl` (failed 2026-10-14 on stock Heavy), on "Heavy compute" | 0° × 11° | 163 mm | 242 ml | 34 mm |
+| 4 | `base.stl`, on "Heavy compute" | 0° × 10° | 166 mm | 253 ml | 31 mm |
+| 5 | `hub.stl` (same tray as the disk) | 4° × 11°, rear low | 80 mm | 85 ml | 40 mm |
+| 6 | `lid-coupon.stl` | as the lid | 54 mm | 24 ml | 50 mm |
+| 7 | `lid.stl`, once the coupon is clean, on "Heavy tower" | 0° × 10°, roof down | 73 mm | 193 ml | 50 mm |
 | – | `screen_clip.stl` × 2 | 15° × 13° | 42 mm | 4 ml each | small, any support |
 | – | `riser.stl`, only if a stage lacks height | 6° × 10°, rear low | 77 mm | 84 ml | 40 mm |
 

@@ -411,16 +411,39 @@ module window(side, u, z, w, h, cut = false) {
 }
 
 // windows on both sides and the back of a stage, sized to what is left
-// between the bands; short stages get a single row of lattice
-module windows(h, cut = false) {
-    zb = h < 40 ? 3 : 3 + band_h;                 // below the window
-    zt = h - 3 - band_h;                           // above it
-    wh = zt - zb - 2 * frame_w - 2;
-    zc = (zt + zb) / 2;
-    if (wh >= 8) {
-        for (sd = ["L", "R"]) window(sd, 0, zc, face_d - 22, wh, cut);
-        window("B", 0, zc, face_w - 22, wh, cut);
+// between the bands; short stages get a single row of lattice. Tall stages
+// (`tall` = [bottom, top] of the free wall, clear of the bands and the conduit
+// runs) get two tiers instead, split by a meander band, each a smaller window
+// set in a field of waves, so their walls keep the rhythm of the short stages
+// rather than turning into one big grid
+module windows(h, cut = false, tall, back_ww) {
+    if (is_undef(tall)) {
+        zb = h < 40 ? 3 : 3 + band_h;                 // below the window
+        zt = h - 3 - band_h;                           // above it
+        wh = zt - zb - 2 * frame_w - 2;
+        zc = (zt + zb) / 2;
+        if (wh >= 8) {
+            for (sd = ["L", "R"]) window(sd, 0, zc, face_d - 22, wh, cut);
+            window("B", 0, zc, face_w - 22, wh, cut);
+        }
+    } else {
+        for (sd = ["L", "R"]) tiers(sd, face_d, tall[0], tall[1], cut);
+        tiers("B", face_w, tall[0], tall[1], cut, back_ww);
     }
+}
+
+module tiers(side, fw, lo, hi, cut, ww_ = undef) {
+    th = (hi - lo - band_h) / 2 - 2;               // height of each tier
+    ww = is_undef(ww_) ? fw * 0.62 : ww_;          // window, inside its frame
+    wh = th - 2 * frame_w - 8;
+    for (zc = [lo + th / 2, hi - th / 2]) {
+        window(side, 0, zc, ww, wh, cut);
+        if (!cut) color(c_trim) on_face(side, 0, zc, band_t * 2) difference() {
+            waves2d(fw - 4, th);
+            square([ww + 2 * frame_w + 2, th + 2], center = true);   // waves left and right of it only
+        }
+    }
+    if (!cut) color(c_trim) on_face(side, 0, (lo + hi) / 2, band_t) meander2d(fw, band_h);
 }
 
 // the centre and height of the solid field on the front of a short stage
@@ -435,13 +458,19 @@ module post_rings(h) {
 }
 
 /* ---------- stages ---------- */
+// free wall on the tall stages, between the bands and the conduit runs
+base_tiers    = [16 + run_d / 2 + 1, base_h - 3 - band_h - 1];
+compute_tiers = [3 + band_h + 1, compute_h - 12 - run_d / 2 - 1];
+// the base's back windows fit between its two cable slots, 83 mm apart
+base_back_ww  = 72;
+
 module base() {
     difference() {
         union() {
             color(c_body) tray(base_h, passthrough = false);
             post_rings(base_h);
             bands(base_h);
-            windows(base_h);
+            windows(base_h, tall = base_tiers, back_ww = base_back_ww);
             // waves on the front, around the moon windows
             color(c_body) on_face("F", 0, base_h / 2, band_t) difference() {
                 square([face_w, base_h - 2 * (3 + band_h) - 4], center = true);
@@ -452,7 +481,7 @@ module base() {
                 difference() { square([face_w, base_h], center = true); for (x = [-inner_w / 2 + 40, -inner_w / 2 + 90]) translate([x, 34 - base_h / 2]) circle(d = port_d + 12); }
             }
         }
-        windows(base_h, cut = true);
+        windows(base_h, cut = true, tall = base_tiers, back_ww = base_back_ww);
         floor_vents();
         // two intake ports low on the front, left side
         port(-inner_w / 2 + 40, 34);
@@ -507,7 +536,7 @@ module compute() {
             color(c_body) tray(compute_h);
             post_rings(compute_h);
             bands(compute_h);
-            windows(compute_h);
+            windows(compute_h, tall = compute_tiers);
             // waves above and below the screen
             for (sz = [-1, 1]) {
                 fh = (compute_h - bez[1]) / 2 - (3 + band_h) - 6;
@@ -516,13 +545,25 @@ module compute() {
             // thicker front plate so the frame can sit in a pocket
             color(c_body) translate([0, -inner_d / 2 + screen_t / 2 + 0.5, zc])
                 cube([screen[0] + 30, screen_t + 1, screen[1] + 16], center = true);   // wide enough to meet the corner columns
-            // bezel
-            color(c_trim) translate([0, -D / 2, zc]) rotate([90, 0, 0]) difference() {
-                linear_extrude(3) cham(bez[0], bez[1], 4);
-                for (s = [-1, 1]) translate([s * bez[0] / 2, s * bez[1] / 2, -1]) rotate(45) cube([18, 18, 6], center = true);
+            // bezel, a meander running round its frame between the cut corners
+            color(c_trim) translate([0, -D / 2, zc]) rotate([90, 0, 0]) {
+                difference() {
+                    linear_extrude(3) cham(bez[0], bez[1], 4);
+                    for (s = [-1, 1]) translate([s * bez[0] / 2, s * bez[1] / 2, -1]) rotate(45) cube([18, 18, 6], center = true);
+                }
+                rw = (bez[1] - screen[1] - 0.6) / 2;      // width of the frame left round the pocket
+                translate([0, 0, 3 - 0.01]) linear_extrude(band_t) {
+                    for (s = [-1, 1]) {
+                        translate([0, s * (bez[1] / 2 - rw / 2)]) meander2d(bez[0] - 34, rw - 2);
+                        translate([s * (bez[0] / 2 - rw / 2), 0]) rotate(90) meander2d(bez[1] - 34, rw - 2);
+                    }
+                    // a ring on each of the two square corners
+                    for (s = [-1, 1]) translate([s * (bez[0] / 2 - rw / 2), -s * (bez[1] / 2 - rw / 2)])
+                        difference() { circle(d = rw + 3); circle(d = rw - 1); }
+                }
             }
         }
-        windows(compute_h, cut = true);
+        windows(compute_h, cut = true, tall = compute_tiers);
         // keep the floor solid under the Pi standoffs
         floor_lattice([for (sx = [-1, 1], sy = [-1, 1]) [pi_at[0] + sx * pi_holes[0] / 2, pi_at[1] + sy * pi_holes[1] / 2, 6.5]]);
         // pocket from the outside, then the window through
