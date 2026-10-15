@@ -99,12 +99,10 @@ printf '[Unit]\nRequiresMountsFor=/mnt/storage\n' | sudo tee /etc/systemd/system
 sudo systemctl daemon-reload
 ```
 
-The flip side: when a drive drops off the USB bus, even for a second, systemd unmounts it and stops Docker with every app, and nothing starts them again once the drive is back. The watchdog fixes that. Every minute it mounts again a drive that came back, then the pool, then starts Docker, and it posts to Discord when something stays broken (drive missing, Docker down, a container stopped or unhealthy, home page not answering) and when everything is back:
+The flip side: when a drive drops off the USB bus, even for a second, systemd unmounts it and stops Docker with every app, and nothing starts them again once the drive is back. Install the [watchdog](#-watchdog), which brings everything back within a minute and tells you on Discord:
 ```bash
 sudo ./watchdog/install.sh
 ```
-
-It posts to `WATCHDOG_WEBHOOK_URL` in `.env`, or to `AUTOHEAL_WEBHOOK_URL` if that one is not set. A Pi that is off or offline cannot post anything: for that, create a free check on [healthchecks.io](https://healthchecks.io) (period 1 minute, grace 5 minutes, Discord integration) and put its ping URL in `WATCHDOG_PING_URL`. The watchdog pings it while all is well, and healthchecks.io warns you when the pings stop. `journalctl -u mediaserver-watchdog` shows what it did.
 
 Cap the container logs, so an app that loops on an error can never fill the SD card (30 MB per container at most):
 ```bash
@@ -252,6 +250,53 @@ docker exec transmission curl -s https://ipinfo.io/ip       # the VPN's address
 To be told about these restarts, add `AUTOHEAL_WEBHOOK_URL=` to `.env` with a webhook URL (for a Discord channel, append `/slack` to the webhook URL Discord gives you).
 
 Good to know: NordVPN has no port forwarding, so Transmission downloads normally but uploads less. And as long as the VPN lines are wrong or empty, Transmission does not start at all: read `docker compose logs --tail 30 gluetun` to see why.
+
+How long a VPN drop lasts, with the default settings:
+
+| Step | Delay |
+| :--- | :--- |
+| Gluetun reports itself unhealthy | about 15 s (checks every 5 s, 3 failures) |
+| autoheal notices and restarts it | up to 30 s (`AUTOHEAL_INTERVAL`), 2 min after Docker started (`AUTOHEAL_START_PERIOD`) |
+| Gluetun is connected to another server | 5 to 25 s |
+| Transmission is back on the new tunnel | 3 to 4 min more (its check runs every minute, 3 failures, then autoheal) |
+
+---
+
+## 🩺 Watchdog
+
+A Raspberry Pi with USB drives has one weak spot: a drive that drops off the bus for a second (a cable touched, a power dip) gets unmounted, and Docker stops with it (it waits for the pool, see [Mount the Drives](#1-mount-the-drives)). The drive comes back, the apps do not, and nobody notices. The watchdog is a systemd timer that runs [`watchdog/watchdog.py`](watchdog/watchdog.py) on the host every minute.
+
+**It repairs**, in this order: a drive that is plugged in again but not mounted, the pool, then Docker. Docker starts every app again by itself. A USB drop is over in about a minute.
+
+**It checks**, and posts to Discord when a problem lasts:
+
+| Problem | Reported after |
+| :--- | :--- |
+| A drive is missing or will not mount | 2 min |
+| The pool is not mounted, or Docker is stopped | 2 min |
+| A container of a Compose project is stopped | 2 min |
+| The home page does not answer | 2 min |
+| A container stays unhealthy (autoheal could not fix it) | 10 min |
+
+While a problem lasts it reminds you every 6 hours, and it posts once more when everything is back. Every repair it makes is posted too, so you know a drive dropped even when nothing stayed broken. If Discord cannot be reached, the message goes out on a later run.
+
+Install it, or update it after a `git pull`:
+
+```bash
+sudo ./watchdog/install.sh
+```
+
+Settings, in `.env`:
+
+| Setting | What it does |
+| :--- | :--- |
+| `WATCHDOG_WEBHOOK_URL` | Discord webhook for the alerts. Without it, the watchdog uses `AUTOHEAL_WEBHOOK_URL` (with or without `/slack`). |
+| `WATCHDOG_PING_URL` | Optional. A Pi that is off or offline cannot post anything: create a free check on [healthchecks.io](https://healthchecks.io) (period 1 minute, grace 5 minutes, Discord integration) and put its ping URL here. The watchdog pings it while all is well, and healthchecks.io warns you when the pings stop. |
+| `HOME_PORT` | Port of the home page it checks (80). |
+
+See what it did: `journalctl -u mediaserver-watchdog -n 20`. Run it now: `sudo systemctl start mediaserver-watchdog`. Stop it: `sudo systemctl disable --now mediaserver-watchdog.timer`.
+
+> Stopping a container on purpose (`docker compose stop transmission`) also gets reported, once. Use `docker compose down` on a project you no longer run, so its containers are removed.
 
 ---
 
