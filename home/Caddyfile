@@ -34,8 +34,9 @@
 
 	# /disk.json is the space used on the data disk, written by the storage service.
 	# /kpiece.json is the latest One Piece scan, written by the optional kpiece
-	# service (404 when it is off, and the card stays hidden)
-	@status path /disk.json /kpiece.json
+	# service (404 when it is off, and the card stays hidden). /services.json lists
+	# the containers and their ports, written by the services service
+	@status path /disk.json /kpiece.json /services.json
 	handle @status {
 		root * /status
 		file_server

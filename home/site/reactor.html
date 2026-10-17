@@ -56,6 +56,7 @@
     .helmet path { fill: none; stroke: var(--cyan-soft); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
     .helmet .gold { stroke: rgba(255, 200, 87, 0.55); }
     header, .compass, main, .jarvis { position: relative; z-index: 1; }
+    header { z-index: 2; } /* the services list opens over main */
 
     /* Power-up: rings open from the centre, J.A.R.V.I.S. runs its checks. Once per tab session */
     .boot {
@@ -135,6 +136,38 @@
       box-shadow: 0 0 10px var(--cyan);
       animation: blink 2.4s ease-in-out infinite;
     }
+    /* "Online" opens the list of every container and its ports (services.js) */
+    .services { position: relative; z-index: 1000; }
+    .services summary { cursor: pointer; list-style: none; }
+    .services summary::-webkit-details-marker { display: none; }
+    .services summary:hover, .services summary:focus-visible { color: var(--gold); }
+    .services.degraded .online { color: var(--red); }
+    .services.degraded .online::before { background: var(--red); box-shadow: 0 0 10px var(--red); }
+    .sv-list {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 12px);
+      width: min(380px, 90vw);
+      max-height: 70vh;
+      overflow: auto;
+      margin: 0;
+      padding: 6px 0;
+      list-style: none;
+      background: rgb(2, 10, 18);
+      border: 1px solid var(--cyan-soft);
+      box-shadow: 0 0 24px var(--cyan-faint);
+      text-transform: none;
+      letter-spacing: 0.04em;
+    }
+    .sv-list:empty { display: none; }
+    .sv-list li { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding: 7px 14px; }
+    .sv-list li + li { border-top: 1px solid var(--cyan-faint); }
+    .sv-name { color: var(--text); }
+    .sv-state { grid-row: 2; color: var(--muted); font-size: 0.9em; }
+    .sv-ports { grid-column: 2; grid-row: 1 / span 2; align-self: center; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 10px; }
+    .sv-ports a { color: var(--cyan); }
+    .sv-ports a:hover, .sv-ports a:focus-visible { color: var(--gold); }
+    .sv-list .down .sv-name { color: var(--red); }
     /* Style switch: the current look is lit, the other one is a link */
     .styles { display: flex; }
     .styles > * { padding: 4px 10px; border: 1px solid var(--cyan-soft); color: var(--muted); }
@@ -631,7 +664,10 @@
     <div class="status">
       <span>Host <b>{{$host}}</b></span>
       <span id="clock"></span>
-      <span class="online">Online</span>
+      <details class="services" id="services">
+        <summary class="online">Online <b data-sv="count"></b></summary>
+        <ul class="sv-list" data-sv="list" aria-label="Services"></ul>
+      </details>
       <nav class="styles" aria-label="Style">
         <span aria-current="true">Reactor</span>
         <a href="/style/cyberpunk">Cyberpunk</a>
@@ -784,5 +820,6 @@
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
   <script src="/kpiece.js" defer></script>
+  <script src="/services.js" defer></script>
 </body>
 </html>

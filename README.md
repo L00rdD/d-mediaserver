@@ -214,6 +214,8 @@ Your own projects served on the same machine can take the same look and follow t
 
 The search bar sends what you type straight to the right app: **Watch** looks for it in your Jellyfin library, **+ Movie** opens Radarr and **+ TV show** opens Sonarr with the search already running, ready to add.
 
+**Online**, at the top right, opens the list of every container running on the machine (this stack and your own projects), its state and its ports as links: a new app shows up there by itself, without touching the page. A small `services` container reads it from Docker every 30 seconds (read-only socket, only the name, image, state and ports leave Docker). The counter next to *Online* turns to the warning colour when a container is stopped.
+
 Under the apps, a bar shows how full the data disk is: a small `storage` container measures `DATA_ROOT` every minute and the page reads the result at `/disk.json`. The bar turns to the warning colour at 90 %.
 
 The links follow the address you typed to reach the home page: open it by name, by IP or through a private network such as ZeroTier, and every link and search goes to that same address.

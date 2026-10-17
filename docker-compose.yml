@@ -43,6 +43,28 @@ services:
       - disk-status:/status
     restart: unless-stopped
 
+  # Writes every container of the machine, its state and its published ports to
+  # services.json every 30 s, for the list behind "Online" on the home page.
+  # Only these fields leave Docker (no labels, mounts or environment).
+  services:
+    image: docker:cli
+    container_name: services
+    init: true
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          docker ps -a --format '{"name":{{json .Names}},"image":{{json .Image}},"state":{{json .State}},"status":{{json .Status}},"ports":{{json .Ports}}}' \
+            | sed '1s/^/[/; $$!s/$$/,/; $$s/$$/]/' > /status/services.tmp \
+            && [ -s /status/services.tmp ] && mv /status/services.tmp /status/services.json
+          sleep 30
+        done
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - disk-status:/status
+    restart: unless-stopped
+
   transmission:
     image: lscr.io/linuxserver/transmission:latest
     container_name: transmission

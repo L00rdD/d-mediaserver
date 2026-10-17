@@ -169,6 +169,38 @@
       box-shadow: 0 0 8px var(--green);
       animation: blink 1.4s steps(1) infinite;
     }
+    /* "Online" opens the list of every container and its ports (services.js) */
+    .services { position: relative; z-index: 1000; }
+    .services summary { cursor: pointer; list-style: none; }
+    .services summary::-webkit-details-marker { display: none; }
+    .services summary:hover, .services summary:focus-visible { color: var(--yellow); }
+    .services.degraded .online { color: var(--red); }
+    .services.degraded .online::before { background: var(--red); box-shadow: 0 0 10px var(--red); }
+    .sv-list {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 12px);
+      width: min(380px, 90vw);
+      max-height: 70vh;
+      overflow: auto;
+      margin: 0;
+      padding: 6px 0;
+      list-style: none;
+      background: rgb(14, 12, 20);
+      border: 1px solid var(--red-dim);
+      box-shadow: 0 0 24px var(--red-faint);
+      text-transform: none;
+      letter-spacing: 0.04em;
+    }
+    .sv-list:empty { display: none; }
+    .sv-list li { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding: 7px 14px; }
+    .sv-list li + li { border-top: 1px solid var(--red-faint); }
+    .sv-name { color: var(--text); }
+    .sv-state { grid-row: 2; color: var(--muted); font-size: 0.9em; }
+    .sv-ports { grid-column: 2; grid-row: 1 / span 2; align-self: center; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 10px; }
+    .sv-ports a { color: var(--cyan); }
+    .sv-ports a:hover, .sv-ports a:focus-visible { color: var(--yellow); }
+    .sv-list .down .sv-name { color: var(--red); }
     .signal { display: inline-flex; align-items: flex-end; gap: 2px; height: 11px; margin-left: 6px; vertical-align: -1px; }
     .signal i { width: 3px; background: var(--cyan); }
     .signal i:nth-child(1) { height: 30%; }
@@ -692,7 +724,10 @@
       <div class="status">
         <span>Net <b>{{$host}}</b><span class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
         <span class="clock" id="clock"></span>
-        <span class="online">Online</span>
+        <details class="services" id="services">
+          <summary class="online">Online <b data-sv="count"></b></summary>
+          <ul class="sv-list" data-sv="list" aria-label="Services"></ul>
+        </details>
         <nav class="styles" aria-label="Style">
           <a href="/style/reactor">Reactor</a>
           <span aria-current="true">Cyberpunk</span>
@@ -831,5 +866,6 @@
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
   <script src="/kpiece.js" defer></script>
+  <script src="/services.js" defer></script>
 </body>
 </html>
