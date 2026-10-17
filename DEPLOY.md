@@ -100,6 +100,11 @@ A fresh install starts with empty apps. Do this once, in this order. Inside the 
 | 5 | **Prowlarr** | Settings → Indexers | Add the *FlareSolverr* proxy: host `http://flaresolverr:8191`. Give it a tag (`flaresolverr` for example) and put the same tag on the indexers that need it. |
 | | | Settings → Apps | Add *Radarr* (`http://radarr:7878`) and *Sonarr* (`http://sonarr:8989`), with Prowlarr server `http://prowlarr:9696`. Each one asks for an API key: copy it from that app's Settings → General. |
 | | | Indexers | Add your indexers. Prowlarr sends them to Radarr and Sonarr by itself. |
+| 6 | **Bazarr** | Settings → Languages | Turn on your subtitle language, create a profile with it and make it the default for movies and series. |
+| | | Settings → Radarr / Sonarr | Host `radarr` port `7878`, host `sonarr` port `8989`, with their API keys. |
+| | | Settings → Providers | Add providers (OpenSubtitles.com with your account, Podnapisi, Gestdown, Embedded Subtitles). |
+| | | Settings → Subtitles | Turn on *Automatic Subtitles Audio Synchronization* so each subtitle is re-timed on the film. |
+| | **Jellyfin** | Libraries → Subtitles | Leave subtitle downloads off: Bazarr does it. In your user's Playback settings, set the subtitle language and the *Smart* mode. |
 
 Movies and TV shows that were already in your folders: use **Library Import** in Radarr and in Sonarr so they know about them.
 

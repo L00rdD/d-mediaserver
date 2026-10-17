@@ -21,6 +21,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 | **[Sonarr](https://sonarr.tv/)** | Smart PVR for automatic TV Show downloading and sorting. | `8989` |
 | **[Radarr](https://radarr.video/)** | Smart PVR for automatic Movie downloading and sorting. | `7878` |
 | **[Transmission](https://transmissionbt.com/)**| Fast, easy, and free BitTorrent client. | `9091` |
+| **[Bazarr](https://www.bazarr.media/)** | Fetches subtitles matched to each release and re-times them on the audio. | `6767` |
 | **[Prowlarr](https://prowlarr.com/)** | Indexer manager/proxy built to integrate with Sonarr/Radarr. | `9696` |
 | **[FlareSolverr](https://github.com/FlareSolverr/)**| Proxy server to bypass Cloudflare protection for indexers. | `8191` |
 | **[Gluetun](https://github.com/qdm12/gluetun)** | Optional VPN client that Transmission goes through (see VPN). | |
@@ -324,7 +325,7 @@ services:
 docker compose up -d
 ```
 
-Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 9696, 9091, 8191 and 51413. `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#-watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
+Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191 and 51413. `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#-watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
 
 ### 2. Give it the hub's look
 
