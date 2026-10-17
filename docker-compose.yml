@@ -142,6 +142,22 @@ services:
       - 8096:8096
     restart: unless-stopped
 
+  # Fetches one subtitle per film/episode, picked for the exact release, and
+  # re-times it on the audio. It reads the library from Radarr and Sonarr.
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Paris}
+    volumes:
+      - ./config/bazarr:/config
+      - ${DATA_ROOT:-/mnt/storage}:/data
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+
 volumes:
   # disk.json, written by the storage service and served by the home page
   disk-status:

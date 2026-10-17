@@ -26,3 +26,10 @@ services:
       - ${DATA_ROOT:-/mnt/storage}/shows:/disk_shows
       - ${DATA_ROOT:-/mnt/storage}/complete:/downloads/complete
       - ${DATA_ROOT:-/mnt/storage}/complete:/downloads/disk_complete
+
+  bazarr:
+    volumes:
+      - ${DATA_ROOT:-/mnt/storage}/movies:/movies
+      - ${DATA_ROOT:-/mnt/storage}/movies:/disk_movies
+      - ${DATA_ROOT:-/mnt/storage}/shows:/shows
+      - ${DATA_ROOT:-/mnt/storage}/shows:/disk_shows
