@@ -556,6 +556,10 @@
     .kpiece dd { font-variant-numeric: tabular-nums; }
     /* Bifrost card: hidden until bifrost answers on :8582 (see bifrost.js) */
     .bifrost { grid-area: bf; animation-delay: 0.75s; }
+    /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
+    .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
+    .bifrost .bf-hb { position: relative; z-index: 2; margin-left: 0; }
+    .bifrost .bf-hb:hover, .bifrost .bf-hb:focus-visible { text-decoration: underline; }
 
     /* J.A.R.V.I.S. speaking at the bottom: voice bars and one line at a time (see the script below) */
     .jarvis {
@@ -772,11 +776,12 @@
       <span class="tag bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></span>
     </a>
 
-    <a class="panel bot bifrost" id="bifrost" href="http://{{$host}}:8581" target="_blank" rel="noopener" hidden aria-label="Bifrost, open Homebridge">
+    <div class="panel bot bifrost" id="bifrost" hidden>
+      <a class="bf-open" href="http://{{$host}}:8582" target="_blank" rel="noopener" aria-label="Bifrost, open its dashboard"></a>
       <span class="tag"><i>08</i> // Bifrost <span data-bf="state"></span></span>
       <ul class="bot-list" data-bf="list"></ul>
-      <span class="tag bot-foot"><span data-bf="last"></span><span class="bot-more">Homebridge :8581 →</span></span>
-    </a>
+      <span class="tag bot-foot"><span data-bf="last"></span><span class="bot-more">Dashboard :8582 →</span><a class="bot-more bf-hb" href="http://{{$host}}:8581" target="_blank" rel="noopener">Homebridge :8581 →</a></span>
+    </div>
   </main>
 
   <footer class="jarvis" id="jarvis" aria-live="polite">

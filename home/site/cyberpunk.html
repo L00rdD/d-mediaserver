@@ -625,6 +625,12 @@
     .kpiece { animation-delay: 0.5s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
     .bifrost { animation-delay: 0.55s; }
+    /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
+    .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
+    .bifrost .bf-hb { position: relative; z-index: 2; margin-left: 0; }
+    .bifrost .bf-hb:hover, .bifrost .bf-hb:focus-visible { text-decoration: underline; }
+    .bifrost:hover { background: var(--red); }
+    .bifrost:hover .bot-more, .bifrost .bf-hb:focus-visible { color: var(--yellow); }
 
     /* Bottom ticker */
     .ticker {
@@ -834,11 +840,12 @@
       <div class="bot-head bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></div>
     </a>
 
-    <a class="bot bifrost" id="bifrost" href="http://{{$host}}:8581" target="_blank" rel="noopener" hidden aria-label="Bifrost, open Homebridge">
+    <div class="bot bifrost" id="bifrost" hidden>
+      <a class="bf-open" href="http://{{$host}}:8582" target="_blank" rel="noopener" aria-label="Bifrost, open its dashboard"></a>
       <div class="bot-head"><span>08</span><span class="name">Bifrost</span><span data-bf="state"></span></div>
       <ul class="bot-list" data-bf="list"></ul>
-      <div class="bot-head bot-foot"><span data-bf="last"></span><span class="bot-more">Homebridge :8581 →</span></div>
-    </a>
+      <div class="bot-head bot-foot"><span data-bf="last"></span><span class="bot-more">Dashboard :8582 →</span><a class="bot-more bf-hb" href="http://{{$host}}:8581" target="_blank" rel="noopener">Homebridge :8581 →</a></div>
+    </div>
   </main>
 
   <footer class="ticker" aria-hidden="true">
