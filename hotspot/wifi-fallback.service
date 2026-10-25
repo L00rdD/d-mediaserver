@@ -1,0 +1,12 @@
+[Unit]
+Description=Open the Pi's own wifi when the home wifi is gone, until it comes back
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+ExecStart=/usr/bin/python3 @PROJECT@/hotspot/wifi_fallback.py
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
