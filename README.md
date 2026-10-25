@@ -24,7 +24,7 @@ Options, each one off until you turn it on:
 | :--- | :--- | :--- |
 | [VPN](#%EF%B8%8F-vpn-optional) | Transmission, and only Transmission, goes through a VPN. | 4 lines in `.env` |
 | [Watchdog](#watchdog) | Brings the apps back after a USB drive drop and alerts you on Discord. | `sudo ./watchdog/install.sh` |
-| [Wifi fallback hotspot](#wifi-fallback-hotspot) | The Pi opens its own wifi when the home wifi is gone, so the films stay watchable. | `sudo ./hotspot/install.sh` |
+| [Wifi fallback hotspot](#wifi-fallback-hotspot) | The Pi opens its own wifi when the home network is gone, so the films stay watchable. | `sudo ./hotspot/install.sh` |
 | [One Piece scans](#%EF%B8%8F-one-piece-scans-optional) | A home page card and a Discord post for each new chapter. | 2 lines in `.env` |
 | [No login at home](#-passwords) | Radarr, Sonarr and Prowlarr open without a password on the home network. | 1 line in `.env` |
 
@@ -289,7 +289,7 @@ How long a VPN drop lasts, with the default settings:
 
 ## 🩺 Keep the Pi Up
 
-Two small services run on the Pi itself, outside Docker, for the failures that Docker cannot fix: a USB drive that drops off, and a home wifi that goes away. Both are optional, both install with one command and both report on the same Discord channel.
+Two small services run on the Pi itself, outside Docker, for the failures that Docker cannot fix: a USB drive that drops off, and a home network that goes away. Both are optional, both install with one command and both report on the same Discord channel.
 
 ### Watchdog
 
@@ -329,10 +329,10 @@ See what it did: `journalctl -u mediaserver-watchdog -n 20`. Run it now: `sudo s
 
 ### Wifi Fallback Hotspot
 
-When the home wifi goes away (router reset, power cut, new password), the Pi drops off the network and nobody can reach it, even though it still runs fine. With this service, after **3 minutes** without a working wifi the Pi opens **its own wifi**: join it from a phone, a TV or a laptop and the home page, Jellyfin and the films are there as usual. There is no internet on it, only the Pi.
+When the home network goes away (router reset, power cut, new wifi password), the Pi drops off it and nobody can reach it, even though it still runs fine. With this service, after **3 minutes** without a working home network (neither the Ethernet cable nor the wifi reaches the router) the Pi opens **its own wifi** with its wifi chip: join it from a phone, a TV or a laptop and the home page, Jellyfin and the films are there as usual. There is no internet on it, only the Pi.
 
-- **Same address as at home.** The hotspot takes the address the Pi last had on the home wifi, and its DNS answers `<hostname>.lan` (`dpi.lan`) with it, so bookmarks and the server saved in the Jellyfin apps keep working. The address is learned by itself and survives a reboot; set `HOTSPOT_ADDRESS` to force one.
-- **It goes back by itself.** Every minute it looks for the wifis the Pi knows, and as soon as one is back it closes the hotspot and joins it. The Pi 4's chip does not always see them in hotspot mode, so it also tries blindly every 20 minutes (the hotspot is off for about a minute each time).
+- **Same address as at home.** The hotspot takes the address the Pi last had at home (on the cable when it is plugged in, else on the wifi), and its DNS answers `<hostname>.lan` (`dpi.lan`) with it, so bookmarks and the server saved in the Jellyfin apps keep working. The address is learned by itself and survives a reboot; set `HOTSPOT_ADDRESS` to force one.
+- **It goes back by itself.** As soon as the cable reaches the router again, the hotspot closes. Every minute it also looks for the wifis the Pi knows, and as soon as one is back it closes the hotspot and joins it. The Pi 4's chip does not always see them in hotspot mode, so it also tries blindly every 20 minutes (the hotspot is off for about a minute each time).
 - **It tells you.** Once back online it posts to Discord how long the hotspot lasted.
 
 Add the password of the hotspot to `.env`, then install it (run again after a `git pull` that changed `hotspot/`):
@@ -348,13 +348,13 @@ sudo ./hotspot/install.sh
 | :--- | :--- |
 | `HOTSPOT_PASSWORD` | Required. WPA2 password of the hotspot, 8 characters or more. |
 | `HOTSPOT_SSID` | Name of the hotspot (`dpi-hotspot`). |
-| `HOTSPOT_ADDRESS` | Optional. Fixed address for the hotspot, e.g. `192.168.1.229/24`. By default, the last address the Pi had on a wifi. |
+| `HOTSPOT_ADDRESS` | Optional. Fixed address for the hotspot, e.g. `192.168.1.229/24`. By default, the last address the Pi had at home. |
 | `WATCHDOG_WEBHOOK_URL` | Discord webhook for the "back online" message, shared with the watchdog. |
 
 Good to know:
 
 - The hotspot is on **5 GHz** (channel 36): the current Pi 4 firmware sends nothing on 2.4 GHz in hotspot mode. Very old devices that only do 2.4 GHz will not see it.
-- It needs NetworkManager (the default on Raspberry Pi OS since Bookworm). Install it only on a Pi that uses wifi: on Ethernet it sees no wifi and opens the hotspot.
+- It needs NetworkManager (the default on Raspberry Pi OS since Bookworm). It works the same on a Pi on Ethernet or on wifi: the wifi chip is only needed for the hotspot itself.
 - See what it did: `journalctl -u wifi-fallback -n 20`. Stop it: `sudo systemctl disable --now wifi-fallback`.
 
 ---

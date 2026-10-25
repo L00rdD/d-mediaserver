@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-"""Open a local wifi from the Pi when the home wifi is gone, until it comes back.
+"""Open a local wifi from the Pi when the home network is gone, until it comes back.
 
 Runs as a service (wifi-fallback.service, root). Every few seconds:
 
-1. while the Pi is on a wifi: checks it really works (connected and the
-   router answers a ping). If it has not worked for GRACE seconds, the Pi
-   switches wlan0 to access point mode and opens its own network
+1. checks that the home network really works, over the Ethernet cable or the
+   wifi (connected and the router answers a ping). If neither has worked for
+   GRACE seconds, the Pi switches wlan0 to access point mode and opens its own network
    (HOTSPOT_SSID, 5 GHz channel 36), with the same address as at home, so the
    home page, Jellyfin and the apps' saved server addresses keep working for
    whoever joins it; its DNS answers <hostname>.lan with that address, as the
    router does at home. No internet on it: only the Pi and its films.
-   The home address is read from wlan0 whenever the wifi works and kept in
-   ADDRESS_FILE, so it is still known after a reboot without wifi.
-2. while the hotspot is up: scans for the known wifis (the NetworkManager
-   profiles). When one is back in range, the hotspot is closed and the Pi
-   joins it again; if that fails, the hotspot comes back. A scan made in
+   The home address is read from the interface that works (eth0 first) and
+   kept in ADDRESS_FILE, so it is still known after a reboot without network.
+2. while the hotspot is up: closes it as soon as the Ethernet works again,
+   and scans for the known wifis (the NetworkManager profiles). When one is
+   back in range, the hotspot is closed and the Pi joins it again; if that
+   fails, the hotspot comes back. A scan made in
    access point mode can miss a wifi (the Pi 4's chip sometimes only sees
    neighbours), so it also tries blindly every BLIND_EVERY seconds (the
    hotspot drops for about a minute each time).
@@ -25,7 +26,7 @@ Settings come from the project's .env (next to this folder):
   HOTSPOT_PASSWORD      its WPA2 password, 8 characters or more (required)
   WATCHDOG_WEBHOOK_URL  Discord webhook (falls back on AUTOHEAL_WEBHOOK_URL)
   HOTSPOT_ADDRESS       fixed address for the hotspot, e.g. 192.168.1.229/24
-                        (default: the last address the Pi had on a wifi)
+                        (default: the last address the Pi had at home)
 
 Only the Python standard library, plus nmcli, iw and ping.
 """
@@ -41,9 +42,10 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
 IFACE = "wlan0"
+WIRED = "eth0"
 HOTSPOT = "wifi-fallback-hotspot"  # NetworkManager profile name
-ADDRESS_FILE = Path("/var/lib/wifi-fallback/address")  # last address seen on a wifi
-DEFAULT_ADDRESS = "10.42.0.1/24"  # NetworkManager's own default, until a wifi was seen
+ADDRESS_FILE = Path("/var/lib/wifi-fallback/address")  # last address seen at home
+DEFAULT_ADDRESS = "10.42.0.1/24"  # NetworkManager's own default, until home was seen
 DNS_FILE = Path("/etc/NetworkManager/dnsmasq-shared.d/wifi-fallback.conf")
 
 TICK = 15          # seconds between checks
@@ -88,20 +90,25 @@ def post(url, text):
     urllib.request.urlopen(req, timeout=15)
 
 
-def active_connection():
-    _, out = run("nmcli", "-g", "GENERAL.CONNECTION", "device", "show", IFACE)
+def active_connection(iface=IFACE):
+    _, out = run("nmcli", "-g", "GENERAL.CONNECTION", "device", "show", iface)
     return out.strip()
 
 
-def wifi_works():
-    """Connected to a wifi other than the hotspot, and the router answers."""
-    _, out = run("nmcli", "-g", "GENERAL.STATE,GENERAL.CONNECTION,IP4.GATEWAY", "device", "show", IFACE)
+def link_works(iface):
+    """iface is connected (not as the hotspot) and the router answers through it."""
+    _, out = run("nmcli", "-g", "GENERAL.STATE,GENERAL.CONNECTION,IP4.GATEWAY", "device", "show", iface)
     lines = out.strip().splitlines() + ["", "", ""]
     state, conn, gateway = lines[0], lines[1], lines[2]
     if not state.startswith("100") or conn == HOTSPOT or not gateway:
         return False
-    code, _ = run("ping", "-c", "2", "-W", "2", "-I", IFACE, gateway, timeout=10)
+    code, _ = run("ping", "-c", "2", "-W", "2", "-I", iface, gateway, timeout=10)
     return code == 0
+
+
+def home_link():
+    """The interface the home network works on (the cable first), or None."""
+    return next((i for i in (WIRED, IFACE) if link_works(i)), None)
 
 
 def known_wifis():
@@ -129,9 +136,9 @@ def scan():
     return None
 
 
-def wifi_address():
-    """The address wlan0 has on the current wifi, e.g. 192.168.1.229/24."""
-    _, out = run("nmcli", "-g", "IP4.ADDRESS", "device", "show", IFACE)
+def home_address(iface):
+    """The address iface has on the home network, e.g. 192.168.1.229/24."""
+    _, out = run("nmcli", "-g", "IP4.ADDRESS", "device", "show", iface)
     return out.strip().split(" | ")[0]
 
 
@@ -191,7 +198,8 @@ def start_hotspot():
 
 
 def try_rejoin(profile):
-    """Close the hotspot and join a wifi (any known one if profile is None)."""
+    """Close the hotspot and join a wifi (any known one if profile is None).
+    Returns the interface the home network works on again, or None."""
     run("nmcli", "connection", "down", HOTSPOT)
     if profile:
         run("nmcli", "--wait", str(JOIN_TIMEOUT), "connection", "up", profile, timeout=JOIN_TIMEOUT + 5)
@@ -199,10 +207,11 @@ def try_rejoin(profile):
         # let NetworkManager's autoconnect pick whatever it can find
         time.sleep(JOIN_TIMEOUT)
     for _ in range(4):
-        if wifi_works():
-            return True
+        link = home_link()
+        if link:
+            return link
         time.sleep(5)
-    return False
+    return None
 
 
 def main():
@@ -218,17 +227,18 @@ def main():
     broken_since = None
     last_scan = last_blind = 0
     pending_message = None
-    log(f"started, {'hotspot up' if hotspot_since else 'on wifi'}, hotspot address {address}")
+    log(f"started, {'hotspot up' if hotspot_since else 'on the home network'}, hotspot address {address}")
 
     while True:
         now = time.time()
 
         if hotspot_since is None:
-            if wifi_works():
+            link = home_link()
+            if link:
                 broken_since = None
-                current = wifi_address()
+                current = home_address(link)
                 if not fixed and current and current != address:
-                    log(f"address on the wifi is now {current}, the hotspot will use it")
+                    log(f"address at home is now {current} ({link}), the hotspot will use it")
                     address = current
                     ADDRESS_FILE.parent.mkdir(parents=True, exist_ok=True)
                     ADDRESS_FILE.write_text(address + "\n")
@@ -247,7 +257,7 @@ def main():
             else:
                 broken_since = broken_since or now
                 if now - broken_since >= GRACE:
-                    log(f"wifi down for {int(now - broken_since)} s, opening hotspot {ssid}")
+                    log(f"home network down for {int(now - broken_since)} s, opening hotspot {ssid}")
                     if start_hotspot():
                         hotspot_since = broken_since
                         last_scan = last_blind = now
@@ -255,9 +265,13 @@ def main():
                         broken_since = now  # try again after another GRACE
 
         else:
-            back = False
-            if active_connection() != HOTSPOT:
-                back = wifi_works()
+            back = None
+            if link_works(WIRED):
+                log("the cable works again, closing the hotspot")
+                run("nmcli", "connection", "down", HOTSPOT)
+                back = WIRED
+            elif active_connection() != HOTSPOT:
+                back = home_link()
                 if not back:
                     log("hotspot went down on its own, restarting it")
                     start_hotspot()
@@ -278,10 +292,11 @@ def main():
                             hotspot_since, broken_since = None, time.time()
             if back:
                 minutes = int((time.time() - hotspot_since) / 60)
-                log(f"back on {active_connection()}, hotspot closed after {minutes} min")
+                via = active_connection(back) or back
+                log(f"back on {via}, hotspot closed after {minutes} min")
                 pending_message = (
-                    f"📶 **{host}**: lost the wifi, ran its own hotspot `{ssid}` "
-                    f"for {minutes} min, now back on `{active_connection()}`."
+                    f"📶 **{host}**: lost the home network, ran its own hotspot `{ssid}` "
+                    f"for {minutes} min, now back on `{via}`."
                 )
                 hotspot_since = broken_since = None
                 continue
