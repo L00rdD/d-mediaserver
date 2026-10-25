@@ -8,6 +8,28 @@ Welcome to your fully automated, Dockerized home media server! This stack provid
 
 > **Not on a Raspberry Pi?** [DEPLOY.md](DEPLOY.md) is the short path for a NAS or any machine that already runs Docker.
 
+## 🧭 Where to Start
+
+| You want to | Read |
+| :--- | :--- |
+| Install it on a Raspberry Pi with USB drives | [Installation & Deployment](#%EF%B8%8F-installation--deployment), then [Keep the Pi Up](#-keep-the-pi-up) |
+| Install it on a NAS or a PC that already runs Docker | [DEPLOY.md](DEPLOY.md) |
+| Use it day to day | [Accessing Your Apps](#-accessing-your-apps) |
+| Update a running install | [Updating the Pi](#-updating-the-pi) |
+| Run your own project next to it | [Add Your Own Apps](#-add-your-own-apps) |
+
+Options, each one off until you turn it on:
+
+| Option | What it does | Turn it on |
+| :--- | :--- | :--- |
+| [VPN](#%EF%B8%8F-vpn-optional) | Transmission, and only Transmission, goes through a VPN. | 4 lines in `.env` |
+| [Watchdog](#watchdog) | Brings the apps back after a USB drive drop and alerts you on Discord. | `sudo ./watchdog/install.sh` |
+| [Wifi fallback hotspot](#wifi-fallback-hotspot) | The Pi opens its own wifi when the home wifi is gone, so the films stay watchable. | `sudo ./hotspot/install.sh` |
+| [One Piece scans](#%EF%B8%8F-one-piece-scans-optional) | A home page card and a Discord post for each new chapter. | 2 lines in `.env` |
+| [No login at home](#-passwords) | Radarr, Sonarr and Prowlarr open without a password on the home network. | 1 line in `.env` |
+
+Every setting goes in one `.env` file next to `docker-compose.yml`: copy [`.env.example`](.env.example), which lists them all.
+
 ---
 
 ## 🚀 The Stack
@@ -100,7 +122,7 @@ printf '[Unit]\nRequiresMountsFor=/mnt/storage\n' | sudo tee /etc/systemd/system
 sudo systemctl daemon-reload
 ```
 
-The flip side: when a drive drops off the USB bus, even for a second, systemd unmounts it and stops Docker with every app, and nothing starts them again once the drive is back. Install the [watchdog](#-watchdog), which brings everything back within a minute and tells you on Discord:
+The flip side: when a drive drops off the USB bus, even for a second, systemd unmounts it and stops Docker with every app, and nothing starts them again once the drive is back. Install the [watchdog](#watchdog), which brings everything back within a minute and tells you on Discord:
 ```bash
 sudo ./watchdog/install.sh
 ```
@@ -265,11 +287,15 @@ How long a VPN drop lasts, with the default settings:
 
 ---
 
-## 🩺 Watchdog
+## 🩺 Keep the Pi Up
+
+Two small services run on the Pi itself, outside Docker, for the failures that Docker cannot fix: a USB drive that drops off, and a home wifi that goes away. Both are optional, both install with one command and both report on the same Discord channel.
+
+### Watchdog
 
 A Raspberry Pi with USB drives has one weak spot: a drive that drops off the bus for a second (a cable touched, a power dip) gets unmounted, and Docker stops with it (it waits for the pool, see [Mount the Drives](#1-mount-the-drives)). The drive comes back, the apps do not, and nobody notices. The watchdog is a systemd timer that runs [`watchdog/watchdog.py`](watchdog/watchdog.py) on the host every minute.
 
-**It repairs**, in this order: a drive that is plugged in again but not mounted, the pool, then Docker. Docker starts every app again by itself. A USB drop is over in about a minute.
+**It repairs**, in this order: a drive that is plugged in again but not mounted, the pool, then Docker. Docker starts every app again by itself. A drive that came back under a new device name while its old mount stayed behind (the drive looks mounted but every read fails with *Input/output error*) has that mount and the pool detached first, then everything is mounted again. A udev rule runs the watchdog as soon as a USB drive is plugged in, so a USB drop is over in seconds, a minute at most.
 
 **It checks**, and posts to Discord when a problem lasts:
 
@@ -283,7 +309,7 @@ A Raspberry Pi with USB drives has one weak spot: a drive that drops off the bus
 
 While a problem lasts it reminds you every 6 hours, and it posts once more when everything is back. Every repair it makes is posted too, so you know a drive dropped even when nothing stayed broken. If Discord cannot be reached, the message goes out on a later run.
 
-Install it, or update it after a `git pull`:
+Install it, or update it after a `git pull` (it also installs the udev rule):
 
 ```bash
 sudo ./watchdog/install.sh
@@ -300,6 +326,55 @@ Settings, in `.env`:
 See what it did: `journalctl -u mediaserver-watchdog -n 20`. Run it now: `sudo systemctl start mediaserver-watchdog`. Stop it: `sudo systemctl disable --now mediaserver-watchdog.timer`.
 
 > Stopping a container on purpose (`docker compose stop transmission`) also gets reported, once. Use `docker compose down` on a project you no longer run, so its containers are removed.
+
+### Wifi Fallback Hotspot
+
+When the home wifi goes away (router reset, power cut, new password), the Pi drops off the network and nobody can reach it, even though it still runs fine. With this service, after **3 minutes** without a working wifi the Pi opens **its own wifi**: join it from a phone, a TV or a laptop and the home page, Jellyfin and the films are there as usual. There is no internet on it, only the Pi.
+
+- **Same address as at home.** The hotspot takes the address the Pi last had on the home wifi, and its DNS answers `<hostname>.lan` (`dpi.lan`) with it, so bookmarks and the server saved in the Jellyfin apps keep working. The address is learned by itself and survives a reboot; set `HOTSPOT_ADDRESS` to force one.
+- **It goes back by itself.** Every minute it looks for the wifis the Pi knows, and as soon as one is back it closes the hotspot and joins it. The Pi 4's chip does not always see them in hotspot mode, so it also tries blindly every 20 minutes (the hotspot is off for about a minute each time).
+- **It tells you.** Once back online it posts to Discord how long the hotspot lasted.
+
+Add the password of the hotspot to `.env`, then install it (run again after a `git pull` that changed `hotspot/`):
+
+```text
+HOTSPOT_PASSWORD=at-least-8-characters
+```
+```bash
+sudo ./hotspot/install.sh
+```
+
+| Setting | What it does |
+| :--- | :--- |
+| `HOTSPOT_PASSWORD` | Required. WPA2 password of the hotspot, 8 characters or more. |
+| `HOTSPOT_SSID` | Name of the hotspot (`dpi-hotspot`). |
+| `HOTSPOT_ADDRESS` | Optional. Fixed address for the hotspot, e.g. `192.168.1.229/24`. By default, the last address the Pi had on a wifi. |
+| `WATCHDOG_WEBHOOK_URL` | Discord webhook for the "back online" message, shared with the watchdog. |
+
+Good to know:
+
+- The hotspot is on **5 GHz** (channel 36): the current Pi 4 firmware sends nothing on 2.4 GHz in hotspot mode. Very old devices that only do 2.4 GHz will not see it.
+- It needs NetworkManager (the default on Raspberry Pi OS since Bookworm). Install it only on a Pi that uses wifi: on Ethernet it sees no wifi and opens the hotspot.
+- See what it did: `journalctl -u wifi-fallback -n 20`. Stop it: `sudo systemctl disable --now wifi-fallback`.
+
+---
+
+## 🔄 Updating the Pi
+
+Run these from the `mediaserver` folder on the Pi.
+
+| To | Command |
+| :--- | :--- |
+| Get the latest version of this project | `git pull && docker compose up -d` |
+| ... and the home page changed | nothing more: reload the page |
+| ... and `watchdog/` or `hotspot/` changed | `sudo ./watchdog/install.sh` or `sudo ./hotspot/install.sh` |
+| Update the apps themselves | `docker compose pull && docker compose up -d` |
+| Apply a change made in `.env` | `docker compose up -d` (and the `install.sh` of the watchdog or hotspot if it is their setting) |
+| See what an app says | `docker compose logs --tail 50 radarr` |
+
+Keep the Pi's checkout clean: change files on your computer, push, then `git pull` on the Pi. A file edited or copied by hand on the Pi makes the next `git pull` refuse to run.
+
+**Backup:** every setting, account and database of the apps is in the `config/` folder, and your settings in `.env`. Copy both somewhere safe from time to time.
 
 ---
 
@@ -327,7 +402,7 @@ services:
 docker compose up -d
 ```
 
-Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191 and 51413. `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#-watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
+Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191 and 51413. `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
 
 ### 2. Give it the hub's look
 
