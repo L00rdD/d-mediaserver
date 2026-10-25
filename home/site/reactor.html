@@ -256,7 +256,8 @@
         "sto sto sto"
         "bot bot bot"
         "sap sap sap"
-        "kp kp kp";
+        "kp kp kp"
+        "bf bf bf";
       gap: 28px 56px;
       width: 100%;
       max-width: 1080px;
@@ -553,6 +554,8 @@
     /* One Piece card: hidden until the kpiece service writes /kpiece.json (see kpiece.js) */
     .kpiece { grid-area: kp; animation-delay: 0.7s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
+    /* Bifrost card: hidden until bifrost answers on :8582 (see bifrost.js) */
+    .bifrost { grid-area: bf; animation-delay: 0.75s; }
 
     /* J.A.R.V.I.S. speaking at the bottom: voice bars and one line at a time (see the script below) */
     .jarvis {
@@ -603,7 +606,8 @@
           "sto sto"
           "bot bot"
           "sap sap"
-          "kp kp";
+          "kp kp"
+          "bf bf";
         gap: 16px;
         padding: 20px 16px 36px;
       }
@@ -617,7 +621,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -767,6 +771,12 @@
       </dl>
       <span class="tag bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></span>
     </a>
+
+    <a class="panel bot bifrost" id="bifrost" href="http://{{$host}}:8581" target="_blank" rel="noopener" hidden aria-label="Bifrost, open Homebridge">
+      <span class="tag"><i>08</i> // Bifrost <span data-bf="state"></span></span>
+      <ul class="bot-list" data-bf="list"></ul>
+      <span class="tag bot-foot"><span data-bf="last"></span><span class="bot-more">Homebridge :8581 →</span></span>
+    </a>
   </main>
 
   <footer class="jarvis" id="jarvis" aria-live="polite">
@@ -795,6 +805,7 @@
         const l = [`${part}, sir. All systems are online.`, "Jellyfin is ready whenever you are."];
         if (shown("storage")) l.push(`Storage at ${text('[data-st="pct"]')}, ${text('[data-st="free"]')} left.`);
         if (shown("trading-bot")) l.push(`The trading bot reports ${text('[data-tb="pnl"]')} so far.`);
+        if (shown("bifrost")) l.push(`Bifrost reports ${text('[data-bf="state"]')}.`);
         if (shown("kpiece")) l.push(`One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
         l.push("Type a title above and I will find it.", "Transmission stays behind the VPN, as instructed.", "Uplink {{$host}} is stable.");
         return l;
@@ -820,6 +831,7 @@
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
   <script src="/kpiece.js" defer></script>
+  <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
 </body>
 </html>

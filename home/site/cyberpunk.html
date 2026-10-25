@@ -527,7 +527,7 @@
     .card:hover, .card:focus-visible { --edge: var(--red); --fill: #2a0f12; }
     .card:hover .name, .card:focus-visible .name { color: var(--red); animation: glitch-text 0.35s steps(2) 1; }
 
-    /* Telemetry cards: storage, trading bot, Sapling Sunrise, One Piece; each hidden until its source answers */
+    /* Telemetry cards: storage, trading bot, Sapling Sunrise, One Piece, Bifrost; each hidden until its source answers */
     .bot {
       grid-column: 1 / -1;
       position: relative;
@@ -624,6 +624,7 @@
     @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
     .kpiece { animation-delay: 0.5s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
+    .bifrost { animation-delay: 0.55s; }
 
     /* Bottom ticker */
     .ticker {
@@ -832,6 +833,12 @@
       </dl>
       <div class="bot-head bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></div>
     </a>
+
+    <a class="bot bifrost" id="bifrost" href="http://{{$host}}:8581" target="_blank" rel="noopener" hidden aria-label="Bifrost, open Homebridge">
+      <div class="bot-head"><span>08</span><span class="name">Bifrost</span><span data-bf="state"></span></div>
+      <ul class="bot-list" data-bf="list"></ul>
+      <div class="bot-head bot-foot"><span data-bf="last"></span><span class="bot-more">Homebridge :8581 →</span></div>
+    </a>
   </main>
 
   <footer class="ticker" aria-hidden="true">
@@ -866,6 +873,7 @@
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>
   <script src="/kpiece.js" defer></script>
+  <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
 </body>
 </html>
