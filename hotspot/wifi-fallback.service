@@ -1,5 +1,5 @@
 [Unit]
-Description=Open the Pi's own wifi when the home wifi is gone, until it comes back
+Description=Open the Pi's own wifi when the home network is gone, until it comes back
 After=NetworkManager.service
 Wants=NetworkManager.service
 
