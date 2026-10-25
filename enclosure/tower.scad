@@ -136,10 +136,20 @@ module bolt_front(x, z) { translate([x, -D / 2 + 0.01, z]) rotate([90, 0, 0]) cy
 module bolt_top(x, y, z) { translate([x, y, z - 0.01]) cylinder(d = bolt_d, h = bolt_h, $fn = 6); }
 
 // a smaller conduit running along both sides and the back at height z (the front stays clear),
-// half sunk in the walls, with a junction block where it meets each column
+// half sunk in the walls, with a junction block where it meets each column.
+// The pipe carries a 45-degree keel underneath (1.9 mm below the round): the
+// stages print rim up, so the underside of a horizontal pipe would otherwise
+// be a flat strip facing the plate, asking for supports 100 mm tall.
+run_keel = run_d / 2 * sqrt(2);
+module run_pipe(len, keel, center = false) {
+    hull() {
+        cylinder(d = run_d, h = len, center = center);
+        translate(keel * run_keel) cylinder(d = 0.1, h = len, center = center);
+    }
+}
 module conduit_run(z) {
-    translate([-W / 2, D / 2 + 0.5, z]) rotate([0, 90, 0]) cylinder(d = run_d, h = W);
-    for (sx = [-1, 1]) translate([sx * (W / 2 + 0.5), 0, z]) rotate([90, 0, 0]) cylinder(d = run_d, h = D, center = true);
+    translate([-W / 2, D / 2 + 0.5, z]) rotate([0, 90, 0]) run_pipe(W, [1, 0, 0]);
+    for (sx = [-1, 1]) translate([sx * (W / 2 + 0.5), 0, z]) rotate([90, 0, 0]) run_pipe(D, [0, -1, 0], center = true);
     for (sx = [-1, 1], sy = [-1, 1])
         translate([sx * (W / 2 - pipe_d / 2 + pipe_out), sy * (D / 2 - pipe_d / 2 + pipe_out), z]) cube([13, 13, 13], center = true);
 }
@@ -460,7 +470,7 @@ module post_rings(h) {
 /* ---------- stages ---------- */
 // free wall on the tall stages, between the bands and the conduit runs
 base_tiers    = [16 + run_d / 2 + 1, base_h - 3 - band_h - 1];
-compute_tiers = [3 + band_h + 1, compute_h - 12 - run_d / 2 - 1];
+compute_tiers = [3 + band_h + 1, compute_h - 12 - run_keel - 1];
 // the base's back windows fit between its two cable slots, 83 mm apart
 base_back_ww  = 72;
 
@@ -569,12 +579,26 @@ module compute() {
         // pocket from the outside, then the window through
         color(c_body) translate([0, -D / 2 - 3, zc]) cube([screen[0] + 0.6, 2 * (3 + screen_t + 0.5), screen[1] + 0.6], center = true);
         color(c_body) translate([0, -D / 2, zc]) cube([win[0], 40, win[1]], center = true);
+        // the stage prints rim up, so the top of the pocket and the top of the
+        // window face the plate: both slope up at 45 degrees on the inside and
+        // print without supports. The pocket keeps 1.5 mm of flat top behind the
+        // bezel to locate the frame; the lip the frame rests on is untouched.
+        color(c_body) translate([0, -D / 2 + 1.5, zc + (screen[1] + 0.6) / 2]) rotate([90, 0, 90])
+            linear_extrude(screen[0] + 0.6, center = true) polygon([[0, -0.01], [3.02, -0.01], [3.02, 3.01]]);
+        color(c_body) translate([0, -D / 2 + screen_t + 0.5, zc + win[1] / 2]) rotate([90, 0, 90])
+            linear_extrude(win[0], center = true) polygon([[0, -0.01], [2.6, -0.01], [2.6, 2.59]]);
     }
     color(c_body) conduit_run(compute_h - 12);
-    // the frame is held from the inside by two clip bars screwed on these bosses
+    // the frame is held from the inside by two clip bars screwed on these bosses;
+    // the upper pair hangs under a 45-degree gusset so it prints without supports
     color(c_body) for (sx = [-1, 1], sz = [-1, 1])
-        translate([sx * (screen[0] / 2 + 6), -inner_d / 2 + screen_t + 1, zc + sz * (screen[1] / 2 + 6)])
-            rotate([-90, 0, 0]) difference() { cylinder(d = 7, h = 8); cylinder(d = 2.4, h = 9); }
+        translate([sx * (screen[0] / 2 + 6), -inner_d / 2 + screen_t + 1, zc + sz * (screen[1] / 2 + 6)]) difference() {
+            hull() {
+                rotate([-90, 0, 0]) cylinder(d = 7, h = 8);
+                if (sz > 0) translate([-3.5, 0, -11.5]) cube([7, 0.5, 8]);
+            }
+            rotate([-90, 0, 0]) translate([0, 0, -1]) cylinder(d = 2.4, h = 10);
+        }
     // Pi standoffs, tall enough for the board to pass over the corner column and
     // the edge of the rear pass-through; every cable stays inside and goes down
     // through the pass-through
