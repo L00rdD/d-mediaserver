@@ -1,0 +1,3 @@
+# Run the watchdog as soon as a USB drive is plugged in (again), instead of
+# waiting for the next tick of its timer. Installed by install.sh.
+ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", TAG+="systemd", ENV{SYSTEMD_WANTS}+="mediaserver-watchdog.service"

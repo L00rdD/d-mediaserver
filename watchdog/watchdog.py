@@ -4,7 +4,10 @@
 Run every minute by mediaserver-watchdog.timer, as root. Each run:
 
 1. repairs what can be repaired: a drive that came back after a USB drop is
-   mounted again, then the pool, then Docker (which stops with the pool);
+   mounted again, then the pool, then Docker (which stops with the pool). A
+   drive that came back under a new device name while its old mount stayed
+   (every read fails with an I/O error) has its mount and the pool detached
+   first, with Docker stopped meanwhile;
 2. lists what is still wrong: missing drive, pool or Docker down, a container
    stopped or unhealthy, the home page not answering;
 3. posts to Discord when a problem has lasted long enough, again every few
@@ -80,6 +83,20 @@ def mounted(path):
     return run("mountpoint", "-q", path).returncode == 0
 
 
+def stale(target, uuid):
+    """True when target is still mounted but its drive is gone or came back
+    under another device: the old mount answers every read with an I/O error."""
+    if uuid:
+        dev = Path("/dev/disk/by-uuid", uuid)
+        source = run("findmnt", "-no", "SOURCE", target).stdout.strip()
+        if dev.exists() and source and os.path.realpath(dev) != os.path.realpath(source):
+            return True
+    try:
+        return run("ls", target, timeout=15).returncode != 0
+    except subprocess.TimeoutExpired:
+        return True
+
+
 def unit_for(path):
     return run("systemd-escape", "--path", "--suffix=mount", path).stdout.strip()
 
@@ -93,7 +110,23 @@ def repair_and_check(env):
     problems = {}
     actions = []
 
-    for target, uuid in fstab_drives():
+    drives = fstab_drives()
+    dead = [(t, u) for t, u in drives if mounted(t) and stale(t, u)]
+    # only a drive that is plugged in again can be remounted: detach it, the
+    # pool and Docker (which hold it), the loop below mounts everything back
+    back = [(t, u) for t, u in dead if not u or Path("/dev/disk/by-uuid", u).exists()]
+    if back:
+        run("systemctl", "stop", "docker.socket", "docker.service", timeout=180)
+        run("umount", "-l", POOL)
+        for target, _ in back:
+            run("umount", "-l", target)
+        actions.append("detached the stale mount of " + ", ".join(Path(t).name for t, _ in back))
+    for target, uuid in dead:
+        if (target, uuid) not in back:
+            name = Path(target).name
+            problems["drive:" + name] = (f"Drive {name} ({uuid}) cannot be read and is unplugged.", GRACE)
+
+    for target, uuid in drives:
         if mounted(target):
             continue
         name = Path(target).name
@@ -118,7 +151,7 @@ def repair_and_check(env):
 
     if not active("docker.service"):
         if mounted(POOL):
-            run("systemctl", "start", "docker.service", timeout=180)
+            run("systemctl", "start", "docker.socket", "docker.service", timeout=180)
         if active("docker.service"):
             actions.append("started Docker")
         else:
