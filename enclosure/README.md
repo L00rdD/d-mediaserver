@@ -97,46 +97,56 @@ highest corner; exposure at the Workshop profile (2.2 s per 50 µm layer, 5
 bottom layers at 35 s, black ABS-Like Pro 2). The first disk print, on light
 supports, tore off at its highest corner.
 
-The compute stage failed on 2026-10-14 with that profile as shipped: the raft
-stayed on the plate, but the supports tore out of it at one end and the whole
-floor came out rippled. The stock "Heavy" raft is a 0.8 mm honeycomb with 4 mm
-holes and the trunks stand on it with no foot (platform foot off), and the lift
-was the stock 8 mm at 6 mm/s with no pause. That held the disk (89 ml) and not
-the compute (242 ml plus supports, twice the layers). For the compute, the base
-and anything over about 100 ml, change the profile before slicing:
+The compute stage failed on 2026-10-14: the raft stayed on the plate but the
+supports tore out of it at one end and the whole floor came out rippled. The
+cause turned out to be the printer, not the part: the release film was worn and
+leaking, and resin cured under it on the LCD in the exact honeycomb pattern of
+the raft, so the leak was there from the first layers and every layer of that
+print was exposed through a shaded screen. The hub failed the next day on the
+same film. Film, screen protector and plate levelling were redone on
+2026-10-24 and the high disk coupon printed clean again on 2026-10-25.
 
-| Workshop setting | Stock "Heavy" | "Heavy tower" (lid) | "Heavy compute" (compute, base) |
-| :--- | :--- | :--- | :--- |
-| Raft holes | on, 4 mm | off (solid raft) | off |
-| Raft thickness | 0.8 mm (16 layers) | 1.0 mm (20 layers: the 5 bottom + 15 transition layers, no raft layer at plain exposure) | 1.0 mm |
-| Platform foot (support bottom) | off | on, 3 mm radius | on, 3 mm radius |
-| Tip contact / depth in the part | 0.55 / 0.4 mm | unchanged | 0.7 / 0.5 mm |
-| Anchor spacing (support density) | 3 mm | unchanged | 2 mm |
-| Lift (resin profile "tower") | 8 mm at 6 mm/s, one stage | 10 mm in two stages: 4 mm at 3 mm/s, then 6 mm at 6 mm/s | same |
-| Retract | 6 mm/s | 4 mm/s | same |
-| Wait before lift | 0 s | 1 s | same |
-| Exposure | 2.2 s, bottom 5 × 35 s | unchanged | unchanged |
+Orientation study for the compute (2026-10-25, slices every mm of
+`stl/compute.stl`): rim up at 0° × 11° is the only tilt that fits the plate
+(194 mm of part on 211 mm usable), and it is geometrically easier than the
+disk that printed clean: highest supported point 34 mm (disk: 40, proven by
+two coupons), largest layer 2 440 mm² (disk: 2 000), same floor. Standing the
+stage on one end gives a vertical floor and 22 % less area per layer but 30 %
+more layers, 209 mm of height on a smaller raft and supports on a decorated
+lattice face; lying on a face does not fit (124 mm across 114 usable). The
+tilt direction is indifferent (solid floor split 51/49 between the halves).
 
-`workshop_profile.py` installs the two support profiles and the resin profile
-(quit Workshop first, it rewrites its files on exit). The numbers follow what
-large-print users and Anycubic's own M7 troubleshooting report: supports tear
-at the raft when the lift is too short for the film to let go, so the lift
-distance goes up before anything else; a slow first stage helps most people
-but ACF users warn that a crawl separates worse, hence 3 mm/s rather than 2;
-a raft thicker than the bottom + transition layers warps and lets go, hence
-1.0 mm; ABS-Like Pro 2 stays flexible while printing and wants fat tips. Keep
-the room and the resin at 25 °C or more (the M7 has no heater; under 20 °C
-Anycubic says +30 % exposure and -30 % Z speed), and check the plate with a
-ruler against a light: dished plates are common on the M7 line and fail at the
-centre first. The compute profile is
-the stiffer one because it is the compute's floor that rippled: fatter tips
-sunk deeper, trees closer together. The hub proves nothing the disk has not: it
-is the same tray within 2 mm and 4 ml. Nothing over 89 ml has printed yet, so
-the compute goes from the proven disk straight to 242 ml on a profile that has
-never run: a known risk, taken to check the fit of the real parts first. Walls are 2 mm, floors 2.5 mm; the floor slots and
-the floor lattice double as drain holes. The lattice openings are about 7 mm
-triangles, easy to drain and to clean with a brush. The lid prints roof down:
-the stacks, the eave and the fins need supports.
+What the compute has that the disk had not, and what was done about it:
+
+- Twice the layers (3 255) on the same supports, so twice the lift cycles on
+  the raft-to-trunk joints where it tore. Use the `Heavy tower` support
+  profile: stock Heavy tips and trunks, but a solid 1.0 mm raft and a 3 mm
+  platform foot under each trunk. Keep the stock resin profile
+  (`abs_like_resin_pro2@ACF@normal_print`, 2.2 s, lift 8 mm at 6 mm/s), the
+  one the disk and the coupons printed on; the two-stage `@ACF@tower` lift was
+  only ever run on the worn film and proves nothing.
+- Overhangs 110 to 150 mm up the print that auto supports would reach with
+  slender trunks from the plate: the conduit run and the top of the screen
+  pocket. These now print without supports: the conduit carries a 45° keel
+  underneath (`run_pipe`, also on the base), the top of the pocket and of the
+  window slope up at 45° on the inside (1.5 mm of flat top kept behind the
+  bezel to locate the frame; the lip the frame rests on is unchanged) and the
+  upper clip bosses hang under a 45° gusset. The junction blocks sit on the
+  16 mm corner conduit and barely overhang; left as they are.
+- Add manual heavy supports under the four corners of the plug and every
+  ~5 mm along its high edge; anchor on the part (not the plate) whatever
+  Workshop still wants to support above 85 mm.
+
+`workshop_profile.py` installs the support profiles and the `tower` resin
+profile (quit Workshop first, it rewrites its files on exit). Keep the room
+and the resin at 22 °C or more (the M7 has no heater; under 20 °C Anycubic
+says +30 % exposure and -30 % Z speed), print from fresh resin, fill the vat
+for ~300 ml and check the level once the floor is done (about 35 mm up), and
+check the plate with a ruler against a light: dished plates are common on the
+M7 line and fail at the centre first. Walls are 2 mm, floors 2.5 mm; the floor
+slots and the floor lattice double as drain holes. The lattice openings are
+about 7 mm triangles, easy to drain and to clean with a brush. The lid prints
+roof down: the stacks, the eave and the fins need supports.
 
 Print order: the stages that hold the parts first, to check the fit, the roof
 last.
@@ -145,9 +155,9 @@ last.
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | `disk.stl` (printed 2026-10-13, clean) | 6° × 10°, rear low | 78 mm | 89 ml | 40 mm (proven by the coupon) |
 | 2 | `disk.stl` again, for the second drive | | | 89 ml | |
-| 3 | `compute.stl` (failed 2026-10-14 on stock Heavy), on "Heavy compute" | 0° × 11° | 163 mm | 242 ml | 34 mm |
-| 4 | `base.stl`, on "Heavy compute" | 0° × 10° | 166 mm | 253 ml | 31 mm |
-| 5 | `hub.stl` (same tray as the disk) | 4° × 11°, rear low | 80 mm | 85 ml | 40 mm |
+| 3 | `compute.stl` (failed 2026-10-14 on the worn film), on "Heavy tower" + manual supports | 0° × 11° | 163 mm | 243 ml | 34 mm |
+| 4 | `base.stl`, same recipe as the compute | 0° × 10° | 166 mm | 254 ml | 31 mm |
+| 5 | `hub.stl` (printed 2026-10-24 on the new film, rough under the floor but in use) | 4° × 11°, rear low | 80 mm | 85 ml | 40 mm |
 | 6 | `lid-coupon.stl` | as the lid | 54 mm | 24 ml | 50 mm |
 | 7 | `lid.stl`, once the coupon is clean, on "Heavy tower" | 0° × 10°, roof down | 73 mm | 193 ml | 50 mm |
 | – | `screen_clip.stl` × 2 | 15° × 13° | 42 mm | 4 ml each | small, any support |
