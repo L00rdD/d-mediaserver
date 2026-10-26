@@ -16,7 +16,7 @@ along the top and the bottom of every stage, the solid fields carry seigaiha
 waves in relief, the corner posts wear three rings per stage, and the lid is
 a pagoda roof with an eave and a ridge, the two exhaust stacks rising from
 it like finials. Two round moon windows with ring grilles feed the base.
-Every opening is a real one. The floors of the riser, hub, compute and disk
+Every opening is a real one. The floors of the hub, compute and disk
 stages are latticed too (same triangle grid, 2 mm bars, solid under the
 stops, the Pi standoffs and the cable pass-through), so the lid fan draws air
 up through the whole tower, from the base slots to the roof.
@@ -32,7 +32,7 @@ Eight colour schemes to compare are in `renders/colours/`.
 | Stage | Height | Holds |
 | :--- | :--- | :--- |
 | `base` | 130 mm | 3-outlet power strip lying flat (up to 175 × 65 × 48 mm; a Legrand extra-flat 3-way is 167 × 55 × 38), both bricks plugged in, standing up to 80 mm tall. Mains cord and Ethernet leave through two slots in the rear wall. Air comes in through the floor slots, on rubber feet. |
-| `riser` | 30 mm | Empty. Slip one under any stage that needs more height, for a taller brick or a thicker drive. |
+| `riser` | 30 mm | A bottomless sleeve: no floor, only the plug ring and the walls. Slip one on top of any stage that lacks height (a taller brick, a thicker drive) and that stage grows by 30 mm, its contents rising through the riser up to the floor of the stage above. |
 | `hub` | 34 mm | The 7-port hub, USB ports facing the rear through a slot. |
 | `compute` | 124 mm | The screen, sunk in a pocket of the front face and held from inside by two `screen_clip` bars. The Pi 4 on four 14 mm standoffs at the left rear: USB and Ethernet face the middle, USB-C and micro-HDMI face the back of the screen (about 30 mm of room, so angled plugs), GPIO to the rear wall. Every cable stays inside. |
 | `disk` | 32 mm | One 2.5" drive in its enclosure. Print one per drive, stack as many as needed. |
@@ -42,6 +42,15 @@ Each stage has a plug underneath that drops into the stage below. A column
 in each inside corner, half sunk in the walls, stands 8 mm tall at each end
 of the stage with a 6 × 2 mm magnet pocket; the plug is notched around
 the columns of the stage below, so column meets column and the magnets hold.
+The rings on the corner posts stop flush with the inside of the walls
+(`fit_fix`). On the disk, hub and compute printed before 2026-10-26 they stand
+into the cavity around each corner column, and the plug above lands on them:
+the stage sits 2 mm high and the magnets stay apart. On those prints, cut the
+four crescents at the top, from 4 to 6.5 mm under the rim, and on the compute
+the top of the screen plate too; `rendu_trim/rendu.html` shows them in red.
+The plug is unchanged, so old and new stages fit each other the same way.
+The compute's two upper clip bosses still reach 2.5 mm under the rim, so the
+stage on the compute sits about 1.3 mm high once the rest is trimmed.
 To save resin the corner conduits are hollow between the column ends, each
 drained into the stage by two 2.5 mm holes, and the pagoda roof is a 3 mm
 shell over the lid plate, drained by four 3 mm holes in the plate. A 36 × 14 mm pass-through at the rear of every
@@ -153,15 +162,15 @@ last.
 
 | # | File in `stl/print/` | Tilt | Height on the plate | Resin (without supports) | Highest supported point |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | `disk.stl` (printed 2026-10-13, clean) | 6° × 10°, rear low | 78 mm | 89 ml | 40 mm (proven by the coupon) |
-| 2 | `disk.stl` again, for the second drive | | | 89 ml | |
-| 3 | `compute.stl` (failed 2026-10-14 on the worn film), on "Heavy tower" + manual supports | 0° × 11° | 163 mm | 243 ml | 34 mm |
-| 4 | `base.stl`, same recipe as the compute | 0° × 10° | 166 mm | 254 ml | 31 mm |
-| 5 | `hub.stl` (printed 2026-10-24 on the new film, rough under the floor but in use) | 4° × 11°, rear low | 80 mm | 85 ml | 40 mm |
+| 1 | `disk.stl` (printed 2026-10-13, clean) | 6° × 10°, rear low | 78 mm | 87 ml | 40 mm (proven by the coupon) |
+| 2 | `disk.stl` again, for the second drive | | | 87 ml | |
+| 3 | `compute.stl` (failed 2026-10-14 on the worn film), on "Heavy tower" + manual supports | 0° × 11° | 163 mm | 241 ml | 34 mm |
+| 4 | `base.stl`, same recipe as the compute | 0° × 10° | 166 mm | 252 ml | 31 mm |
+| 5 | `hub.stl` (printed 2026-10-24 on the new film, rough under the floor but in use) | 4° × 11°, rear low | 80 mm | 83 ml | 40 mm |
 | 6 | `lid-coupon.stl` | as the lid | 54 mm | 24 ml | 50 mm |
 | 7 | `lid.stl`, once the coupon is clean, on "Heavy tower" | 0° × 10°, roof down | 73 mm | 193 ml | 50 mm |
 | – | `screen_clip.stl` × 2 | 15° × 13° | 42 mm | 4 ml each | small, any support |
-| – | `riser.stl`, only if a stage lacks height | 6° × 10°, rear low | 77 mm | 84 ml | 40 mm |
+| – | `riser.stl`, only if a stage lacks height | 6° × 10°, rear low | 77 mm | 57 ml | 40 mm |
 
 The base and the compute stage are too wide to tilt across the plate at all,
 but their supports stay lower than the disk's; they are the tallest and the

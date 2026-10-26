@@ -1,0 +1,185 @@
+{
+  "title": "Riser — rehausse sans fond",
+  "subtitle": "Tour du mediaserver · tower.scad, part = \"riser\" · version du 2026-10-26",
+  "scad": "../tower.scad",
+  "out": "rendu.html",
+  "stl_dir": "stl",
+  "part_var": "part",
+  "size": [
+    1600,
+    1200
+  ],
+  "colorscheme": "Tomorrow",
+  "hero": "stack",
+  "intro": "<p>Le riser est un étage de 30 mm <b>sans plancher</b> : il ne garde que les quatre murs, les colonnes d'angle à aimants et l'anneau du plug (2 mm d'épaisseur, 6 mm de haut) qui s'emboîte dans l'étage du dessous. Posé sur un étage, il le <b>rallonge de 30 mm</b> : ce qui dépasse de l'étage du dessous monte dans le riser jusqu'au plancher de l'étage du dessus. L'ancienne version avait un plancher en treillis, qui faisait du riser un étage vide fermé au lieu d'une rallonge.</p><p>Exemple montré ici : base + riser + hub. Sans riser, un chargeur debout sur la multiprise doit faire au plus 79,5 mm ; avec, jusqu'à 109,5 mm (le bloc orange de 100 mm est un chargeur fictif, pour la démonstration).</p>",
+  "views": [
+    {
+      "id": "stack",
+      "title": "Base, riser et hub, éclatés",
+      "part": "riser_stack",
+      "camera": "auto:68,0,210",
+      "caption": "Le riser se pose sur la base et le hub sur le riser ; chaque plug descend dans l'étage du dessous, colonne contre colonne."
+    },
+    {
+      "id": "section",
+      "title": "Coupe de l'empilement monté",
+      "part": "riser_section",
+      "camera": "auto:82,0,15",
+      "caption": "Coupe à mi-profondeur. Le bloc orange (100 mm, debout sur la multiprise) traverse le haut de la base et monte dans le riser ; il reste 9,5 mm sous le plancher du hub."
+    },
+    {
+      "id": "below",
+      "title": "Riser vu de dessous",
+      "part": "riser",
+      "camera": "auto:235,0,25",
+      "caption": "Plus de plancher : seul l'anneau du plug (2 mm) borde l'ouverture, encoché autour des colonnes de l'étage du dessous."
+    },
+    {
+      "id": "alone_section",
+      "title": "Coupe du riser seul",
+      "part": "riser_alone_section",
+      "camera": "auto:70,0,-60",
+      "caption": "Coupe en travers (faces coupées en bleu) : le mur, la marche de la bague de liaison en pied de mur, puis l'anneau du plug de 2 × 6 mm en dessous. Pas de plancher."
+    },
+    {
+      "id": "riser_step1",
+      "title": "Étape 2 : le riser descend sur la base",
+      "part": "riser_step1",
+      "camera": "auto:68,0,210",
+      "caption": "Le riser, soulevé de 20 mm, au-dessus de la base."
+    },
+    {
+      "id": "riser_step2",
+      "title": "Étape 3 : le hub sur le riser",
+      "part": "riser_step2",
+      "camera": "auto:68,0,210",
+      "caption": "Le hub, soulevé de 20 mm, au-dessus du riser posé."
+    }
+  ],
+  "parts": [
+    {
+      "part": "riser",
+      "name": "Riser",
+      "qty": 1,
+      "role": "Rallonge de 30 mm, sans fond, à poser sur n'importe quel étage qui manque de hauteur. Un par rallonge ; on peut en empiler plusieurs.",
+      "color": [
+        0.22,
+        0.22,
+        0.25
+      ],
+      "views": [
+        "auto:55,0,25",
+        "auto:235,0,25"
+      ]
+    }
+  ],
+  "measure": [
+    [
+      "riser_h",
+      "Hauteur qui manque à l'étage (ex. chargeur debout sur la multiprise : sa hauteur − 79,5 mm). Un riser ajoute 30 mm ; au-delà, en empiler deux ou changer riser_h.",
+      "30 mm"
+    ],
+    [
+      "tall_brick",
+      "Encombrement de l'objet qui doit traverser le riser : il doit passer dans l'ouverture de l'anneau du plug, 175,4 × 95,4 mm à angles chanfreinés.",
+      "40 × 30 × 100 mm (bloc fictif)"
+    ],
+    [
+      "magnet_d / magnet_h",
+      "Diamètre et épaisseur réels des aimants, avant collage dans les 8 poches.",
+      "6,4 × 2,3 mm (poches pour aimants 6 × 2)"
+    ]
+  ],
+  "steps": [
+    {
+      "title": "Coller les aimants",
+      "view": "below",
+      "html": "<p>4 aimants dans les poches du bas des colonnes, 4 dans celles du haut, polarités vérifiées avec un aimant de l'étage voisin : le bas du riser doit attirer le haut de la base, le haut du riser le bas du hub.</p>",
+      "check": [
+        "8 aimants affleurants, rien ne dépasse des colonnes",
+        "Polarités testées des deux côtés avant que la colle prenne"
+      ]
+    },
+    {
+      "title": "Poser le riser sur l'étage à rallonger",
+      "view": "riser_step1",
+      "html": "<p>Le passe-câble arrière est dans le plancher des étages, pas dans le riser : les câbles montent simplement dans l'ouverture. Faire descendre l'anneau du plug dans la base, encoches face aux colonnes.</p>",
+      "check": [
+        "Le riser descend sans forcer et repose colonne contre colonne",
+        "Les aimants tiennent l'ensemble"
+      ]
+    },
+    {
+      "title": "Reposer l'étage du dessus",
+      "view": "riser_step2",
+      "html": "<p>Le hub (ou l'étage qui était au-dessus) se pose sur le riser comme il se posait sur la base.</p>",
+      "check": [
+        "Ce qui dépassait de la base passe sous le plancher du hub",
+        "La tour est d'aplomb"
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "print",
+      "title": "Impression",
+      "html": "<p><code>stl/print/riser.stl</code>, orienté par <code>orient.py</code> : incliné 6° × 10°, arrière en bas, 195 × 114 × 77 mm sur le plateau, point supporté le plus haut à 40 mm (la limite validée par le coupon du 2026-10-13). 57 ml de résine sans supports (84 ml pour l'ancienne version à plancher).</p><p>Nouveau par rapport aux étages déjà imprimés : il n'y a plus de plancher. Ce qui repose sur les supports, c'est maintenant l'anneau du plug (2 mm de large, 6 mm de haut) sur tout son pourtour, ainsi que le bas des colonnes. Il n'y a plus de grande couche pleine. Cette forme n'a jamais été imprimée : vérifier dans Workshop que les supports prennent tout le tour de l'anneau, et que le bas des colonnes est bien tenu.</p>"
+    }
+  ],
+  "hardware": [
+    "8 aimants disques 6 × 2 mm (4 en bas, 4 en haut), collés à la cyanoacrylate ou à l'époxy"
+  ],
+  "scene": [
+    {
+      "stl": "stl/scene/base.stl",
+      "name": "Base",
+      "color": [
+        0.3,
+        0.3,
+        0.34
+      ],
+      "group": "Étages imprimés"
+    },
+    {
+      "stl": "stl/scene/riser.stl",
+      "name": "Riser",
+      "color": [
+        0.72,
+        0.55,
+        0.3
+      ],
+      "group": "Étages imprimés"
+    },
+    {
+      "stl": "stl/scene/hub.stl",
+      "name": "Hub",
+      "color": [
+        0.3,
+        0.3,
+        0.34
+      ],
+      "group": "Étages imprimés"
+    },
+    {
+      "stl": "stl/scene/strip.stl",
+      "name": "Multiprise (encombrement max)",
+      "color": [
+        0.85,
+        0.85,
+        0.8
+      ],
+      "group": "Contenu"
+    },
+    {
+      "stl": "stl/scene/brick.stl",
+      "name": "Chargeur fictif de 100 mm",
+      "color": [
+        0.95,
+        0.45,
+        0.15
+      ],
+      "group": "Contenu"
+    }
+  ],
+  "scene_title": "Base + riser + hub"
+}

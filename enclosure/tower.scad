@@ -178,6 +178,18 @@ module col_xy() {
     for (sx = [-1, 1], sy = [-1, 1]) translate([sx * (inner_w / 2 - cc / 2), sy * (inner_d / 2 - cc / 2), 0]) children();
 }
 
+// The first prints (disk, hub, compute) have post rings that stand into the
+// cavity at its corners: at the top, the plug of the stage above lands on them
+// and the stage sits 2 mm high, magnets apart. fit_fix trims the rings flush
+// with the cavity; the plug is unchanged, so old and new stages mix. $fit
+// overrides it, for the fit checks.
+fit_fix = true;
+function fit_fix() = is_undef($fit) ? fit_fix : $fit;
+ring_d = collar_d - 1;
+module pipe_xy() {
+    for (sx = [-1, 1], sy = [-1, 1]) translate([sx * (W / 2 - pipe_d / 2 + pipe_out), sy * (D / 2 - pipe_d / 2 + pipe_out), 0]) children();
+}
+
 // the plug under a stage, with its corners cut away around the columns below
 module plug_2d() {
     difference() {
@@ -221,9 +233,10 @@ module pockets(z0, z1, top = true) {
 
 // a tray: floor at the bottom of the plug, open at the top. The plug sits
 // inside the footprint of the cavity above it, so a ring `tie_h` tall at the
-// foot of the walls joins the walls to the plug and the floor.
+// foot of the walls joins the walls to the plug and the floor. Without a
+// floor the plug is a bare ring and the tray is a sleeve, open at both ends.
 tie_h = 1.5;
-module tray(h, passthrough = true) {
+module tray(h, passthrough = true, floored = true) {
     difference() {
         union() {
             difference() {
@@ -233,8 +246,8 @@ module tray(h, passthrough = true) {
                     collars(h / 2 - collar_h / 2);
                 }
                 color(c_body) translate([0, 0, tie_h]) linear_extrude(h + 1) cham(inner_w, inner_d, chamfer - wall);
-                color(c_body) translate([0, 0, -lip_h + floor_t])
-                    linear_extrude(lip_h) cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
+                color(c_body) translate([0, 0, floored ? -lip_h + floor_t : -lip_h - 1])
+                    linear_extrude(floored ? lip_h : lip_h + tie_h + 2) cham(inner_w - 2 * (wall + lip_clr), inner_d - 2 * (wall + lip_clr), chamfer - 2 * wall);
                 if (passthrough) rear_passthrough();
             }
             columns(0, col_end);
@@ -462,9 +475,10 @@ function field_h(h) = h < 40 ? h - 3 - band_h - 3 - 4 : h - 2 * (3 + band_h) - 4
 
 // three rings per stage on the corner posts
 module post_rings(h) {
-    color(c_trim) for (sx = [-1, 1], sy = [-1, 1])
-        translate([sx * (W / 2 - pipe_d / 2 + pipe_out), sy * (D / 2 - pipe_d / 2 + pipe_out), 0])
-            for (z = [4, h - 4 - (collar_h - 1)]) translate([0, 0, z]) cylinder(d = collar_d - 1, h = collar_h - 1);
+    color(c_trim) difference() {
+        pipe_xy() for (z = [4, h - 4 - (collar_h - 1)]) translate([0, 0, z]) cylinder(d = ring_d, h = collar_h - 1);
+        if (fit_fix()) translate([0, 0, -1]) linear_extrude(h + 2) cham(inner_w, inner_d, chamfer - wall);
+    }
 }
 
 /* ---------- stages ---------- */
@@ -510,12 +524,12 @@ module base() {
         translate([x, -D / 2 + 0.01, 34]) rotate([90, 0, 0]) difference() { cylinder(d = port_d + 10, h = 2.4); translate([0, 0, -1]) cylinder(d = port_d + 1, h = 5); }
 }
 
-// an empty stage: slip one under any stage that needs more height
+// a bottomless stage: slip one under any stage and the stage below grows by
+// riser_h, its contents rising through the riser up to the floor above
 module riser() {
     difference() {
-        union() { color(c_body) tray(riser_h); post_rings(riser_h); bands(riser_h); windows(riser_h); color(c_trim) on_face("F", 0, field_z(riser_h), band_t * 2) waves2d(face_w - 4, field_h(riser_h)); }
+        union() { color(c_body) tray(riser_h, passthrough = false, floored = false); post_rings(riser_h); bands(riser_h); windows(riser_h); color(c_trim) on_face("F", 0, field_z(riser_h), band_t * 2) waves2d(face_w - 4, field_h(riser_h)); }
         windows(riser_h, cut = true);
-        floor_lattice();
     }
 }
 
@@ -727,3 +741,88 @@ if (part == "compute")     compute();
 if (part == "disk")        disk();
 if (part == "lid")         lid();
 if (part == "screen_clip") screen_clip();
+
+/* ---------- riser views, for the rendu CAO ---------- */
+// base + riser + hub, each raised by its lift; tall_brick is a block standing
+// on the strip, taller than the base alone allows, to show the riser's room
+tall_brick = [40, 30, 100];
+module riser_stack(lift_r = 0, lift_h = 0, with_riser = true, with_hub = true, brick = false) {
+    zr = base_h + lift_r;
+    zh = (with_riser ? zr + riser_h : base_h) + lift_h;
+    base();
+    if (with_riser) translate([0, 0, zr]) riser();
+    if (with_hub) translate([0, 0, zh]) hub_stage();
+    if (brick) {
+        color([0.85, 0.85, 0.80]) translate([-strip[0] / 2, -strip[1] / 2, -lip_h + floor_t]) cube(strip);
+        color([0.95, 0.45, 0.15]) translate([20, -tall_brick[1] / 2, -lip_h + floor_t + strip[2]]) cube(tall_brick);
+    }
+}
+module riser_section() {
+    intersection() {
+        riser_stack(brick = true);
+        translate([-200, 0, -50]) cube([400, 200, 400]);
+    }
+}
+
+if (part == "riser_stack")    riser_stack(lift_r = explode, lift_h = 2 * explode);
+if (part == "riser_section")  riser_section();
+if (part == "riser_alone_section") intersection() { riser(); translate([30, -200, -50]) cube([400, 400, 400]); }
+if (part == "riser_step1")    riser_stack(lift_r = 20, with_hub = false);
+if (part == "riser_step2")    riser_stack(lift_h = 20, brick = false);
+if (part == "scene_base")     base();
+if (part == "scene_riser")    translate([0, 0, base_h]) riser();
+if (part == "scene_hub")      translate([0, 0, base_h + riser_h]) hub_stage();
+if (part == "scene_strip")    translate([-strip[0] / 2, -strip[1] / 2, -lip_h + floor_t]) cube(strip);
+if (part == "scene_brick")    translate([20, -tall_brick[1] / 2, -lip_h + floor_t + strip[2]]) cube(tall_brick);
+
+/* ---------- what to cut off the stages printed before fit_fix ---------- */
+// red: the ring crescents in the plug path, from 4 to 6.5 mm under the rim
+// (the plug of the stage above stops 6 mm down); on the compute, the top of
+// the screen plate too. Yellow: the compute's upper clip bosses (open question).
+trim_z = 6.5;
+module trim_red(h, plate = false) {
+    difference() {
+        intersection() {
+            union() {
+                let($fit = false) post_rings(h);
+                if (plate) translate([0, -inner_d / 2 + screen_t / 2 + 0.5, compute_h / 2]) cube([screen[0] + 30, screen_t + 1, screen[1] + 16], center = true);
+            }
+            translate([0, 0, h - trim_z]) linear_extrude(trim_z - 0.01) cham(inner_w, inner_d, chamfer - wall);
+        }
+        col_xy() translate([0, 0, h - 20]) cylinder(d = col_d, h = 30);
+        if (plate) for (sx = [-1, 1]) translate([sx * (screen[0] / 2 + 6), -inner_d / 2 + screen_t + 5, h - 6]) cube([9, 10, 10], center = true);
+    }
+}
+module trim_yellow() {
+    for (sx = [-1, 1]) intersection() {
+        let($fit = false) compute();
+        translate([sx * (screen[0] / 2 + 6) - 4.5, -inner_d / 2 + screen_t + 0.2, compute_h - trim_z]) cube([9, 9.5, trim_z]);
+    }
+}
+module trim_view(st, clip = undef) {
+    h = st == "hub" ? hub_h : st == "disk" ? disk_h : compute_h;
+    intersection() {
+        union() {
+            color(c_body) difference() {
+                let($fit = false) { if (st == "hub") hub_stage(); if (st == "disk") disk(); if (st == "compute") compute(); }
+                trim_red(h, st == "compute");
+                if (st == "compute") trim_yellow();
+            }
+            color([0.92, 0.12, 0.10]) trim_red(h, st == "compute");
+            if (st == "compute") color([0.98, 0.80, 0.10]) trim_yellow();
+        }
+        if (!is_undef(clip)) translate(clip[0]) cube(clip[1]); else translate([-200, -200, -50]) cube([400, 400, 400]);
+    }
+}
+if (part == "trim_hub")             trim_view("hub");
+if (part == "trim_hub_corner")      trim_view("hub", [[60, 22, hub_h - 16], [40, 35, 20]]);
+if (part == "trim_hub_cut")         trim_view("hub", [[60, 22, hub_h - 16], [26, 35, 20]]);
+if (part == "trim_disk")            trim_view("disk");
+if (part == "trim_compute")         trim_view("compute");
+if (part == "trim_compute_corner")  trim_view("compute", [[60, 22, compute_h - 16], [40, 35, 20]]);
+if (part == "trim_compute_front")   trim_view("compute", [[-100, -60, compute_h - 18], [60, 35, 22]]);
+if (part == "scene_trim_hub_body")     difference() { let($fit = false) hub_stage(); trim_red(hub_h); }
+if (part == "scene_trim_hub_red")      trim_red(hub_h);
+if (part == "scene_trim_compute_body") translate([230, 0, -compute_h + hub_h]) difference() { let($fit = false) compute(); trim_red(compute_h, true); trim_yellow(); }
+if (part == "scene_trim_compute_red")  translate([230, 0, -compute_h + hub_h]) trim_red(compute_h, true);
+if (part == "scene_trim_compute_yellow") translate([230, 0, -compute_h + hub_h]) trim_yellow();

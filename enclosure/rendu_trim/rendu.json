@@ -1,0 +1,183 @@
+{
+  "title": "À retirer sur les étages déjà imprimés",
+  "subtitle": "Tour du mediaserver · hub, disk et compute imprimés avant fit_fix · 2026-10-26",
+  "scad": "../tower.scad",
+  "out": "rendu.html",
+  "stl_dir": "stl",
+  "part_var": "part",
+  "size": [
+    1600,
+    1200
+  ],
+  "colorscheme": "Tomorrow",
+  "hero": "hub_corner",
+  "intro": "<p>Les anneaux décoratifs des poteaux (Ø 19 mm, de 4 à 8 mm sous le rebord) débordent dans la cavité autour de chaque colonne d'angle. Le plug de l'étage du dessus, qui descend de 6 mm, se pose dessus au bout de 4 mm : l'étage reste 2 mm trop haut et les aimants ne se touchent pas. Les étages imprimés à partir de maintenant ont ces anneaux rognés (<code>fit_fix</code>) ; le plug, les rebords et les colonnes n'ont pas changé, donc anciens et nouveaux étages s'emboîtent pareil.</p><p><b>En rouge : à retirer</b>, de 4 à 6,5 mm sous le rebord (le plug s'arrête à 6 mm, il reste 0,5 mm de jeu). Le noir sous le rouge, le reste de l'anneau entre 6,5 et 8 mm, peut rester. <b>Ne pas toucher la colonne</b> : sa poche d'aimant est dedans. <b>En jaune</b> : les deux bossages du haut du compute, décision en attente.</p>",
+  "views": [
+    {
+      "id": "hub_corner",
+      "title": "Un coin du hub, vu de l'intérieur",
+      "part": "trim_hub_corner",
+      "camera": "auto:50,0,315",
+      "caption": "Le croissant rouge entoure la colonne, contre les deux murs : environ 3,5 mm de large depuis la colonne, 2,5 mm de haut, son dessus à 4 mm sous le rebord. Même chose aux quatre coins."
+    },
+    {
+      "id": "hub",
+      "title": "Le hub entier",
+      "part": "trim_hub",
+      "camera": "auto:55,0,200",
+      "caption": "Les quatre croissants à retirer, un par coin, en haut de l'étage."
+    },
+    {
+      "id": "disk",
+      "title": "Le disk entier",
+      "part": "trim_disk",
+      "camera": "auto:55,0,200",
+      "caption": "Mêmes anneaux, mêmes croissants que le hub. À faire dans tous les cas : sinon tout étage posé dessus, ancien ou nouveau, bute aussi."
+    },
+    {
+      "id": "compute",
+      "title": "Le compute entier",
+      "part": "trim_compute",
+      "camera": "auto:55,0,200",
+      "caption": "Les quatre croissants, plus le dessus de la plaque de l'écran le long de la face avant (rouge), et les deux bossages du haut (jaune)."
+    },
+    {
+      "id": "compute_corner",
+      "title": "Un coin arrière du compute",
+      "part": "trim_compute_corner",
+      "camera": "auto:50,0,315",
+      "caption": "Identique au hub."
+    },
+    {
+      "id": "compute_front",
+      "title": "Coin avant gauche du compute",
+      "part": "trim_compute_front",
+      "camera": "auto:55,0,200",
+      "caption": "La plaque de l'écran (rouge) : poncer son dessus de 2,5 mm, de 4 à 6,5 mm sous le rebord, sur toute sa longueur (~170 mm), à plat. La poche de l'écran commence plus bas, vers 8,7 mm sous le rebord (avec sa pente à 45°) : on ne l'atteint pas. Le bossage jaune porte la vis du screen_clip du haut : ne pas le poncer tant qu'on n'a pas décidé."
+    }
+  ],
+  "measure": [
+    [
+      "Profondeur du dessus du croissant",
+      "Du rebord au dessus de l'anneau, à l'intérieur, à côté de la colonne. C'est là que se pose le plug.",
+      "4 mm"
+    ],
+    [
+      "Profondeur après retouche",
+      "Du rebord à la nouvelle surface, partout où était le rouge (pied à coulisse, jauge de profondeur).",
+      "≥ 6,5 mm (6 mm minimum, le plug descend de 6)"
+    ],
+    [
+      "Plaque de l'écran (compute)",
+      "Du rebord au dessus de la plaque, le long de la face avant, après ponçage.",
+      "≥ 6,5 mm (4 mm avant)"
+    ],
+    [
+      "Bossages du haut (compute)",
+      "Du rebord au dessus des bossages : on ne les touche pas pour l'instant.",
+      "2,5 mm"
+    ]
+  ],
+  "steps": [
+    {
+      "title": "Hub : les quatre croissants",
+      "view": "hub_corner",
+      "html": "<p>Au cutter (lame neuve, petites passes) ou à la mini-perceuse avec une fraise cylindrique : retirer le croissant rouge au ras des deux murs et de la colonne, sur 2,5 mm de haut. Enlever tout l'anneau jusqu'à 8 mm sous le rebord est permis et plus simple à faire à plat. Résine imprimée = poussière toxique : masque et gants, ponçage à l'eau si possible.</p>",
+      "check": [
+        "Coin avant gauche fait",
+        "Coin avant droit fait",
+        "Coin arrière gauche fait",
+        "Coin arrière droit fait",
+        "Colonnes et poches d'aimants intactes",
+        "Profondeur ≥ 6 mm partout"
+      ]
+    },
+    {
+      "title": "Disk : les quatre croissants",
+      "view": "disk",
+      "html": "<p>Même geste que sur le hub.</p>",
+      "check": [
+        "Les quatre coins faits",
+        "Colonnes intactes"
+      ]
+    },
+    {
+      "title": "Compute : croissants et plaque",
+      "view": "compute_front",
+      "html": "<p>Les quatre croissants comme sur le hub, puis le dessus de la plaque de l'écran sur 2,5 mm, à la lime plate ou avec une cale à poncer posée sur le rebord pour rester parallèle. Laisser les deux bossages jaunes.</p>",
+      "check": [
+        "Les quatre coins faits",
+        "Plaque poncée à ≥ 6,5 mm sous le rebord sur toute sa longueur",
+        "Bossages jaunes intacts"
+      ]
+    },
+    {
+      "title": "Essai d'emboîtement",
+      "view": "hub",
+      "html": "<p>Reposer l'étage du dessus : il doit descendre jusqu'à ce que rebord touche rebord et colonne touche colonne, tout autour. Sur le compute, l'étage du dessus restera encore ~1,3 mm haut à cause des bossages tant qu'on n'a pas tranché.</p>",
+      "check": [
+        "Hub → étage du dessus : rebord contre rebord, aimants qui claquent",
+        "Disk → étage du dessus : idem"
+      ]
+    }
+  ],
+  "hardware": [
+    "Cutter à lame neuve ou mini-perceuse + fraise cylindrique",
+    "Lime plate fine ou cale à poncer (grain 240 puis 400)",
+    "Pied à coulisse avec jauge de profondeur",
+    "Masque FFP2 et gants nitrile"
+  ],
+  "scene": [
+    {
+      "stl": "stl/scene/hub_body.stl",
+      "name": "Hub (tel qu'imprimé)",
+      "color": [
+        0.22,
+        0.22,
+        0.25
+      ],
+      "group": "Hub / disk"
+    },
+    {
+      "stl": "stl/scene/hub_red.stl",
+      "name": "À retirer",
+      "color": [
+        0.92,
+        0.12,
+        0.1
+      ],
+      "group": "Hub / disk"
+    },
+    {
+      "stl": "stl/scene/compute_body.stl",
+      "name": "Compute (tel qu'imprimé)",
+      "color": [
+        0.22,
+        0.22,
+        0.25
+      ],
+      "group": "Compute"
+    },
+    {
+      "stl": "stl/scene/compute_red.stl",
+      "name": "À retirer (compute)",
+      "color": [
+        0.92,
+        0.12,
+        0.1
+      ],
+      "group": "Compute"
+    },
+    {
+      "stl": "stl/scene/compute_yellow.stl",
+      "name": "Bossages : en attente",
+      "color": [
+        0.98,
+        0.8,
+        0.1
+      ],
+      "group": "Compute"
+    }
+  ],
+  "scene_title": "À retirer"
+}
