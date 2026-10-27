@@ -161,6 +161,14 @@ def draupnir():
     }
 
 
+def tidy_house(house):
+    """Bifrost's lists, with an unknown on/off (null, e.g. right after a reboot) as off."""
+    out = {k: [dict(item) for item in house.get(k) or []] for k in ("outlets", "covers", "projectors")}
+    for item in out["outlets"] + out["projectors"]:
+        item["on"] = bool(item.get("on"))
+    return out
+
+
 def recent(items, n=6):
     """Latest imports, one per film or series."""
     out, titles = [], set()
@@ -329,7 +337,7 @@ class Feed:
             "updated_at": now().isoformat(timespec="seconds"),
             "playing": playing,
             "events": self.events,
-            "house": house and {k: house.get(k) for k in ("outlets", "covers", "projectors")},
+            "house": house and tidy_house(house),
             "downloads": [{"name": x["name"], "percent": round(x["percentDone"] * 100, 1), "rate": x.get("rateDownload"), "eta": x.get("eta")}
                           for x in (torrents or []) if x.get("percentDone", 1) < 1][:6],
             "recent": recent(self.slow.get("radarr", []) + self.slow.get("sonarr", [])),
