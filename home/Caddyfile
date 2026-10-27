@@ -4,8 +4,14 @@
 :80 {
 	root * /srv
 	templates
-	header Cache-Control no-cache
-	# the Hogwarts page's 3D engine (vendor/three.min.js) is big: compress what goes out
+	# Pages and scripts are checked on every visit; the Hogwarts look's 3D assets and the
+	# vendored three.js never change under the same name (a new version gets a new
+	# file name), so the browser keeps them for a month without asking
+	@static path /assets/* /vendor/*
+	header @static Cache-Control "public, max-age=2592000, immutable"
+	@dynamic not path /assets/* /vendor/*
+	header @dynamic Cache-Control no-cache
+	# the Hogwarts page's 3D engine (vendor/three-r186.min.js) is big: compress what goes out
 	encode zstd gzip
 
 	# /style/<name> remembers the chosen look for a year, then goes back home

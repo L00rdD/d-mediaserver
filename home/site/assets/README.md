@@ -2,19 +2,19 @@
 
 Used by `vivarium.js`, one world per section of the hub page. Places and props come from [Poly Haven](https://polyhaven.com) under CC0 (public domain); the creatures from Sketchfab under CC BY 4.0, credited at the bottom of the page.
 
-`hdri/`: the tonemapped JPGs of these HDRIs, resized to 4096 × 2048, used both as the ground-projected sky and as the light of each world.
+`hdri/`: the tonemapped JPGs of these HDRIs, as WebP: `<name>.webp` at 3072 × 1536 (q78) and `<name>-low.webp` at 1024 × 512 (q60), which shows first while the sharp one comes. Used both as the ground-projected sky and as the light of each world.
 
 | File | World |
 |---|---|
-| `rogland_clear_night.jpg` | the starry night (the media apps) |
-| `hikers_cave.jpg` | the Niffler's den (the trading bot) |
-| `mossy_forest.jpg` | the Bowtruckle's tree (Sapling Sunrise) |
-| `misty_pines.jpg` | the Hippogriff's forest (Bifrost) |
-| `hayloft.jpg` | Newt's shed (Errol) |
+| `rogland_clear_night` | the starry night (the media apps) |
+| `hikers_cave` | the Niffler's den (the trading bot) |
+| `mossy_forest` | the Bowtruckle's tree (Sapling Sunrise) |
+| `misty_pines` | the Hippogriff's forest (Bifrost) |
+| `hayloft` | Newt's shed (Errol) |
 
-`models/`: the glTF models at 1k, their textures resized to 512 px: `rock_moss_set_01`, `tree_stump_01`, `fern_02`, `moss_01`, `moon_rock_03`, `WoodenTable_03`, `desk_lamp_arm_01`, `seeding_tray_01`, `watering_can_metal_01`, `wooden_bookshelf_worn`.
+`models/`: the 1k glTF models, each turned into one GLB with `gltf-transform optimize --compress meshopt --texture-compress webp --texture-size 512`: `rock_moss_set_01`, `tree_stump_01`, `fern_02`, `moss_01`, `moon_rock_03`, `WoodenTable_03`, `desk_lamp_arm_01`, `seeding_tray_01`, `watering_can_metal_01`, `wooden_bookshelf_worn`.
 
-`creatures/`: models from Sketchfab, CC BY 4.0, turned into one GLB each with `gltf-transform optimize --compress false --texture-compress webp --texture-size 1024` (and `--simplify-ratio` for the heavy ones):
+`creatures/`: models from Sketchfab, CC BY 4.0, turned into one GLB each with `gltf-transform optimize --compress meshopt --texture-compress webp --texture-size 1024` (and `--simplify-ratio` for the heavy ones):
 
 | File | Model | Author |
 |---|---|---|
@@ -28,3 +28,5 @@ Used by `vivarium.js`, one world per section of the hub page. Places and props c
 Sketchfab downloads need an account's API token (`GET https://api.sketchfab.com/v3/models/<uid>/download` with `Authorization: Token …`). Keep the credits line of `hogwarts.html` in step with this table.
 
 Poly Haven: to add one: `https://api.polyhaven.com/files/<id>` lists its files (send a User-Agent); take `tonemapped` for an HDRI, `gltf` → `1k` for a model.
+
+The hub serves `assets/` with a month of cache and no revalidation (Caddyfile): a file whose contents change must get a new name.

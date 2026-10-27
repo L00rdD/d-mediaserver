@@ -10,3 +10,4 @@ export { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 export { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 export { GroundedSkybox } from "three/addons/objects/GroundedSkybox.js";
 export { Pass, FullScreenQuad } from "three/addons/postprocessing/Pass.js";
+export { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";

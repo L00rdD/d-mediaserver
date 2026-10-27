@@ -19,7 +19,7 @@
 // Coming near an element with data-creature="phoenix|niffler|bowtruckle|hippogriff|owl" wakes its
 // creature up. Assets load as their world comes near; a creature not there yet is simply absent.
 // Reduced motion: no intro, a still picture redrawn on scroll. Without WebGL: <html class="no-gl">.
-import * as T from "./vendor/three.min.js";
+import * as T from "./vendor/three-r186.min.js";
 
 const root = document.documentElement;
 const canvas = document.querySelector("canvas.gl");
@@ -345,12 +345,14 @@ const motes = (n, area, opts) => {
 
 // ================================================================ THE WORLDS
 const texLoader = new T.TextureLoader();
-const gltfLoader = new T.GLTFLoader();
+const gltfLoader = new T.GLTFLoader().setMeshoptDecoder(T.MeshoptDecoder); // models are meshopt-compressed GLB
 const pmrem = new T.PMREMGenerator(renderer);
 const models = {};
 // Poly Haven models are folders of glTF; "creatures/x" is a single GLB (Sketchfab)
-const model = (name) => (models[name] ||= gltfLoader.loadAsync(name.includes("/") ? `/assets/${name}.glb` : `/assets/models/${name}/${name}.gltf`).then((g) => g.scene));
-const place = (w, name, pos, rotY = 0, scale = 1, then) => model(name).then((s) => {
+const model = (name) => (models[name] ||= gltfLoader.loadAsync(name.includes("/") ? `/assets/${name}.glb` : `/assets/models/${name}.glb`).then((g) => g.scene));
+// a world's models in flight, so that its neighbours wait for them
+const track = (w, p) => { (w.pending ||= []).push(p); return p; };
+const place = (w, name, pos, rotY = 0, scale = 1, then) => track(w, model(name).then((s) => {
   const o = s.clone();
   o.position.set(...pos);
   o.rotation.y = rotY;
@@ -358,7 +360,7 @@ const place = (w, name, pos, rotY = 0, scale = 1, then) => model(name).then((s) 
   w.scene.add(o);
   then?.(o);
   return o;
-}).catch((e) => console.warn("vivarium: model", name, e));
+}).catch((e) => console.warn("vivarium: model", name, e)));
 
 const makeWorld = (name, def) => {
   const scene = new T.Scene();
@@ -369,28 +371,49 @@ const makeWorld = (name, def) => {
   def.build?.(w);
   return w;
 };
-const load = (w) => {
+// A world loads in two steps: a small sky (40-120 KB) so that it shows at once, then the sharp one,
+// and only then its models and creature. The worlds next to it load after that, one at a time.
+const queue = [];
+let busy = false;
+const pump = () => {
+  if (busy || !queue.length) return;
+  busy = true;
+  queue.shift()().finally(() => { busy = false; pump(); });
+};
+const later = (job) => { queue.push(job); pump(); };
+const skyTex = (name) => texLoader.loadAsync(`/assets/hdri/${name}.webp`).then((tex) => {
+  tex.mapping = T.EquirectangularReflectionMapping;
+  tex.colorSpace = T.SRGBColorSpace;
+  return tex;
+});
+const setSky = (w, tex) => {
+  if (w.def.flat) { // tall trees close by bend when projected on the ground: the photo stays a backdrop
+    w.scene.background = tex;
+    w.scene.backgroundRotation.y = w.def.turn ?? 0;
+  } else if (w.sky) {
+    w.sky.material.map = tex;
+    w.sky.material.needsUpdate = true;
+  } else {
+    w.sky = new T.GroundedSkybox(tex, w.def.height ?? 2, w.def.radius ?? 80);
+    w.sky.position.y = (w.def.height ?? 2) - 0.01;
+    w.sky.rotation.y = w.def.turn ?? 0;
+    w.scene.add(w.sky);
+  }
+  const env = pmrem.fromEquirectangular(tex).texture;
+  w.scene.environment?.dispose();
+  w.scene.environment = env;
+  w.scene.environmentIntensity = w.def.env ?? 1;
+  w.scene.environmentRotation.y = w.def.turn ?? 0;
+};
+const load = (w, now) => {
   if (w.loading || !w.def.hdri) return;
   w.loading = true;
-  texLoader.loadAsync(`/assets/hdri/${w.def.hdri}.jpg`).then((tex) => {
-    tex.mapping = T.EquirectangularReflectionMapping;
-    tex.colorSpace = T.SRGBColorSpace;
-    if (w.def.flat) { // tall trees close by bend when projected on the ground: the photo stays a backdrop
-      w.scene.background = tex;
-      w.scene.backgroundRotation.y = w.def.turn ?? 0;
-    } else {
-      const sky = new T.GroundedSkybox(tex, w.def.height ?? 2, w.def.radius ?? 80);
-      sky.position.y = (w.def.height ?? 2) - 0.01;
-      sky.rotation.y = w.def.turn ?? 0;
-      w.scene.add(sky);
-    }
-    w.scene.environment = pmrem.fromEquirectangular(tex).texture;
-    w.scene.environmentIntensity = w.def.env ?? 1;
-    w.scene.environmentRotation.y = w.def.turn ?? 0;
-    w.loaded = true;
-  }).catch((e) => console.warn("vivarium: sky", w.name, e));
-  w.def.load?.(w);
-  if (w.def.creature) beast(w, w.def.creature);
+  const job = () => skyTex(w.def.hdri + "-low")
+    .then((low) => { setSky(w, low); w.loaded = true; return skyTex(w.def.hdri); })
+    .then((sharp) => setSky(w, sharp))
+    .then(() => { w.def.load?.(w); if (w.def.creature) track(w, beast(w, w.def.creature)); return Promise.all(w.pending || []); })
+    .catch((e) => console.warn("vivarium: world", w.name, e));
+  if (now) { busy = true; job().finally(() => { busy = false; pump(); }); } else later(job);
 };
 
 const hit = new T.Vector3();
@@ -857,13 +880,14 @@ const buildCase = () => {
 // calls him close. Hedwig flies across the screen now and then, and with every piece of news
 // (window.Vivarium.hedwig()). Both live in camera space and move into the scene of the world shown.
 const pals = { fawkes: null, hedwig: null };
-creatureModel({ dir: "phoenix", size: 2.4 }).then((it) => {
+const fetchFawkes = () => creatureModel({ dir: "phoenix", size: 2.4 }).then((it) => {
   const light = new T.PointLight(0xff8a30, 14, 7, 1.6);
   light.position.y = 0.6;
   it.holder.add(light);
   pals.fawkes = { ...it, light, p: new T.Vector3(4, 1, -10), v: new T.Vector3(), target: new T.Vector3(4, 1, -10), next: 0 };
 }).catch((e) => console.warn("vivarium: Fawkes", e.message || e));
-creatureModel({ dir: "owl", size: 1, env: 2.2 }).then((it) => {
+let hedwigAsked = false;
+const fetchHedwig = () => creatureModel({ dir: "owl", size: 1, env: 2.2 }).then((it) => {
   // white feathers, matt, with a little light of their own so that she stays white even at night
   it.holder.traverse((m) => {
     if (!m.isMesh) return;
@@ -871,8 +895,11 @@ creatureModel({ dir: "owl", size: 1, env: 2.2 }).then((it) => {
     Object.assign(m.material, { metalness: 0, roughness: 0.85, emissive: new T.Color(0.55, 0.57, 0.62), emissiveMap: m.material.map, emissiveIntensity: 0.55 });
   });
   pals.hedwig = { ...it, t: -1 };
+  if (hedwigAsked) hedwig();
 }).catch((e) => console.warn("vivarium: Hedwig", e.message || e));
+later(fetchFawkes);
 const hedwig = () => {
+  if (!pals.hedwig && !hedwigAsked) { hedwigAsked = true; later(fetchHedwig); return true; } // she comes once loaded
   const h = pals.hedwig;
   if (!h || h.t >= 0 || (intro && !intro.done)) return false;
   Object.assign(h, { t: 0, dir: Math.random() < 0.5 ? 1 : -1, y: rand(0.35, 0.6), depth: rand(4.5, 6) });
@@ -1020,7 +1047,10 @@ const render = (now) => {
   if (!sa) { composer.render(dt); return; }
   // a world fades in once its sky has come; the worlds around load ahead
   for (const w of Object.values(worlds)) if (w.loaded && w.ready < 1) w.ready = Math.min(1, w.ready + Math.max(dt, 0.016) * 1.2);
-  for (let i = Math.max(0, ia - 1); i <= Math.min(sections.length - 1, ia + 2); i++) load(sections[i].w);
+  // the world shown first, then its neighbours, one at a time
+  load(sa.w, true);
+  if (sb) load(sb.w, true);
+  if (sa.w.loaded) for (const i of [ia + 1, ia - 1]) if (sections[i]) load(sections[i].w);
   const prog = (s) => clamp((c - (s.top + s.h / 2)) / Math.max(H, s.h), -0.7, 0.7);
   aim(sa.w, prog(sa));
   step(sa.w, dt, time);
@@ -1092,7 +1122,7 @@ const endIntro = () => {
 resize();
 new ResizeObserver(() => { clearTimeout(resize.t); resize.t = setTimeout(resize, 120); }).observe(document.body);
 document.fonts?.ready.then(() => layout());
-load(worlds.night);
+load(worlds.night, true);
 if (root.classList.contains("intro") && !still) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFShadowMap;
