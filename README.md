@@ -434,6 +434,27 @@ KPIECE_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 `KPIECE_WEBHOOK_URL` is optional: it is the webhook URL Discord gives you, as is (no `/slack` here). Without it the card still works. `docker compose logs kpiece` shows each scan it found.
 
+## 📺 Living-room Screen
+
+The Pi's small HDMI screen shows what happens on the server and in the house, with [Errol](https://github.com/L00rdD/errol). It shows what plays on Jellyfin, a lamp that switches, the projection screen coming down, a download that finished, a film or an episode that entered the library, the next One Piece scan and Draupnir. When something happens, it takes the screen for a minute; while a film plays, it shows a cinema marquee.
+
+The `screen` service of the stack does the reading: [`screen/feed.py`](screen/feed.py) reads Jellyfin, Bifrost and Transmission every 3 s, Radarr and Sonarr every 30 s, and the files of the other cards. It writes `screen.json`, which the home page serves at `/screen.json`. Errol itself is a separate project that runs on the Pi as a systemd service. It draws straight on the screen with the GPU, without a browser.
+
+The cinema mode needs a Jellyfin API key (Jellyfin: *Dashboard → API Keys*), in `.env`:
+
+```text
+JELLYFIN_API_KEY=...
+```
+
+Then install Errol on the Pi:
+
+```bash
+git clone https://github.com/L00rdD/errol ~/errol
+sh ~/errol/deploy/install.sh friday        # or cyberpunk
+```
+
+`curl -s localhost/screen.json` shows what the screen gets. Its `errors` field lists the sources the feed could not read.
+
 ## 🔑 Passwords
 
 By default Radarr, Sonarr and Prowlarr each ask you to set up a login the first time you open them. If you would rather have no password to remember, add this line to your `.env` and run `docker compose up -d` again:

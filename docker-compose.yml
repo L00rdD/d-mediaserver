@@ -65,6 +65,28 @@ services:
       - disk-status:/status
     restart: unless-stopped
 
+  # Feed of the living-room screen (Errol, github.com/L00rdD/errol): what plays
+  # on Jellyfin, the lamps, projection screen and projector (Bifrost), finished
+  # downloads, films and episodes imported, One Piece and Draupnir, in
+  # screen.json every 3 s. Needs JELLYFIN_API_KEY in .env for the cinema mode; reads the Radarr
+  # and Sonarr API keys from their config, read-only.
+  screen:
+    image: python:3-alpine
+    container_name: screen
+    init: true
+    command: python /app/feed.py
+    environment:
+      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:-}
+      - TZ=${TZ:-Europe/Paris}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./screen/feed.py:/app/feed.py:ro
+      - ./config/radarr/config.xml:/config/radarr/config.xml:ro
+      - ./config/sonarr/config.xml:/config/sonarr/config.xml:ro
+      - disk-status:/status
+    restart: unless-stopped
+
   transmission:
     image: lscr.io/linuxserver/transmission:latest
     container_name: transmission
