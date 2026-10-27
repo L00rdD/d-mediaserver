@@ -1,4 +1,4 @@
-/* Hub theme kit: the looks of the home page (Reactor, Cyberpunk), for any personal project.
+/* Hub theme kit: the looks of the home page (Reactor, Cyberpunk, Hogwarts), for any personal project.
    How to use it from a project: see README.md next to this file.
 
    1. Tokens: one set of --t-* variables per look, on <html data-theme="...">.
@@ -9,6 +9,9 @@
 @font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(fonts/rajdhani-500.woff2) format("woff2"); }
 @font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(fonts/rajdhani-600.woff2) format("woff2"); }
 @font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(fonts/rajdhani-700.woff2) format("woff2"); }
+@font-face { font-family: "Cinzel"; font-weight: 400 900; font-display: swap; src: url(fonts/cinzel.woff2) format("woff2"); }
+@font-face { font-family: "IM Fell English"; font-display: swap; src: url(fonts/im-fell-english.woff2) format("woff2"); }
+@font-face { font-family: "IM Fell English"; font-style: italic; font-display: swap; src: url(fonts/im-fell-english-italic.woff2) format("woff2"); }
 
 /* ---------- tokens ---------- */
 
@@ -66,6 +69,34 @@
   --t-glow: 0 0 16px rgba(255, 97, 88, 0.45);
 }
 
+/* Hogwarts at night: candlelit gold on ink, parchment text, Gryffindor scarlet for what matters */
+:root[data-theme="hogwarts"] {
+  color-scheme: dark;
+  --t-bg: #0b0a12;
+  --t-surface: rgba(34, 26, 18, 0.82);
+  --t-line: rgba(212, 168, 73, 0.2);
+  --t-text: #ecdfc0;
+  --t-muted: #a8977a;
+  --t-accent: #d4a849;        /* old gold: titles, links, frames */
+  --t-accent-soft: rgba(212, 168, 73, 0.45);
+  --t-accent-faint: rgba(212, 168, 73, 0.08);
+  --t-accent-2: #f3e3b3;      /* parchment, hover */
+  --t-highlight: #b3242b;     /* Gryffindor scarlet */
+  --t-on-highlight: #fbefd0;
+  --t-progress: #d4a849;
+  --t-up: #6fbf7f;            /* Slytherin-ish green, readable on ink */
+  --t-down: #e0525a;
+  --t-series-1: #d4a849;
+  --t-series-2: #6f9be0;      /* Ravenclaw blue */
+  --t-series-3: #e0525a;
+  --t-series-4: #ecdfc0;
+  --t-font-display: "Cinzel", "Trajan Pro", "Times New Roman", serif;
+  --t-font-body: "IM Fell English", Georgia, "Times New Roman", serif;
+  /* Figures: IM Fell's are old-style and uneven, so data takes a book serif with lining ones */
+  --t-font-mono: "Hoefler Text", "Iowan Old Style", Baskerville, "Baskerville Old Face", "Times New Roman", serif;
+  --t-glow: 0 0 14px rgba(255, 196, 92, 0.4);
+}
+
 /* ---------- page: <body class="t-app"> ---------- */
 
 /* Fixed layers cover the whole window, however short the page is */
@@ -95,6 +126,18 @@
     var(--t-bg);
   background-attachment: fixed;
 }
+[data-theme="hogwarts"] body.t-app {
+  font-size: 17px;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255, 190, 90, 0.16), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, rgba(111, 155, 224, 0.08), transparent 50%),
+    radial-gradient(1px 1px at 12% 18%, rgba(243, 227, 179, 0.5), transparent),
+    radial-gradient(1px 1px at 78% 9%, rgba(243, 227, 179, 0.4), transparent),
+    radial-gradient(1px 1px at 41% 31%, rgba(243, 227, 179, 0.35), transparent),
+    radial-gradient(1px 1px at 91% 44%, rgba(243, 227, 179, 0.3), transparent),
+    var(--t-bg);
+  background-attachment: fixed;
+}
 /* Scanlines and vignette over the whole screen */
 [data-theme] body.t-app::after {
   content: "";
@@ -105,6 +148,12 @@
   background:
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0 1px, transparent 1px 3px),
     radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.5));
+}
+/* Hogwarts: no screen, so no scanlines; a candlelit vignette and a parchment grain */
+[data-theme="hogwarts"] body.t-app::after {
+  background:
+    repeating-radial-gradient(circle at 30% 40%, rgba(243, 227, 179, 0.012) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(5, 3, 8, 0.65));
 }
 [data-theme] body.t-app a { color: var(--t-accent); }
 [data-theme] body.t-app a:hover { color: var(--t-accent-2); }
@@ -126,6 +175,7 @@
   color: var(--t-muted);
 }
 [data-theme="cyberpunk"] .t-hubbar { border-top: 3px solid var(--t-accent); background: rgba(255, 97, 88, 0.05); }
+[data-theme="hogwarts"] .t-hubbar { border-bottom-color: var(--t-accent-soft); font: italic 0.95rem/1.6 var(--t-font-body); letter-spacing: 0.08em; text-transform: none; background: rgba(34, 26, 18, 0.6); }
 [data-theme] .t-hubbar a.t-hubbar-home { color: var(--t-accent); text-decoration: none; }
 [data-theme] .t-hubbar a.t-hubbar-home::before { content: "◂ "; }
 [data-theme] .t-hubbar a.t-hubbar-home:hover { color: var(--t-accent-2); }
@@ -145,6 +195,9 @@
 [data-theme] .t-hubbar-themes button + button { margin-left: -1px; }
 [data-theme] .t-hubbar-themes button[aria-pressed="true"] { color: var(--t-on-highlight); background: var(--t-accent); border-color: var(--t-accent); font-weight: 700; }
 [data-theme] .t-hubbar-themes button:hover { color: var(--t-on-highlight); background: var(--t-accent-2); border-color: var(--t-accent-2); }
+/* Hogwarts' text on highlight is cream for the scarlet; on gold and parchment it takes ink */
+[data-theme="hogwarts"] .t-hubbar-themes button[aria-pressed="true"],
+[data-theme="hogwarts"] .t-hubbar-themes button:hover { color: var(--t-bg); }
 
 /* ---------- title and section headings ---------- */
 
@@ -157,6 +210,7 @@
 }
 [data-theme="reactor"] .t-title { font-size: 1.3rem; font-weight: 400; letter-spacing: 0.2em; }
 [data-theme="cyberpunk"] .t-title { font-size: 2.4rem; font-weight: 700; line-height: 1; letter-spacing: 0.04em; }
+[data-theme="hogwarts"] .t-title { font-size: 1.9rem; font-weight: 700; letter-spacing: 0.12em; }
 
 /* <h2 class="t-heading"><i>01</i>Name</h2>: the <i> is an optional counter */
 [data-theme] .t-heading {
@@ -172,8 +226,14 @@
 [data-theme="cyberpunk"] .t-heading { font: 700 0.95rem var(--t-font-display); letter-spacing: 0.3em; }
 [data-theme="cyberpunk"] .t-heading::before { content: ""; flex: none; width: 8px; height: 8px; background: currentColor; transform: rotate(45deg); }
 [data-theme="cyberpunk"] .t-heading::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--t-accent-soft), transparent); }
+/* Hogwarts: an engraved title between two gilt rules, with a star like the house crests */
+[data-theme="hogwarts"] .t-heading { font: 700 0.95rem var(--t-font-display); letter-spacing: 0.22em; }
+[data-theme="hogwarts"] .t-heading i { font: italic 1em var(--t-font-body); letter-spacing: 0; }
+[data-theme="hogwarts"] .t-heading::before { content: "\2726"; color: var(--t-accent-2); font-size: 0.8em; }
+[data-theme="hogwarts"] .t-heading::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--t-accent-soft), transparent); }
 
 [data-theme] .t-label { font: 0.7rem var(--t-font-mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--t-muted); }
+[data-theme="hogwarts"] .t-label { font: 600 0.7rem var(--t-font-display); letter-spacing: 0.18em; }
 
 /* ---------- panel ---------- */
 
@@ -205,9 +265,19 @@
     var(--t-surface);
   box-shadow: inset 3px 0 0 var(--t-accent);
 }
+/* Hogwarts: a page of parchment in the dark, double gilt rule like a book binding */
+[data-theme="hogwarts"] .t-panel {
+  border: 1px solid var(--t-accent-soft);
+  border-radius: 3px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 196, 92, 0.08), transparent 70%),
+    var(--t-surface);
+  box-shadow: inset 0 0 0 3px var(--t-bg), inset 0 0 0 4px var(--t-line), 0 8px 30px rgba(0, 0, 0, 0.45);
+}
 /* Make one panel stand out: the main action, the tracked item */
 [data-theme="reactor"] .t-panel.t-main { --c: var(--t-highlight); }
 [data-theme="cyberpunk"] .t-panel.t-main { border-color: var(--t-highlight); box-shadow: inset 4px 0 0 var(--t-highlight); }
+[data-theme="hogwarts"] .t-panel.t-main { border-color: var(--t-accent); box-shadow: inset 0 0 0 3px var(--t-bg), inset 0 0 0 4px var(--t-highlight), 0 0 24px rgba(255, 196, 92, 0.18); }
 
 /* ---------- figures: <dl class="t-stats"><div><dt>..</dt><dd>..</dd></div></dl> ---------- */
 
@@ -219,6 +289,9 @@
 [data-theme="cyberpunk"] .t-stats dt { font: 600 0.75rem var(--t-font-display); letter-spacing: 0.22em; }
 [data-theme="cyberpunk"] .t-stats dd { font-family: var(--t-font-display); font-weight: 700; font-size: 1.35em; line-height: 1.1; }
 [data-theme="cyberpunk"] .t-stats dd small { font: 0.7rem var(--t-font-mono); }
+[data-theme="hogwarts"] .t-stats dt { font: 600 0.68rem var(--t-font-display); letter-spacing: 0.18em; }
+[data-theme="hogwarts"] .t-stats dd { font-size: 1.25em; }
+[data-theme="hogwarts"] .t-stats dd, [data-theme="hogwarts"] .t-table td { font-family: var(--t-font-mono); font-variant-numeric: lining-nums tabular-nums; }
 
 /* ---------- badge, button, callout ---------- */
 
@@ -232,6 +305,8 @@
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
+/* Hogwarts: a wax seal */
+[data-theme="hogwarts"] .t-badge { padding: 0 10px; border-radius: 999px; font: 700 0.7rem/1.7 var(--t-font-display); letter-spacing: 0.12em; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.5); }
 [data-theme="cyberpunk"] .t-badge { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%); }
 
 [data-theme] .t-btn {
@@ -250,8 +325,10 @@
   cursor: pointer;
 }
 [data-theme="reactor"] .t-btn { font: 0.72rem var(--t-font-mono); letter-spacing: 0.2em; }
+[data-theme="hogwarts"] .t-btn { border-radius: 3px; font: 700 0.75rem var(--t-font-display); letter-spacing: 0.15em; }
 [data-theme="cyberpunk"] .t-btn { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%); }
 [data-theme] .t-btn:hover, [data-theme] .t-btn:focus-visible { color: var(--t-on-highlight); background: var(--t-accent-2); border-color: var(--t-accent-2); }
+[data-theme="hogwarts"] .t-btn:hover, [data-theme="hogwarts"] .t-btn:focus-visible { color: var(--t-bg); }
 [data-theme] .t-btn.t-main { color: var(--t-on-highlight); background: var(--t-highlight); border-color: var(--t-highlight); }
 
 /* A remark set apart: reasoning, formula, note */
@@ -263,6 +340,8 @@
 [data-theme] .t-bar { display: block; overflow: hidden; border-radius: 0; background: var(--t-line); }
 [data-theme] .t-bar > i { display: block; height: 100%; border-radius: 0; background: var(--t-progress); box-shadow: 0 0 10px var(--t-progress); }
 [data-theme="reactor"] .t-bar > i { background: linear-gradient(90deg, rgba(111, 227, 255, 0.4), var(--t-progress)); }
+[data-theme="hogwarts"] .t-bar { border-radius: 999px; }
+[data-theme="hogwarts"] .t-bar > i { border-radius: 999px; background: linear-gradient(90deg, #8a6420, var(--t-progress), #f3e3b3); box-shadow: 0 0 10px rgba(255, 196, 92, 0.5); }
 /* Cyberpunk: cut into cells like the cyberdeck RAM */
 [data-theme="cyberpunk"] .t-bar {
   overflow: visible;
@@ -277,6 +356,8 @@
 [data-theme] .t-table th { font-weight: 400; font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--t-muted); }
 [data-theme="cyberpunk"] .t-table th { font: 600 0.78rem var(--t-font-display); letter-spacing: 0.2em; color: var(--t-accent); }
 [data-theme="cyberpunk"] .t-table tbody tr:hover td { background: var(--t-accent-faint); }
+[data-theme="hogwarts"] .t-table th { font: 600 0.72rem var(--t-font-display); letter-spacing: 0.15em; color: var(--t-accent); }
+[data-theme="hogwarts"] .t-table tbody tr:hover td { background: var(--t-accent-faint); }
 
 [data-theme] .t-up { color: var(--t-up); }
 [data-theme] .t-down { color: var(--t-down); }

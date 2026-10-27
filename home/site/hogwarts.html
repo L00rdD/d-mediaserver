@@ -1,0 +1,1057 @@
+{{- /* "Hogwarts" look, after Harry Potter: the Marauder's Map, the Daily Prophet, the Pensieve and the portraits of the castle. The links reuse the name or IP typed to reach this page */ -}}
+{{- $host := .Host -}}
+<!doctype html>
+<html lang="en" data-theme="hogwarts">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Media Server</title>
+  <link rel="preload" href="/theme/fonts/cinzel.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/theme/fonts/im-fell-english.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Colours and fonts come from the theme kit shared with the other projects (theme/README.md) -->
+  <link rel="stylesheet" href="/theme/theme.css">
+  <style>
+    :root {
+      --bg: var(--t-bg);
+      --gold: var(--t-accent);
+      --gold-soft: var(--t-accent-soft);
+      --gold-faint: var(--t-line);
+      --parchment: var(--t-accent-2);
+      --scarlet: var(--t-highlight);
+      --text: var(--t-text);
+      --muted: var(--t-muted);
+      --display: var(--t-font-display);
+      --serif: var(--t-font-body);
+      /* the Marauder's Map: brown ink on old parchment */
+      --ink: #3a2612;
+      --ink-soft: rgba(58, 38, 18, 0.55);
+      --ink-faint: rgba(58, 38, 18, 0.18);
+      --ink-up: #2f6b3a;
+      --ink-down: #9b1c22;
+      --silver: #d5e2f2;
+      /* the four houses */
+      --gryffindor: #ae2a2f;
+      --gryffindor-2: #d9a63c;
+      --slytherin: #2a6b45;
+      --slytherin-2: #b9bec6;
+      --ravenclaw: #2b4f93;
+      --ravenclaw-2: #b0814e;
+      --hufflepuff: #e2b53a;
+      --hufflepuff-2: #24201a;
+    }
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      color: var(--text);
+      font: 17px/1.45 var(--serif);
+      background:
+        radial-gradient(ellipse at 50% 38%, rgba(255, 190, 90, 0.13), transparent 60%),
+        radial-gradient(ellipse at 50% -10%, rgba(255, 190, 90, 0.12), transparent 50%),
+        radial-gradient(ellipse at 100% 100%, rgba(111, 155, 224, 0.07), transparent 50%),
+        radial-gradient(1px 1px at 12% 18%, rgba(243, 227, 179, 0.55), transparent),
+        radial-gradient(1px 1px at 78% 9%, rgba(243, 227, 179, 0.45), transparent),
+        radial-gradient(1px 1px at 41% 31%, rgba(243, 227, 179, 0.35), transparent),
+        radial-gradient(1px 1px at 91% 44%, rgba(243, 227, 179, 0.35), transparent),
+        radial-gradient(1px 1px at 6% 63%, rgba(243, 227, 179, 0.3), transparent),
+        radial-gradient(1px 1px at 64% 72%, rgba(243, 227, 179, 0.3), transparent),
+        var(--bg);
+      background-attachment: fixed;
+    }
+    /* Candlelight: a warm vignette, no scanlines in a castle */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+      background: radial-gradient(ellipse 80% 85% at 50% 45%, transparent 58%, rgba(5, 3, 8, 0.72));
+    }
+    a { color: inherit; text-decoration: none; outline: none; }
+    header, main, .quill { position: relative; z-index: 1; }
+    header { z-index: 2; } /* the services list opens over main */
+
+    /* Intro: the Marauder's Map unfolds and answers the password. Once per tab session */
+    .boot {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(ellipse at 50% 50%, #1a1420, var(--bg) 70%);
+      perspective: 1400px;
+      animation: boot-out 0.5s 3.3s ease-in forwards;
+      cursor: pointer;
+    }
+    .sheet {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      width: min(720px, 92vw);
+      aspect-ratio: 3 / 2;
+      transform-style: preserve-3d;
+    }
+    .leaf {
+      background:
+        radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(110, 70, 25, 0.35)),
+        linear-gradient(160deg, #f4e4b8, #e6cf95 55%, #d9bd7c);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    }
+    .leaf.l { transform-origin: right center; animation: unfold-l 0.9s 0.15s cubic-bezier(0.3, 0.7, 0.3, 1) both; background-color: #e6cf95; box-shadow: inset -14px 0 18px -12px rgba(90, 55, 20, 0.5), 0 20px 60px rgba(0, 0, 0, 0.6); }
+    .leaf.c { animation: show 0.3s both; }
+    .leaf.r { transform-origin: left center; animation: unfold-r 0.9s 0.15s cubic-bezier(0.3, 0.7, 0.3, 1) both; box-shadow: inset 14px 0 18px -12px rgba(90, 55, 20, 0.5), 0 20px 60px rgba(0, 0, 0, 0.6); }
+    .sheet-text {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 10px;
+      padding: 6% 8%;
+      text-align: center;
+      color: var(--ink);
+      font: clamp(0.8rem, 2.4vw, 1.05rem)/1.35 var(--serif);
+    }
+    .sheet-text p { margin: 0; }
+    /* The password, written by an invisible quill, then soaked up by the paper */
+    .oath {
+      font-style: italic;
+      font-size: clamp(1rem, 3.4vw, 1.55rem);
+      clip-path: inset(0 100% 0 0);
+      animation: write 1.2s 0.8s steps(40) forwards, soak 0.5s 2.1s ease-in forwards;
+    }
+    .present { opacity: 0; filter: blur(4px); animation: ink-in 0.7s ease-out forwards; }
+    .present.a { animation-delay: 2.2s; letter-spacing: 0.06em; }
+    .present.b { animation-delay: 2.4s; font: 700 clamp(1.4rem, 5vw, 2.4rem)/1.1 var(--display); letter-spacing: 0.08em; }
+    .present.c { animation-delay: 2.6s; font-size: 0.85em; opacity: 0; }
+    .present.c b { font-weight: inherit; color: var(--gryffindor); }
+    .boot-skip .boot { display: none; }
+
+    /* Floating candles of the Great Hall, down both sides. Decoration only */
+    .candles { position: fixed; top: 0; bottom: 0; z-index: 0; width: 90px; pointer-events: none; }
+    .candles.left { left: 18px; }
+    .candles.right { right: 18px; }
+    .candle {
+      position: absolute;
+      width: 9px;
+      height: var(--h, 46px);
+      border-radius: 2px 2px 1px 1px;
+      background: linear-gradient(90deg, #cfc2a2, #fbf3dc 45%, #b9ab88);
+      box-shadow: 0 0 18px rgba(255, 200, 110, 0.18);
+      animation: float 7s ease-in-out infinite alternate;
+    }
+    /* flame and its halo */
+    .candle::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 100%;
+      width: 8px;
+      height: 16px;
+      margin: 0 0 2px -4px;
+      border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+      background: radial-gradient(ellipse at 50% 75%, #fff8de 0 22%, #ffd36b 45%, rgba(255, 140, 40, 0.85) 75%, transparent);
+      box-shadow: 0 0 14px 4px rgba(255, 190, 90, 0.45), 0 0 46px 14px rgba(255, 170, 70, 0.14);
+      transform-origin: 50% 100%;
+      animation: flicker 1.8s ease-in-out infinite;
+    }
+    .candle:nth-child(2) { animation-duration: 9s; animation-delay: -3s; }
+    .candle:nth-child(2)::before { animation-duration: 2.3s; animation-delay: -0.6s; }
+    .candle:nth-child(3) { animation-duration: 8s; animation-delay: -5s; }
+    .candle:nth-child(3)::before { animation-duration: 1.5s; animation-delay: -1.1s; }
+    .candle:nth-child(4) { animation-duration: 10s; animation-delay: -1s; }
+    .candle:nth-child(4)::before { animation-duration: 2s; animation-delay: -0.3s; }
+
+    /* Masthead, after the front page of the Daily Prophet */
+    .houses {
+      height: 4px;
+      background: linear-gradient(90deg, var(--gryffindor) 0 25%, var(--hufflepuff) 25% 50%, var(--ravenclaw) 50% 75%, var(--slytherin) 75%);
+      opacity: 0.85;
+    }
+    .mast {
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+      padding: 22px 24px 10px;
+      text-align: center;
+    }
+    .mast small {
+      font: 600 0.7rem var(--display);
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    h1 {
+      margin: 0;
+      font: 700 clamp(2.1rem, 6.4vw, 3.6rem)/1.05 var(--display);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: linear-gradient(180deg, #fbe7ad 10%, #d4a849 52%, #8f6a22 92%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 14px rgba(255, 196, 92, 0.3));
+    }
+    .motto {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 4px 0 0;
+      font-style: italic;
+      color: var(--muted);
+    }
+    .motto::before, .motto::after { content: "\2726"; font-style: normal; font-size: 0.7em; color: var(--gold); }
+    /* The dateline, between the double rules of a newspaper */
+    .dateline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px 22px;
+      position: relative;
+      width: min(1080px, calc(100% - 48px));
+      margin: 6px auto 0;
+      padding: 8px 0;
+      border-top: 3px double var(--gold-soft);
+      border-bottom: 3px double var(--gold-soft);
+      font: italic 0.95rem var(--serif);
+      color: var(--muted);
+    }
+    .dateline b { font-weight: inherit; font-style: normal; color: var(--text); }
+    .dateline .clock { color: var(--text); }
+    .online { color: var(--gold); font-style: normal; font: 600 0.75rem var(--display); letter-spacing: 0.2em; text-transform: uppercase; }
+    /* a candle flame for the status light */
+    .online::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 11px;
+      margin-right: 8px;
+      vertical-align: -1px;
+      border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+      background: radial-gradient(ellipse at 50% 75%, #fff8de 0 22%, #ffd36b 50%, rgba(255, 140, 40, 0.9) 80%);
+      box-shadow: 0 0 10px rgba(255, 190, 90, 0.8);
+      transform-origin: 50% 100%;
+      animation: flicker 1.8s ease-in-out infinite;
+    }
+    .online b { font: italic 0.95rem var(--serif); letter-spacing: 0; text-transform: none; color: var(--text); }
+    /* "Online" opens the list of every container and its ports (services.js) */
+    .services { position: relative; z-index: 1000; }
+    .services summary { cursor: pointer; list-style: none; }
+    .services summary::-webkit-details-marker { display: none; }
+    .services summary:hover, .services summary:focus-visible { color: var(--parchment); }
+    .services.degraded .online { color: var(--t-down); }
+    .services.degraded .online::before { filter: hue-rotate(-30deg) saturate(2); }
+    .sv-list {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 12px);
+      width: min(380px, 90vw);
+      max-height: 70vh;
+      overflow: auto;
+      margin: 0;
+      padding: 6px 0;
+      list-style: none;
+      text-align: left;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(110, 70, 25, 0.28)),
+        linear-gradient(160deg, #f4e4b8, #e6cf95);
+      border: 1px solid #8f6a22;
+      border-radius: 2px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+      font: 0.95rem var(--serif);
+    }
+    .sv-list:empty { display: none; }
+    .sv-list li { display: grid; grid-template-columns: 1fr auto; gap: 0 16px; padding: 7px 14px; }
+    .sv-list li + li { border-top: 1px dashed var(--ink-faint); }
+    .sv-name { font: 600 0.85rem var(--display); letter-spacing: 0.06em; color: var(--ink); }
+    .sv-state { grid-row: 2; font-style: italic; color: var(--ink-soft); font-size: 0.9em; }
+    .sv-ports { grid-column: 2; grid-row: 1 / span 2; align-self: center; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 10px; }
+    .sv-ports a { color: var(--gryffindor); border-bottom: 1px solid transparent; }
+    .sv-ports a:hover, .sv-ports a:focus-visible { border-bottom-color: currentColor; }
+    .sv-list .down .sv-name { color: var(--ink-down); text-decoration: line-through; }
+    /* Style switch: the current look is sealed in wax, the others are links */
+    .styles { display: flex; font: 600 0.72rem var(--display); letter-spacing: 0.14em; text-transform: uppercase; font-style: normal; }
+    .styles > * { padding: 4px 11px; border: 1px solid var(--gold-soft); color: var(--muted); }
+    .styles > * + * { margin-left: -1px; }
+    .styles span {
+      color: var(--t-on-highlight);
+      background: radial-gradient(circle at 40% 35%, #d4434a, var(--scarlet) 55%, #7d1419);
+      border-color: #7d1419;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+    .styles a:hover, .styles a:focus-visible { position: relative; color: var(--bg); background: var(--gold); border-color: var(--gold); }
+
+    /* Layout: two portraits on each side of the Pensieve, the Marauder's Map below */
+    main {
+      flex: 1;
+      display: grid;
+      align-content: center;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      grid-template-areas:
+        "search search search"
+        "p1 pensieve p2"
+        "p3 pensieve p4"
+        "map map map";
+      gap: 30px 56px;
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 26px 24px 44px;
+      overflow-x: clip; /* the turning rune ring of the Pensieve pokes out on phones */
+    }
+
+    /* Search, written on a strip of parchment: one field, one button per app (see /search in the Caddyfile) */
+    .search {
+      grid-area: search;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 4px;
+      animation: rise 0.8s ease-out both;
+    }
+    .search input, .search button {
+      min-height: 48px;
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .search input {
+      flex: 1 1 260px;
+      min-width: 0;
+      padding: 0 18px;
+      color: var(--ink);
+      border: 1px solid #8f6a22;
+      background:
+        radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(110, 70, 25, 0.25)),
+        linear-gradient(175deg, #f4e4b8, #e3ca8e);
+      font: 1.15rem var(--serif);
+      box-shadow: inset 0 1px 6px rgba(90, 55, 20, 0.35);
+      transition: box-shadow 0.25s;
+    }
+    .search input::placeholder { color: rgba(58, 38, 18, 0.55); font-style: italic; }
+    .search input:focus { box-shadow: inset 0 1px 6px rgba(90, 55, 20, 0.35), 0 0 0 1px var(--gold), 0 0 22px rgba(255, 196, 92, 0.35); }
+    .search button {
+      padding: 0 18px;
+      color: var(--gold);
+      border: 1px solid var(--gold-soft);
+      background: rgba(34, 26, 18, 0.7);
+      font: 700 0.78rem var(--display);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    /* The main action is sealed in red wax */
+    .search button:first-of-type {
+      color: var(--t-on-highlight);
+      border-color: #7d1419;
+      border-radius: 24px;
+      background: radial-gradient(circle at 35% 30%, #d4434a, var(--scarlet) 55%, #7d1419);
+      box-shadow: inset 0 0 0 3px rgba(125, 20, 25, 0.6), inset 0 0 0 4px rgba(255, 210, 200, 0.25), 0 2px 8px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+    }
+    .search button:hover, .search button:focus-visible {
+      color: var(--ink);
+      background: var(--parchment);
+      border-color: var(--parchment);
+      box-shadow: 0 0 18px rgba(255, 196, 92, 0.4);
+      text-shadow: none;
+    }
+
+    /* Pensieve = Jellyfin, the main action: a stone basin of swirling silver memories */
+    .pensieve {
+      --glow: rgba(213, 226, 242, 0.5);
+      grid-area: pensieve;
+      justify-self: center;
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: min(68vw, 330px);
+      aspect-ratio: 1;
+      margin: 20px 0;
+      border-radius: 50%;
+      filter: drop-shadow(0 0 22px var(--glow));
+      transition: transform 0.3s ease, filter 0.3s ease;
+      animation: rise 1s ease-out both;
+    }
+    .pensieve > * { position: absolute; border-radius: 50%; }
+    /* Runes carved around the rim */
+    .runes { inset: -11%; width: 122%; height: 122%; overflow: visible; animation: spin 120s linear infinite; }
+    .runes text { font: 700 3.2px var(--display); fill: var(--gold); opacity: 0.75; }
+    .rim {
+      inset: 0;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.12), transparent 45%),
+        radial-gradient(circle, transparent 0 85%, rgba(212, 168, 73, 0.5) 85.5%, transparent 86.5%),
+        repeating-conic-gradient(from 7deg, rgba(0, 0, 0, 0.1) 0 1deg, transparent 1deg 23deg),
+        radial-gradient(circle, #a39d91 0 62%, #7a7468 70%, #57524a 80%, #35312b 90%, #1f1d1a 100%);
+      box-shadow: inset 0 0 0 2px rgba(212, 168, 73, 0.55), inset 0 0 0 6px rgba(0, 0, 0, 0.35), 0 18px 40px rgba(0, 0, 0, 0.7);
+    }
+    .basin {
+      inset: 12%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 45%, #f4f8ff 0, #b7c8e2 22%, #5d7398 52%, #22314f 78%, #0d1424);
+      box-shadow: inset 0 0 0 2px #2b2823, inset 0 10px 30px rgba(0, 0, 0, 0.85), inset 0 -6px 24px rgba(213, 226, 242, 0.25);
+    }
+    .basin i { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
+    /* the memories turn slowly, in layers going opposite ways */
+    .basin i:nth-child(1) {
+      inset: -25%;
+      background: conic-gradient(from 0deg, transparent 0 30deg, rgba(255, 255, 255, 0.55) 60deg, transparent 110deg 180deg, rgba(200, 220, 255, 0.45) 220deg, transparent 270deg);
+      filter: blur(10px);
+      animation: spin 16s linear infinite;
+    }
+    .basin i:nth-child(2) {
+      inset: -15%;
+      background: conic-gradient(from 90deg, transparent 0 50deg, rgba(255, 255, 255, 0.4) 80deg, transparent 120deg 230deg, rgba(255, 255, 255, 0.35) 260deg, transparent 300deg);
+      filter: blur(6px);
+      animation: spin 24s linear infinite reverse;
+    }
+    /* silvery strands of memory */
+    .basin i:nth-child(3), .basin i:nth-child(4) {
+      inset: 18% 8%;
+      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      border-left-color: transparent;
+      border-bottom-color: transparent;
+      filter: blur(0.6px);
+      animation: spin 9s linear infinite;
+    }
+    .basin i:nth-child(4) { inset: 28% 20%; border-color: rgba(255, 255, 255, 0.45) transparent transparent rgba(255, 255, 255, 0.45); animation-duration: 13s; animation-direction: reverse; }
+    .core {
+      position: relative;
+      display: grid;
+      place-content: center;
+      gap: 2px;
+      text-align: center;
+      border-radius: 0;
+    }
+    .core-name {
+      font: 700 clamp(1.1rem, 4.6vw, 1.5rem) var(--display);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 0 6px rgba(13, 20, 36, 0.9), 0 0 18px rgba(13, 20, 36, 0.8), 0 0 30px var(--silver);
+    }
+    .core-sub { font: italic 0.95rem var(--serif); color: #fff; text-shadow: 0 0 6px rgba(13, 20, 36, 0.95), 0 0 12px rgba(13, 20, 36, 0.8); }
+    .pensieve:hover, .pensieve:focus-visible { --glow: rgba(255, 200, 100, 0.55); transform: scale(1.04); }
+    .pensieve:hover .basin i, .pensieve:focus-visible .basin i { animation-duration: 4s; }
+    .pensieve:hover .runes text, .pensieve:focus-visible .runes text { opacity: 1; fill: var(--parchment); }
+
+    /* Portraits = the other apps, one per house: a gilt frame, a painting that breathes, a brass plate */
+    .portrait {
+      --house: var(--gryffindor);
+      --house-2: var(--gryffindor-2);
+      position: relative;
+      display: block;
+      padding: 9px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #6f4f19, #e9c46a 18%, #8a6420 36%, #f3d27a 55%, #7a5a1e 74%, #d9b25a);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 240, 200, 0.5),
+        inset 0 0 0 3px rgba(80, 55, 15, 0.6),
+        0 12px 32px rgba(0, 0, 0, 0.65);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      animation: rise 0.8s ease-out both;
+    }
+    .p1 { grid-area: p1; animation-delay: 0.15s; }
+    .p2 { grid-area: p2; animation-delay: 0.25s; --house: var(--ravenclaw); --house-2: var(--ravenclaw-2); }
+    .p3 { grid-area: p3; animation-delay: 0.35s; --house: var(--hufflepuff); --house-2: var(--hufflepuff-2); }
+    .p4 { grid-area: p4; animation-delay: 0.45s; --house: var(--slytherin); --house-2: var(--slytherin-2); }
+    .canvas {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0 14px;
+      min-height: 128px;
+      padding: 16px 18px 26px;
+      overflow: hidden;
+      border-radius: 1px;
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(255, 220, 160, 0.12), transparent 60%),
+        linear-gradient(170deg, #241b12, #120e0a);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8), inset 0 0 24px rgba(0, 0, 0, 0.9);
+    }
+    /* the painted light of the house, drifting as if someone moved in the painting */
+    .canvas::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at 50% 50%, var(--house), transparent 45%);
+      opacity: 0.32;
+      animation: breathe 11s ease-in-out infinite alternate;
+    }
+    .p2 .canvas::before { animation-delay: -3s; }
+    .p3 .canvas::before { animation-delay: -6s; opacity: 0.22; }
+    .p4 .canvas::before { animation-delay: -8s; }
+    .canvas > * { position: relative; }
+    .tag, .port { font: italic 0.95rem var(--serif); color: var(--muted); }
+    .tag { display: block; }
+    .tag i { font: 700 0.8rem var(--display); letter-spacing: 0.08em; color: var(--gold); margin-right: 6px; }
+    .name {
+      display: block;
+      margin-top: 4px;
+      font: 700 1.35rem var(--display);
+      letter-spacing: 0.08em;
+      color: var(--parchment);
+      text-shadow: 0 0 12px rgba(255, 196, 92, 0.25);
+    }
+    .say {
+      grid-column: 1 / -1;
+      margin-top: 6px;
+      font: italic 0.9rem var(--serif);
+      color: var(--muted);
+      opacity: 0.75;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    /* Quartered house shield */
+    .crest {
+      grid-column: 2;
+      grid-row: 1;
+      width: 34px;
+      height: 40px;
+      margin-top: 2px;
+      display: grid;
+      place-items: center;
+      font: 700 0.9rem var(--display);
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      background:
+        conic-gradient(var(--house) 0 90deg, var(--house-2) 90deg 180deg, var(--house) 180deg 270deg, var(--house-2) 270deg);
+      clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
+      filter: drop-shadow(0 0 1px var(--gold));
+    }
+    /* Brass name plate under the painting */
+    .port {
+      position: absolute;
+      left: 50%;
+      bottom: -1px;
+      transform: translateX(-50%);
+      padding: 0 12px;
+      border-radius: 2px 2px 0 0;
+      font: 700 0.7rem/1.7 var(--display);
+      font-style: normal;
+      letter-spacing: 0.14em;
+      color: #3b2a0c;
+      background: linear-gradient(180deg, #f3d27a, #b88a2e);
+      box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.5);
+      z-index: 1;
+    }
+    .portrait:hover, .portrait:focus-visible {
+      transform: translateY(-3px) rotate(-0.4deg);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 240, 200, 0.7),
+        inset 0 0 0 3px rgba(80, 55, 15, 0.6),
+        0 16px 40px rgba(0, 0, 0, 0.7),
+        0 0 30px rgba(255, 196, 92, 0.3);
+    }
+    .portrait:hover .canvas::before, .portrait:focus-visible .canvas::before { opacity: 0.55; animation-duration: 3s; }
+    .portrait:hover .say, .portrait:focus-visible .say { opacity: 1; color: var(--parchment); transform: translateX(4px); }
+    .portrait:hover .crest, .portrait:focus-visible .crest { animation: sway 1.2s ease-in-out infinite alternate; }
+
+    /* The Marauder's Map: telemetry cards as rooms of the castle. Shown once one of them is */
+    .map {
+      grid-area: map;
+      position: relative;
+      margin-top: 14px;
+      padding: 22px 26px 28px;
+      color: var(--ink);
+      border-radius: 2px;
+      background:
+        /* creases where the map folds */
+        linear-gradient(90deg, transparent calc(33.33% - 1px), rgba(90, 55, 20, 0.22) calc(33.33% - 1px), rgba(255, 250, 230, 0.35) 33.33%, transparent calc(33.33% + 2px)),
+        linear-gradient(90deg, transparent calc(66.66% - 1px), rgba(90, 55, 20, 0.22) calc(66.66% - 1px), rgba(255, 250, 230, 0.35) 66.66%, transparent calc(66.66% + 2px)),
+        linear-gradient(transparent calc(50% - 1px), rgba(90, 55, 20, 0.16) calc(50% - 1px), rgba(255, 250, 230, 0.3) 50%, transparent calc(50% + 2px)),
+        radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(110, 70, 25, 0.38)),
+        radial-gradient(circle at 18% 72%, rgba(150, 100, 40, 0.14), transparent 18%),
+        radial-gradient(circle at 84% 22%, rgba(150, 100, 40, 0.12), transparent 14%),
+        linear-gradient(165deg, #f4e4b8, #e8d29b 50%, #dcc187);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(120, 80, 30, 0.45);
+      animation: rise 0.9s 0.5s ease-out both;
+    }
+    .map:not(:has(.bot:not([hidden]))) { display: none; }
+    .cartouche { display: grid; justify-items: center; gap: 2px; text-align: center; }
+    .cartouche small { font: italic 0.95rem/1.3 var(--serif); color: var(--ink-soft); }
+    .cartouche h2 {
+      margin: 0;
+      font: 700 clamp(1.3rem, 3.6vw, 1.8rem) var(--display);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .cartouche h2::before, .cartouche h2::after { content: " \2767 "; font-family: var(--serif); color: var(--ink-soft); }
+    .cartouche h2::before { display: inline-block; transform: scaleX(-1); }
+    .mischief {
+      margin-top: 4px;
+      padding: 2px 10px;
+      border: 0;
+      border-bottom: 1px dashed var(--ink-soft);
+      color: var(--ink-soft);
+      background: none;
+      font: italic 0.9rem var(--serif);
+      cursor: pointer;
+    }
+    .mischief:hover, .mischief:focus-visible { outline: none; color: var(--gryffindor); border-bottom-color: currentColor; }
+    /* Someone walking across the map: ink footprints with their name on a banner */
+    .walk { position: relative; height: 44px; margin: 8px 0 4px; }
+    .walk i {
+      position: absolute;
+      top: 8px;
+      left: calc(var(--i) * 6% + 1%);
+      width: 11px;
+      height: 24px;
+      /* toes, sole and heel of a bare foot, pointing right */
+      background:
+        radial-gradient(circle 1.6px at 22% 6%, var(--ink) 90%, transparent),
+        radial-gradient(circle 1.4px at 46% 3%, var(--ink) 90%, transparent),
+        radial-gradient(circle 1.2px at 68% 6%, var(--ink) 90%, transparent),
+        radial-gradient(circle 1px at 86% 12%, var(--ink) 90%, transparent),
+        radial-gradient(ellipse 44% 26% at 50% 36%, var(--ink) 92%, transparent 100%),
+        radial-gradient(ellipse 30% 17% at 50% 80%, var(--ink) 92%, transparent 100%);
+      transform: rotate(84deg);
+      opacity: 0;
+      animation: step 8s calc(var(--i) * 0.35s) linear infinite;
+    }
+    .walk i:nth-child(even) { top: 20px; transform: rotate(96deg) scaleX(-1); }
+    .walker {
+      position: absolute;
+      top: -6px;
+      left: 0;
+      padding: 0 8px;
+      border: 1px solid var(--ink-soft);
+      font: italic 0.8rem/1.4 var(--serif);
+      color: var(--ink);
+      background: rgba(244, 228, 184, 0.9);
+      white-space: nowrap;
+      opacity: 0;
+      animation: walker 8s linear infinite;
+    }
+    .rooms {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-flow: dense;
+      gap: 18px;
+      transition: opacity 1.2s, filter 1.2s;
+    }
+    /* "Mischief managed": the ink fades and the map goes blank, until the oath is said again */
+    .map.managed .rooms, .map.managed .walk, .map.managed .cartouche small, .map.managed .cartouche h2 { opacity: 0; filter: blur(3px); pointer-events: none; }
+    .map .walk, .cartouche small, .cartouche h2 { transition: opacity 1.2s, filter 1.2s; }
+
+    /* Each card is a room drawn in ink: double wall, a name in a scroll */
+    .bot {
+      position: relative;
+      display: block;
+      padding: 14px 18px 16px;
+      color: var(--ink);
+      border: 1.5px solid var(--ink);
+      box-shadow: inset 0 0 0 3px rgba(244, 228, 184, 0.6), inset 0 0 0 4px var(--ink-soft);
+      background: rgba(255, 248, 225, 0.22);
+      transition: background-color 0.2s, transform 0.2s;
+    }
+    .bot[hidden] { display: none; }
+    #trading-bot, .sapling, .bifrost { grid-column: 1 / -1; }
+    .bot .tag {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px 12px;
+      font: italic 0.95rem var(--serif);
+      color: var(--ink-soft);
+    }
+    .bot .tag i { color: var(--ink-soft); font-size: 0.75rem; margin: 0; }
+    .room {
+      font: 700 1rem var(--display);
+      font-style: normal;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .bot .tag em { font: 700 0.65rem/1.7 var(--display); font-style: normal; letter-spacing: 0.12em; padding: 0 9px; border-radius: 999px; color: var(--t-on-highlight); background: radial-gradient(circle at 40% 35%, #d4434a, var(--scarlet) 60%, #7d1419); }
+    .bot .bot-more { margin-left: auto; font-style: normal; font: 600 0.72rem var(--display); letter-spacing: 0.1em; color: var(--gryffindor); }
+    .bot .up { color: var(--ink-up); }
+    .bot .down { color: var(--ink-down); }
+    .bot-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px 22px;
+      margin: 12px 0 0;
+    }
+    .bot-stats dt { font: 600 0.66rem var(--display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); }
+    .bot-stats dd { margin: 2px 0 0; font: 1.25rem var(--serif); color: var(--ink); font-variant-numeric: lining-nums; }
+    .bot-stats dd small { font: italic 0.85rem var(--serif); color: var(--ink-soft); }
+    .bot-list {
+      display: grid;
+      gap: 3px;
+      margin: 12px 0 0;
+      padding: 10px 0 0;
+      border-top: 1px dashed var(--ink-soft);
+      list-style: none;
+      font: 0.95rem var(--serif);
+    }
+    .bot-list li { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr; gap: 12px; }
+    .bot-list li span:last-child { text-align: right; }
+    .bot-foot { margin-top: 12px; }
+    a.bot:hover, a.bot:focus-visible, .bifrost:hover { background: rgba(255, 248, 225, 0.55); transform: translateY(-2px); }
+    .storage { pointer-events: none; }
+    .st-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; margin-top: 12px; font: 1rem var(--serif); }
+    .st-row > span { white-space: nowrap; }
+    /* Gauges: an ink-ruled tube filled with molten gold */
+    .st-bar, .ss-bar { display: block; overflow: hidden; border: 1px solid var(--ink-soft); border-radius: 999px; background: rgba(58, 38, 18, 0.08); }
+    .st-bar { height: 12px; margin-top: 8px; }
+    .ss-bar { height: 9px; }
+    .st-bar i, .ss-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8a6420, #d4a849 60%, #f3d27a); }
+    .st-bar i.full { background: linear-gradient(90deg, #7d1419, var(--ink-down)); }
+    .st-scale {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 4px;
+      font: italic 0.72rem var(--serif);
+      color: var(--ink-soft);
+    }
+    .ss-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; font: 0.95rem var(--serif); }
+    .ss-list li { display: grid; grid-template-columns: 1.2fr 1.4fr 1.6fr 0.8fr; gap: 12px; align-items: center; }
+    .ss-list li span:last-child { text-align: right; }
+    @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
+    .kpiece dd { font-variant-numeric: tabular-nums; }
+    /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
+    .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
+    .bifrost .bf-hb { position: relative; z-index: 2; margin-left: 0; }
+    .bifrost .bf-hb:hover, .bifrost .bf-hb:focus-visible { text-decoration: underline; }
+
+    /* Footer: the Marauders write a line in ink, then the paper drinks it (see the script below) */
+    .quill {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px 26px;
+      color: var(--parchment);
+    }
+    .quill-name { flex: none; font: 600 0.68rem var(--display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+    .quill svg { flex: none; width: 22px; height: 22px; fill: none; stroke: var(--gold); stroke-width: 1.2; }
+    .writing svg { animation: scribble 0.35s ease-in-out infinite alternate; }
+    .quill-line {
+      min-width: 0;
+      padding-left: 14px;
+      border-left: 1px solid var(--gold-faint);
+      font: italic 1.05rem var(--serif);
+      transition: opacity 0.9s, filter 0.9s;
+    }
+    .quill-line.soak { opacity: 0; filter: blur(2px); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes show { from { opacity: 0; } }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); filter: blur(3px); } }
+    @keyframes boot-out { to { opacity: 0; visibility: hidden; } }
+    @keyframes unfold-l { from { transform: rotateY(-178deg); } }
+    @keyframes unfold-r { from { transform: rotateY(178deg); } }
+    @keyframes write { to { clip-path: inset(0 0 0 0); } }
+    @keyframes soak { to { opacity: 0; filter: blur(3px); } }
+    @keyframes ink-in { to { opacity: 1; filter: none; } }
+    @keyframes float { from { transform: translateY(-8px); } to { transform: translateY(8px); } }
+    @keyframes flicker {
+      0%, 100% { transform: scale(1, 1) rotate(0); opacity: 1; }
+      25% { transform: scale(0.92, 1.08) rotate(-3deg); opacity: 0.9; }
+      50% { transform: scale(1.05, 0.94) rotate(2deg); opacity: 1; }
+      75% { transform: scale(0.96, 1.04) rotate(-1deg); opacity: 0.85; }
+    }
+    @keyframes breathe {
+      0% { transform: translate(-12%, -8%); }
+      50% { transform: translate(8%, 6%); }
+      100% { transform: translate(14%, -10%); }
+    }
+    @keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+    @keyframes step { 0% { opacity: 0; } 1% { opacity: 0.85; } 30% { opacity: 0.85; } 48%, 100% { opacity: 0; } }
+    @keyframes walker { 0% { left: 2%; opacity: 0; } 3% { opacity: 1; } 70% { left: 88%; opacity: 1; } 76%, 100% { left: 88%; opacity: 0; } }
+    @keyframes scribble { from { transform: rotate(-6deg) translateY(-1px); } to { transform: rotate(4deg) translateY(1px); } }
+
+    @media (max-width: 1240px) { .candles { display: none; } }
+    @media (max-width: 980px) {
+      main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+          "search search"
+          "pensieve pensieve"
+          "p1 p2"
+          "p3 p4"
+          "map map";
+        gap: 20px;
+        padding: 20px 16px 36px;
+      }
+      .dateline { width: calc(100% - 32px); }
+      .quill { padding: 0 16px 20px; }
+    }
+    @media (max-width: 720px) {
+      .rooms { grid-template-columns: minmax(0, 1fr); }
+      .map { padding: 18px 16px 22px; }
+      .services { position: static; }
+      .sv-list { left: 0; right: 0; width: auto; margin: 0 auto; max-width: 420px; }
+    }
+    @media (max-width: 460px) {
+      .search input { flex-basis: 100%; }
+      .search button { flex: 1; padding: 0 6px; letter-spacing: 0.08em; white-space: nowrap; }
+      main {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "search" "pensieve" "p1" "p2" "p3" "p4" "map";
+      }
+      .mast small { letter-spacing: 0.18em; }
+      .dateline { gap: 6px 16px; }
+      .quill { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
+      .quill-line { flex-basis: 100%; padding-left: 0; border: 0; }
+      .walk i { left: calc(var(--i) * 5.6% + 1%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .boot { display: none; }
+      .walk i { opacity: 0.6; }
+      .walker { opacity: 1; left: auto; right: 0; }
+    }
+  </style>
+  <script>
+    // The map only unfolds on the first visit of the tab session
+    try { if (sessionStorage.getItem("booted-hogwarts")) document.documentElement.classList.add("boot-skip"); sessionStorage.setItem("booted-hogwarts", "1"); } catch {}
+  </script>
+</head>
+<body>
+  <div class="boot" aria-hidden="true" onclick="this.remove()">
+    <div class="sheet">
+      <span class="leaf l"></span><span class="leaf c"></span><span class="leaf r"></span>
+      <div class="sheet-text">
+        <p class="oath">I solemnly swear that I am up to no good.</p>
+        <p class="present a">Messrs Moony, Wormtail, Padfoot and Prongs,<br>purveyors of aids to magical mischief-makers, are proud to present</p>
+        <p class="present b">The Marauder's Map</p>
+        <p class="present c">of the castle at <b>{{$host}}</b>: Jellyfin · Radarr · Sonarr · Transmission · Prowlarr</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="candles left" aria-hidden="true">
+    <span class="candle" style="top: 14%; left: 10px; --h: 52px"></span>
+    <span class="candle" style="top: 34%; left: 54px; --h: 40px"></span>
+    <span class="candle" style="top: 58%; left: 18px; --h: 60px"></span>
+    <span class="candle" style="top: 80%; left: 60px; --h: 44px"></span>
+  </div>
+  <div class="candles right" aria-hidden="true">
+    <span class="candle" style="top: 22%; right: 16px; --h: 44px"></span>
+    <span class="candle" style="top: 44%; right: 60px; --h: 56px"></span>
+    <span class="candle" style="top: 66%; right: 12px; --h: 40px"></span>
+    <span class="candle" style="top: 86%; right: 52px; --h: 50px"></span>
+  </div>
+
+  <header>
+    <div class="houses" aria-hidden="true"></div>
+    <div class="mast">
+      <small>Hogwarts School of Witchcraft and Wizardry // Home</small>
+      <h1>Media Server</h1>
+      <p class="motto">Draco dormiens nunquam titillandus</p>
+    </div>
+    <div class="dateline status">
+      <span>Host <b>{{$host}}</b></span>
+      <span class="clock" id="clock"></span>
+      <details class="services" id="services">
+        <summary class="online">Online <b data-sv="count"></b></summary>
+        <ul class="sv-list" data-sv="list" aria-label="Services"></ul>
+      </details>
+      <nav class="styles" aria-label="Style">
+        <a href="/style/reactor">Reactor</a>
+        <a href="/style/cyberpunk">Cyberpunk</a>
+        <span aria-current="true">Hogwarts</span>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <form class="search" action="/search" role="search" target="_blank">
+      <input type="search" name="q" required autocomplete="off"
+             placeholder="Accio… a movie or a TV show" aria-label="Search a movie or a TV show">
+      <button name="in" value="jellyfin" title="Search in Jellyfin">Watch</button>
+      <button name="in" value="radarr" title="Add a movie with Radarr">+ Movie</button>
+      <button name="in" value="sonarr" title="Add a TV show with Sonarr">+ TV show</button>
+    </form>
+
+    <a class="pensieve" href="http://{{$host}}:8096" target="_blank" rel="noopener" aria-label="Jellyfin: watch movies and TV shows">
+      <svg class="runes" viewBox="0 0 100 100" aria-hidden="true">
+        <defs><path id="rim" d="M50 50 m-46 0 a46 46 0 1 1 92 0 a46 46 0 1 1 -92 0" /></defs>
+        <text><textPath href="#rim" textLength="286" lengthAdjust="spacing">✦ THE PENSIEVE ✦ HOGWARTS SCHOOL OF WITCHCRAFT AND WIZARDRY ✦ DRACO DORMIENS NUNQUAM TITILLANDUS </textPath></text>
+      </svg>
+      <span class="rim"></span>
+      <span class="basin" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="core">
+        <span class="core-name">Jellyfin</span>
+        <span class="core-sub">Dive into a memory</span>
+      </span>
+    </a>
+
+    <a class="portrait p1" href="http://{{$host}}:7878" target="_blank" rel="noopener">
+      <span class="canvas">
+        <span><span class="tag"><i>I</i>Movies</span><span class="name">Radarr</span></span>
+        <span class="crest" aria-hidden="true">G</span>
+        <span class="say" aria-hidden="true">“Where dwell the brave at heart.”</span>
+      </span>
+      <span class="port">:7878</span>
+    </a>
+    <a class="portrait p2" href="http://{{$host}}:8989" target="_blank" rel="noopener">
+      <span class="canvas">
+        <span><span class="tag"><i>II</i>TV shows</span><span class="name">Sonarr</span></span>
+        <span class="crest" aria-hidden="true">R</span>
+        <span class="say" aria-hidden="true">“Wit beyond measure is man's greatest treasure.”</span>
+      </span>
+      <span class="port">:8989</span>
+    </a>
+    <a class="portrait p3" href="http://{{$host}}:9091" target="_blank" rel="noopener">
+      <span class="canvas">
+        <span><span class="tag"><i>III</i>Downloads</span><span class="name">Transmission</span></span>
+        <span class="crest" aria-hidden="true">H</span>
+        <span class="say" aria-hidden="true">“Just and loyal, and under the Cloak.”</span>
+      </span>
+      <span class="port">:9091</span>
+    </a>
+    <a class="portrait p4" href="http://{{$host}}:9696" target="_blank" rel="noopener">
+      <span class="canvas">
+        <span><span class="tag"><i>IV</i>Indexers</span><span class="name">Prowlarr</span></span>
+        <span class="crest" aria-hidden="true">S</span>
+        <span class="say" aria-hidden="true">“Cunning folk use any means.”</span>
+      </span>
+      <span class="port">:9696</span>
+    </a>
+
+    <section class="map" id="map" aria-label="The Marauder's Map">
+      <div class="cartouche">
+        <small>Messrs Moony, Wormtail, Padfoot and Prongs are proud to present</small>
+        <h2>The Marauder's Map</h2>
+        <button type="button" class="mischief" aria-pressed="false">Mischief managed</button>
+      </div>
+      <div class="walk" aria-hidden="true">
+        {{- range until 15}}<i style="--i: {{.}}"></i>{{end -}}
+        <span class="walker">Padfoot</span>
+      </div>
+      <div class="rooms">
+        <div class="bot storage" id="storage" role="group" hidden aria-label="Storage used">
+          <span class="tag"><i>00</i><span class="room">Storage</span>Gringotts vaults</span>
+          <div class="st-row"><span data-st="used"></span><span><span data-st="free"></span> · <span data-st="pct"></span></span></div>
+          <span class="st-bar"><i data-st="fill"></i></span>
+          <span class="st-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></span>
+        </div>
+
+        <a class="bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
+          <span class="tag"><i>05</i><span class="room">Trading bot</span>Diagon Alley exchange <em data-tb="mode">PAPER</em> <span data-tb="state">Running</span></span>
+          <dl class="bot-stats">
+            <div><dt>Equity</dt><dd data-tb="equity">–</dd></div>
+            <div><dt>Total gain</dt><dd><span data-tb="pnl">–</span> <small data-tb="pct"></small></dd></div>
+            <div><dt>Positions</dt><dd><span data-tb="positions">0</span> <small>unrealized <span data-tb="unrealized">–</span></small></dd></div>
+            <div><dt>Realized</dt><dd><span data-tb="realized">–</span> <small>on <span data-tb="trades">0</span> fills</small></dd></div>
+            <div><dt>Fees paid</dt><dd data-tb="fees">–</dd></div>
+          </dl>
+          <ul class="bot-list" data-tb="list"></ul>
+          <span class="tag bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span><span class="bot-more">Dashboard :8080 →</span></span>
+        </a>
+
+        <a class="bot sapling" id="sapling-sunrise" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Sapling Sunrise, open its dashboard">
+          <span class="tag"><i>06</i><span class="room">Sapling Sunrise</span>Greenhouse three <span data-ss="state"></span></span>
+          <ul class="ss-list" data-ss="list"></ul>
+          <span class="tag bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></span>
+        </a>
+
+        <a class="bot kpiece" id="kpiece" href="https://www.kpiece.fr/" target="_blank" rel="noopener" hidden aria-label="One Piece, read the latest scan on KPIECE">
+          <span class="tag"><i>07</i><span class="room">One Piece</span>The Owlery <span data-kp="arc"></span></span>
+          <dl class="bot-stats">
+            <div><dt>Latest scan</dt><dd><span data-kp="scan">–</span> <small data-kp="name"></small></dd></div>
+            <div><dt>Next scan</dt><dd><span data-kp="next">–</span> <small data-kp="when"></small></dd></div>
+            <div><dt>Countdown</dt><dd data-kp="timer">–</dd></div>
+          </dl>
+          <span class="tag bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></span>
+        </a>
+
+        <div class="bot bifrost" id="bifrost" hidden>
+          <a class="bf-open" href="http://{{$host}}:8582" target="_blank" rel="noopener" aria-label="Bifrost, open its dashboard"></a>
+          <span class="tag"><i>08</i><span class="room">Bifrost</span>The Floo Network <span data-bf="state"></span></span>
+          <ul class="bot-list" data-bf="list"></ul>
+          <span class="tag bot-foot"><span data-bf="last"></span><span class="bot-more">Dashboard :8582 →</span><a class="bot-more bf-hb" href="http://{{$host}}:8581" target="_blank" rel="noopener">Homebridge :8581 →</a></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="quill" id="quill" aria-live="polite">
+    <span class="quill-name">Messrs M. W. P. &amp; P.</span>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3C13 4 7 9 5 19M21 3c-1 6-5 11-12 13M9 12l4 1M3 21l2-2" /></svg>
+    <span class="quill-line" id="quill-line"></span>
+  </footer>
+
+  <script>
+    (() => {
+      const pad = (n) => String(n).padStart(2, "0");
+      const clock = document.getElementById("clock");
+      const tick = () => {
+        const d = new Date();
+        const day = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+        clock.textContent = `${day} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      };
+      tick();
+      setInterval(tick, 10000);
+
+      // "Mischief managed" wipes the map; the oath brings it back
+      const map = document.getElementById("map");
+      const wipe = map.querySelector(".mischief");
+      wipe.addEventListener("click", () => {
+        const managed = map.classList.toggle("managed");
+        wipe.setAttribute("aria-pressed", managed);
+        wipe.textContent = managed ? "I solemnly swear that I am up to no good" : "Mischief managed";
+      });
+
+      // The Marauders write one line, the paper drinks it, then the next. The storage, trading
+      // and One Piece lines read what storage.js, trading-bot.js and kpiece.js put on the page.
+      const box = document.getElementById("quill");
+      const out = document.getElementById("quill-line");
+      const text = (sel) => document.querySelector(sel)?.textContent.trim();
+      const shown = (id) => !document.getElementById(id)?.hidden;
+      const lines = () => {
+        const h = new Date().getHours();
+        const l = [h < 5 ? "Mr Moony notes that you are out of bed after curfew." : `Mr Moony presents his compliments and bids you good ${h < 12 ? "morning" : h < 18 ? "afternoon" : "evening"}.`,
+          "Mr Prongs observes that Jellyfin is ready whenever you are."];
+        if (shown("storage")) l.push(`Mr Padfoot reports the vaults ${text('[data-st="pct"]')} full, ${text('[data-st="free"]')}.`);
+        if (shown("trading-bot")) l.push(`Mr Wormtail reports the trading bot at ${text('[data-tb="pnl"]')} so far.`);
+        if (shown("bifrost")) l.push(`The Floo Network reports ${text('[data-bf="state"]')}.`);
+        if (shown("kpiece")) l.push(`An owl brings word: One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
+        l.push("Write a title above, and Accio will fetch it.", "Transmission stays under the Invisibility Cloak, as instructed.", "The wards around {{$host}} hold firm.", "Mischief managed.");
+        return l;
+      };
+      const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let i = 0;
+      const say = () => {
+        const all = lines();
+        const line = all[i++ % all.length];
+        out.classList.remove("soak");
+        if (still) { out.textContent = line; setTimeout(say, 8000); return; }
+        let n = 0;
+        box.classList.add("writing");
+        const type = setInterval(() => {
+          out.textContent = line.slice(0, ++n);
+          if (n >= line.length) {
+            clearInterval(type);
+            box.classList.remove("writing");
+            setTimeout(() => out.classList.add("soak"), 5000);
+            setTimeout(say, 6000);
+          }
+        }, 38);
+      };
+      // Wait for the map to unfold the first time
+      setTimeout(say, document.documentElement.classList.contains("boot-skip") ? 300 : 3800);
+    })();
+  </script>
+  <script src="/storage.js" defer></script>
+  <script src="/trading-bot.js" defer></script>
+  <script src="/sapling-sunrise.js" defer></script>
+  <script src="/kpiece.js" defer></script>
+  <script src="/bifrost.js" defer></script>
+  <script src="/services.js" defer></script>
+</body>
+</html>

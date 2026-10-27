@@ -1,16 +1,16 @@
 # Hub theme kit
 
-The home page comes in two looks, *Reactor* (Iron Man's helmet HUD) and *Cyberpunk* (Cyberpunk 2077's menus). This kit lets any personal project served on the same machine take the look the hub is showing, without copying its styles.
+The home page comes in three looks, *Reactor* (Iron Man's helmet HUD), *Cyberpunk* (Cyberpunk 2077's menus) and *Hogwarts* (Harry Potter: candlelit gold, parchment and the Marauder's Map). This kit lets any personal project served on the same machine take the look the hub is showing, without copying its styles.
 
 The hub serves it at `http://<host>/theme/`:
 
 - `theme.css`: the `--t-*` variables of each look, and the `.t-*` components.
 - `theme.js`: picks the look and adds the hub bar.
-- `fonts/`: Michroma and Rajdhani, both under the SIL Open Font License (`OFL-*.txt`).
+- `fonts/`: Michroma, Rajdhani, Cinzel and IM Fell English, all under the SIL Open Font License (`OFL-*.txt`).
 
 ## How a page knows the look
 
-The hub stores the choice in the `style` cookie (`reactor` or `cyberpunk`). Cookies ignore the port, so a project on `dpi.lan:8080` reads the same cookie as the hub on `dpi.lan`. With no cookie the look is Reactor, as on the hub.
+The hub stores the choice in the `style` cookie (`reactor`, `cyberpunk` or `hogwarts`). Cookies ignore the port, so a project on `dpi.lan:8080` reads the same cookie as the hub on `dpi.lan`. With no cookie the look is Reactor, as on the hub.
 
 The theme switch in the hub bar writes that same cookie, so switching in a project switches the hub too. A tab that comes back to the front picks up a switch made elsewhere. Adding `?theme=cyberpunk` to a URL forces a look without storing it, which is handy for testing.
 

@@ -1,6 +1,8 @@
 {{- /* Serves the look remembered in the "style" cookie (set by /style/<name>, see Caddyfile) */ -}}
 {{- if eq (.Cookie "style") "cyberpunk" -}}
 {{- include "cyberpunk.html" -}}
+{{- else if eq (.Cookie "style") "hogwarts" -}}
+{{- include "hogwarts.html" -}}
 {{- else -}}
 {{- include "reactor.html" -}}
 {{- end -}}

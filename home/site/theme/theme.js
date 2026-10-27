@@ -9,8 +9,8 @@
 // hub and a theme switch. window.Theme is there for scripts: Theme.name, Theme.set(name),
 // Theme.color("accent") and Theme.onChange(fn).
 (() => {
-  const THEMES = ["reactor", "cyberpunk"];
-  const LABELS = { reactor: "Reactor", cyberpunk: "Cyberpunk" };
+  const THEMES = ["reactor", "cyberpunk", "hogwarts"];
+  const LABELS = { reactor: "Reactor", cyberpunk: "Cyberpunk", hogwarts: "Hogwarts" };
   const script = document.currentScript;
   const hub = script ? new URL(script.src, location.href).origin : location.origin;
   const root = document.documentElement;

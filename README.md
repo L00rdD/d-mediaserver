@@ -230,7 +230,7 @@ Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/s
 Once Docker confirms all containers are `Started`, open your web browser and go to the home page:
 `http://dpi.lan`
 
-It is the only address to remember: it links to every app. Each app opens in its own tab, so the home page is always one tab away. It comes in two looks, *Reactor* and *Cyberpunk*; the switch at the top right changes it and each device remembers its own choice.
+It is the only address to remember: it links to every app. Each app opens in its own tab, so the home page is always one tab away. It comes in three looks, *Reactor*, *Cyberpunk* and *Hogwarts*; the switch at the top right changes it and each device remembers its own choice.
 
 Your own projects served on the same machine can take the same look and follow the switch: see [Add Your Own Apps](#-add-your-own-apps).
 
@@ -406,15 +406,15 @@ Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 
 
 ### 2. Give it the hub's look
 
-Your pages can take the *Reactor* or *Cyberpunk* look and follow the switch of the home page, without copying any style: load the theme kit the hub serves at `http://<host>/theme/`, put `class="t-app"` on `<body>` and use the `--t-*` colours and `.t-*` components. Everything is in [home/site/theme/README.md](home/site/theme/README.md).
+Your pages can take the *Reactor*, *Cyberpunk* or *Hogwarts* look and follow the switch of the home page, without copying any style: load the theme kit the hub serves at `http://<host>/theme/`, put `class="t-app"` on `<body>` and use the `--t-*` colours and `.t-*` components. Everything is in [home/site/theme/README.md](home/site/theme/README.md).
 
 ### 3. Show a card on the home page
 
 The home page can show a live summary of your app, which opens the app when clicked.
 
 1. **Serve a status file.** Your app answers `GET /api/status.json` on its port, with the header `Access-Control-Allow-Origin: *` (the home page reads it from another port). The content is up to you: the figures you want on the card and an `updated_at` date.
-2. **Add the card to both looks**, [`reactor.html`](home/site/reactor.html) and [`cyberpunk.html`](home/site/cyberpunk.html). Copy the card that points at port `8081` (`id="sapling-sunrise"`), give it your own `id`, title and port, and keep `hidden`: the card only shows once your app answers. In `reactor.html`, also give it a place in the three `grid-template-areas` lists (wide screen, tablet, phone): copy the `sap` line.
-3. **Fill it with a script.** Copy [`sapling-sunrise.js`](home/site/sapling-sunrise.js): it fetches `http://<host>:8081/api/status.json`, writes the values into the card's `data-*` elements and removes `hidden`. When the app does not answer, it does nothing and the card stays hidden. Load your script at the bottom of both pages, next to the other ones.
+2. **Add the card to all three looks**, [`reactor.html`](home/site/reactor.html), [`cyberpunk.html`](home/site/cyberpunk.html) and [`hogwarts.html`](home/site/hogwarts.html). Copy the card that points at port `8081` (`id="sapling-sunrise"`), give it your own `id`, title and port, and keep `hidden`: the card only shows once your app answers. In `reactor.html`, also give it a place in the three `grid-template-areas` lists (wide screen, tablet, phone): copy the `sap` line. In `hogwarts.html` the cards sit inside the Marauder's Map (`<div class="rooms">`), which has no named areas: just paste the card there; add its `id` to the `#trading-bot, .sapling, .bifrost` rule if it should take the full width.
+3. **Fill it with a script.** Copy [`sapling-sunrise.js`](home/site/sapling-sunrise.js): it fetches `http://<host>:8081/api/status.json`, writes the values into the card's `data-*` elements and removes `hidden`. When the app does not answer, it does nothing and the card stays hidden. Load your script at the bottom of the three pages, next to the other ones.
 4. **Deploy:** `git pull` on the Pi. The site folder is mounted into the `home` container, so a reload of the page is enough.
 
 The page already holds two such cards, on ports 8080 and 8081, for projects of the author. On a machine where nothing answers on those ports they stay hidden: replace them with yours or leave them.
