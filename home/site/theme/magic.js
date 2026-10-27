@@ -16,7 +16,7 @@
 // burst with a circle of runes on each click, and the Golden Snitch (click it). Now and then:
 // a shooting star, the owl post flying through with a letter, an Occamy coiling across, a
 // Revelio wave lighting up every panel it passes, a silver Patronus. <body data-t-hall="rich">
-// makes all of that come more often; <body data-t-air="off"> leaves out the fireflies, the ribbons and
+// makes all of that come more often; <body data-t-air="off"> leaves out the fireflies, the ribbons, the drawn owl, the shooting stars and
 // the Occamy and the Patronus, for a page that draws its own (the hub, in 3D, with Hedwig). The hall moves with the mouse and the scroll,
 // near things more than far ones.
 // On the page (CSS in theme.css, under html.t-magic): each .t-panel gathers out of light as it
@@ -536,7 +536,7 @@
     rich: { owl: [9, 25, 50], snitch: [16, 30, 60], star: [2, 7, 16], occamy: [5, 28, 55], revelio: [4.5, 30, 55], patronus: [60, 160, 280] },
     light: { owl: [25, 60, 120], snitch: [20, 50, 100], star: [5, 14, 30], occamy: [40, 90, 180], revelio: [30, 90, 180], patronus: [200, 300, 500] },
   };
-  const EVENTS = { owl, snitch: launchSnitch, star: shootingStar, occamy: () => air() && occamy(), revelio: () => revelio(), patronus: () => air() && patronus() };
+  const EVENTS = { owl: () => air() && owl(), snitch: launchSnitch, star: () => air() && shootingStar(), occamy: () => air() && occamy(), revelio: () => revelio(), patronus: () => air() && patronus() };
   const schedule = (time, first) => {
     const c = CADENCE[rich() ? "rich" : "light"];
     for (const k in c) if (first || next[k] === undefined) next[k] = time + (first ? rand(c[k][0], c[k][0] * 1.4) : rand(c[k][1], c[k][2]));
