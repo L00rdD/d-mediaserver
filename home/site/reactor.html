@@ -257,7 +257,8 @@
         "bot bot bot"
         "sap sap sap"
         "kp kp kp"
-        "bf bf bf";
+        "bf bf bf"
+        "er er er";
       gap: 28px 56px;
       width: 100%;
       max-width: 1080px;
@@ -555,6 +556,7 @@
     .kpiece { grid-area: kp; animation-delay: 0.7s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
     /* Bifrost card: hidden until bifrost answers on :8582 (see bifrost.js) */
+    .errol { grid-area: er; animation-delay: 0.8s; }
     .bifrost { grid-area: bf; animation-delay: 0.75s; }
     /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
     .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
@@ -611,7 +613,8 @@
           "bot bot"
           "sap sap"
           "kp kp"
-          "bf bf";
+          "bf bf"
+          "er er";
         gap: 16px;
         padding: 20px 16px 36px;
       }
@@ -625,7 +628,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf" "er";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -755,11 +758,6 @@
       <span class="st-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></span>
     </div>
 
-    <div class="panel bot errol" id="errol" role="group" hidden aria-label="Errol, the living-room screen">
-      <span class="tag"><i>09</i> // Errol <span>living-room screen</span></span>
-      <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
-      <label class="errol-follow"><input type="checkbox" data-errol="follow"> Follow this page's look</label>
-    </div>
 
     <a class="panel bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
       <span class="tag"><i>05</i> // Trading bot <em data-tb="mode">PAPER</em> <span data-tb="state">Running</span></span>
@@ -795,6 +793,11 @@
       <span class="tag"><i>08</i> // Bifrost <span data-bf="state"></span></span>
       <ul class="bot-list" data-bf="list"></ul>
       <span class="tag bot-foot"><span data-bf="last"></span><span class="bot-more">Dashboard :8582 →</span><a class="bot-more bf-hb" href="http://{{$host}}:8581" target="_blank" rel="noopener">Homebridge :8581 →</a></span>
+    </div>
+    <div class="panel bot errol" id="errol" role="group" hidden aria-label="Errol, the living-room screen">
+      <span class="tag"><i>09</i> // Errol <span>living-room screen</span></span>
+      <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
+      <label class="errol-follow"><input type="checkbox" data-errol="follow"> Follow this page's look</label>
     </div>
   </main>
 
