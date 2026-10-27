@@ -1,13 +1,13 @@
 # Hub theme kit
 
-The home page comes in three looks, *Reactor* (Iron Man's helmet HUD), *Cyberpunk* (Cyberpunk 2077's menus) and *Hogwarts* (Harry Potter: the Great Hall at night, candles, parchment). This kit lets any personal project served on the same machine take the look the hub is showing, without copying its styles.
+The home page comes in three looks, *Reactor* (Iron Man's helmet HUD), *Cyberpunk* (Cyberpunk 2077's menus) and *Hogwarts* (inside Newt Scamander's case, with the effects of Hogwarts Legacy). This kit lets any personal project served on the same machine take the look the hub is showing, without copying its styles.
 
 The hub serves it at `http://<host>/theme/`:
 
 - `theme.css`: the `--t-*` variables of each look, and the `.t-*` components.
 - `theme.js`: picks the look and adds the hub bar.
-- `magic.js`: the Great Hall behind a Hogwarts page and its moving magic. `theme.js` loads it by itself (see below).
-- `fonts/`: Michroma, Rajdhani, Cinzel and IM Fell English, all under the SIL Open Font License (`OFL-*.txt`).
+- `magic.js`: the vivarium behind a Hogwarts page and its moving magic. `theme.js` loads it by itself (see below).
+- `fonts/`: Michroma, Rajdhani, Cinzel and Cormorant Garamond, all under the SIL Open Font License (`OFL-*.txt`).
 
 ## How a page knows the look
 
@@ -70,46 +70,43 @@ The cookie belongs to the name used in the address. A page opened as `192.168.1.
 | `--t-font-display`, `--t-font-body`, `--t-font-mono` | fonts |
 | `--t-glow` | text-shadow for titles |
 
-## Ink on parchment (Hogwarts)
+## Dark glass and gilt (Hogwarts)
 
-In the Hogwarts look a `.t-panel` is a sheet of old parchment: aged paper with fibres, stains and a scorched rim (its own `background`), torn deckled edges (a `mask`), laid a little askew (`rotate`, never for a panel holding a `<table>`). The paper and the mask belong to the panel itself, so nothing is added to the page, nothing sticking out of the panel is shadowed, and a panel the page redraws is dressed at once. Because of the mask, a box-shadow or anything drawn outside the panel's box does not show.
+The Hogwarts look is the inside of Newt Scamander's case, drawn the way Hogwarts Legacy draws its menus. A `.t-panel` is a pane of dark glass in a thin gilt frame: a second hairline inside the frame, a glimmer of ancient-magic blue along the top, the mist behind showing through (`backdrop-filter`). `.t-panel.t-main` has a brighter frame and a blue halo. Text keeps the look's tokens (light on dark), so a project needs nothing special inside its panels. Figures in `.t-stats` and `.t-table` use lining, tabular figures of Cormorant Garamond.
 
-Inside the sheet the tokens turn to ink: `--t-text`, `--t-muted`, `--t-accent`, `--t-line`, `--t-up`, `--t-down`, `--t-series-*`… are redeclared on `.t-panel`, so `.t-stats`, `.t-table`, `.t-bar`, `.t-badge`, `.t-up`/`.t-down`, links and anything written with `var(--t-…)` stay readable.
+## The vivarium (Hogwarts)
 
-A project's own aliases (`--text: var(--t-text)` on `:root`) are resolved on `:root`, in candlelight colours. So that they write in ink too, the kit also redeclares inside the sheet the alias names the projects use: `--text`, `--muted`, `--line`, `--accent`, `--cyan`, `--cyan-soft`, `--cyan-faint`, `--green`, `--up`, `--down`, `--s1` to `--s4`. A project with other names should declare its aliases on `:root, .t-panel` rather than `:root` alone.
+While the look is Hogwarts, `theme.js` also loads `magic.js`, and stops it when the look changes. It puts the vivarium behind the page, in a fixed `<div class="t-hall">` (styled in `theme.css`):
 
-`.t-panel.t-main` gets a gilt double rule inside its edge, like an illuminated page.
+- a night sky with twinkling stars, fading out lower down (the night gradient is the page background);
+- mist of ancient magic, teal and violet, drifting and breathing;
+- the light of the open lid far above, falling in long rays;
+- a great circle of runes turning slowly in the middle. The runes are strokes drawn by `magic.js` (no font needed).
 
-## The Great Hall (Hogwarts)
+The vivarium is there even for a still page; it just does not move. A page may put its own `<div class="t-hall">` in its body and add things to it; its children with `data-depth="<px>"` (and `data-scroll="<factor>"`) move with the mouse and the scroll. The hub puts floating islands there.
 
-While the look is Hogwarts, `theme.js` also loads `magic.js`, and stops it when the look changes. It puts the Great Hall behind the page, in a fixed `<div class="t-hall">` (styled in `theme.css`):
-
-- the enchanted ceiling: a night sky with twinkling stars and clouds drifting slowly, melting into the dark of the hall (the sky gradient is the page background);
-- floating candles at three depths, kept in the side margins: tall ivory tapers with melted tops and drips, a teardrop flame and a warm halo; each bobs and flickers at its own pace.
-
-The hall is there even for a still page; it just does not move. A page may put its own `<div class="t-hall" data-candles="40">` in its body to choose the number of candles (the hub spreads them over the whole hall with `data-spread="hall"`).
-
-When the page may move, `magic.js` also draws on one canvas laid over the page, which lets clicks through and pauses while the tab is hidden: golden dust in the candlelight, a trail of sparks behind the mouse (not on touch screens), a *Lumos* burst where you click, the Golden Snitch (click it to catch it). Now and then: a shooting star, a candle guttering and relighting, a draught bending every flame, the owl post flying through and dropping a letter, a ghost gliding through the walls, a silver Patronus. The hall moves with the mouse and the scroll, near candles more than far ones. `<body data-t-hall="rich">` makes all that come more often (the hub does).
+When the page may move, `magic.js` also draws on one canvas laid over the page, which lets clicks through and pauses while the tab is hidden: fireflies in gold, blue and violet, ribbons of ancient magic winding through the air and now and then looping, a trail of sparks behind the mouse (not on touch screens), a *Lumos* burst with a circle of runes where you click, the Golden Snitch (click it to catch it). Now and then: a shooting star, the owl post flying through and dropping a letter, an Occamy (a feathered serpent, blue and gold) coiling across the sky, a *Revelio* wave sweeping out from the middle and lighting up every panel it passes, a silver Patronus. The vivarium moves with the mouse and the scroll, near things more than far ones. `<body data-t-hall="rich">` makes all that come more often (the hub does). `<body data-t-air="off">` leaves out the fireflies, the ribbons and the Occamy, for a page that draws its own air (the hub draws a 3D vivarium with `vivarium.js`).
 
 It also animates the kit components, without changing their layout:
 
-- each `.t-panel` gets an ink flourish drawn in its corners, and is laid down (fades in) when it comes into view. For this `magic.js` adds a `<span class="t-filigree">` inside the panel, and sets `position: relative` on it if it had none. Panels that scroll (`overflow: auto`) are left alone. Panels a page draws later get it too, without fading in, so a page that redraws its panels does not flicker;
-- `.t-title` shimmers like liquid gold, `.t-heading` stars twinkle, and `.t-bar` gauges ripple with a glint passing through.
+- each `.t-panel` gathers out of light when it comes into view: sparks fly in to its edges, it sharpens out of a blur, a band of light crosses it and gilt filigree draws itself in its corners, a blue diamond lighting at each tip. For this `magic.js` adds a `<span class="t-frame">` inside the panel, and sets `position: relative` on it if it had none. Panels that scroll (`overflow: auto`) are left alone. Panels a page draws later get the frame too, without the entrance, so a page that redraws its panels does not flicker;
+- `.t-title` shimmers like liquid gold, the `.t-heading` diamonds pulse, and `.t-bar` gauges have light flowing through them with a glint passing.
 
-To keep a page still, put `data-t-calm` on its `<body>` (a page where people read figures for a long time, a kiosk). Reduced motion in the system settings (`prefers-reduced-motion`) keeps every page still too. The look itself stays, hall and candles included: only the movement goes.
+To keep a page still, put `data-t-calm` on its `<body>` (a page where people read figures for a long time, a kiosk). Reduced motion in the system settings (`prefers-reduced-motion`) keeps every page still too. The look itself stays, vivarium included: only the movement goes.
 
 A page can add its own magic through `window.Magic`, which exists once `magic.js` is loaded:
 
 | Call | Does |
 |---|---|
 | `Magic.running` | `true` while the magic plays |
-| `Magic.emit(x, y, { n, color, speed, life, size, dir, spread, gravity })` | sparks at a point of the window; `color` is `"gold"`, `"silver"` or `"white"`; a negative `gravity` makes them rise |
+| `Magic.emit(x, y, { n, color, speed, life, size, dir, spread, gravity })` | sparks at a point of the window; `color` is `"gold"`, `"blue"`, `"violet"`, `"silver"` or `"white"`; a negative `gravity` makes them rise |
 | `Magic.burst(x, y, color)` | a *Lumos* burst |
-| `Magic.snitch()`, `Magic.owl()`, `Magic.ghost()`, `Magic.patronus()`, `Magic.shootingStar()` | sends one now |
-| `Magic.gust()` | a draught: flames lean, `html.t-gust` for 3 s and a `magic:gust` event on `document` |
-| `Magic.onFrame(fn)` | runs `fn(time, dt, pointer, view)` in the same animation frame as the canvas; `view` is `{ px, py, scroll }`, the smoothed mouse (-0.5 to 0.5) and the scroll. The hub's portraits, lectern and parallax use it |
-
-The kit also exposes the pictures of the hall as variables, for a page that draws more of it (the hub): `--t-paper` (the paper texture, a 520 px tile), `--t-edge-top`, `--t-edge-right`, `--t-edge-bottom`, `--t-edge-left` (torn edges as mask half-planes, intersected) and `--t-flame`.
+| `Magic.circle(x, y, { r, life, color })` | a circle of runes drawing itself, turning, then fading; `color` is `"gold"` or `"blue"` |
+| `Magic.revelio(x, y)` | the *Revelio* wave from that point; elements with `data-reveal` light up too (`.t-revealed`) and a `magic:revelio` event goes to `document` |
+| `Magic.snitch()`, `Magic.owl()`, `Magic.occamy()`, `Magic.patronus()`, `Magic.shootingStar()` | sends one now |
+| `Magic.runePath(i, x, y, h)` | the SVG path data of rune `i`, `h` tall, its top left corner at `x, y`, to draw runes in a page's own SVG |
+| `Magic.release()` | lets the panels in after `<html class="t-hold">` held them back (the hub holds them while its case opens) |
+| `Magic.onFrame(fn)` | runs `fn(time, dt, pointer, view)` in the same animation frame as the canvas; `view` is `{ px, py, scroll }`, the smoothed mouse (-0.5 to 0.5) and the scroll. The hub's owl, Demiguise and islands use it |
 
 A page that sets `<html data-theme="hogwarts">` by itself, as the hub's `hogwarts.html` does, can load `magic.js` with a plain `<script src="/theme/magic.js" defer>`: it starts by itself.
 

@@ -5,6 +5,8 @@
 	root * /srv
 	templates
 	header Cache-Control no-cache
+	# the Hogwarts page's 3D engine (vendor/three.min.js) is big: compress what goes out
+	encode zstd gzip
 
 	# /style/<name> remembers the chosen look for a year, then goes back home
 	@style path_regexp style ^/style/(reactor|cyberpunk|hogwarts)$

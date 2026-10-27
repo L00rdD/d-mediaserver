@@ -9,7 +9,7 @@
 // hub and a theme switch. window.Theme is there for scripts: Theme.name, Theme.set(name),
 // Theme.color("accent") and Theme.onChange(fn).
 //
-// The Hogwarts look also loads magic.js (dust, sparks, the Snitch, gilt that draws itself),
+// The Hogwarts look also loads magic.js (fireflies, ancient magic, sparks, the Snitch, gilt that draws itself),
 // and stops it when the look changes. <body data-t-calm> or reduced motion keep it still.
 (() => {
   const THEMES = ["reactor", "cyberpunk", "hogwarts"];
