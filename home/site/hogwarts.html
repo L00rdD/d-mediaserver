@@ -377,8 +377,7 @@
       aspect-ratio: 1;
       margin: 20px 0;
       border-radius: 50%;
-      filter: drop-shadow(0 0 22px var(--glow));
-      transition: transform 0.3s ease, filter 0.3s ease;
+      transition: transform 0.3s ease;
       animation: rise 1s ease-out both;
     }
     .pensieve > * { position: absolute; border-radius: 50%; }
@@ -401,29 +400,59 @@
       box-shadow: inset 0 0 0 2px #2b2823, inset 0 10px 30px rgba(0, 0, 0, 0.85), inset 0 -6px 24px rgba(213, 226, 242, 0.25);
     }
     .basin i { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
-    /* the memories turn slowly, in layers going opposite ways */
+    /* the memories turn slowly, in layers going opposite ways (soft gradients, no blur filter) */
     .basin i:nth-child(1) {
       inset: -25%;
-      background: conic-gradient(from 0deg, transparent 0 30deg, rgba(255, 255, 255, 0.55) 60deg, transparent 110deg 180deg, rgba(200, 220, 255, 0.45) 220deg, transparent 270deg);
-      filter: blur(10px);
+      background: conic-gradient(from 0deg, transparent 0 20deg, rgba(255, 255, 255, 0.18) 40deg, rgba(255, 255, 255, 0.5) 60deg, rgba(255, 255, 255, 0.18) 85deg, transparent 115deg 170deg, rgba(200, 220, 255, 0.15) 195deg, rgba(200, 220, 255, 0.42) 220deg, rgba(200, 220, 255, 0.15) 245deg, transparent 275deg);
       animation: spin 16s linear infinite;
     }
     .basin i:nth-child(2) {
       inset: -15%;
-      background: conic-gradient(from 90deg, transparent 0 50deg, rgba(255, 255, 255, 0.4) 80deg, transparent 120deg 230deg, rgba(255, 255, 255, 0.35) 260deg, transparent 300deg);
-      filter: blur(6px);
+      background: conic-gradient(from 90deg, transparent 0 40deg, rgba(255, 255, 255, 0.15) 60deg, rgba(255, 255, 255, 0.38) 80deg, rgba(255, 255, 255, 0.12) 100deg, transparent 125deg 225deg, rgba(255, 255, 255, 0.3) 260deg, transparent 295deg);
       animation: spin 24s linear infinite reverse;
     }
     /* silvery strands of memory */
     .basin i:nth-child(3), .basin i:nth-child(4) {
       inset: 18% 8%;
-      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      border: 1.5px solid rgba(255, 255, 255, 0.5);
       border-left-color: transparent;
       border-bottom-color: transparent;
-      filter: blur(0.6px);
       animation: spin 9s linear infinite;
     }
-    .basin i:nth-child(4) { inset: 28% 20%; border-color: rgba(255, 255, 255, 0.45) transparent transparent rgba(255, 255, 255, 0.45); animation-duration: 13s; animation-direction: reverse; }
+    .basin i:nth-child(4) { inset: 28% 20%; border-color: rgba(255, 255, 255, 0.42) transparent transparent rgba(255, 255, 255, 0.42); animation-duration: 13s; animation-direction: reverse; }
+    /* on hover a whirlpool wakes up under the memories */
+    .basin i:nth-child(5), .basin i:nth-child(6), .basin i:nth-child(7) {
+      border: 2px solid rgba(240, 246, 255, 0.7);
+      border-color: rgba(240, 246, 255, 0.75) transparent transparent rgba(240, 246, 255, 0.35);
+      opacity: 0;
+      transition: opacity 0.6s;
+      animation: spin 1.6s linear infinite;
+    }
+    .basin i:nth-child(5) { inset: 10%; }
+    .basin i:nth-child(6) { inset: 22%; animation-duration: 1.2s; border-width: 1.5px; }
+    .basin i:nth-child(7) { inset: 34%; animation-duration: 0.9s; border-width: 1px; }
+    /* the glow round the basin: silver, gold on hover (two layers, only their opacity changes) */
+    .halo { inset: -16%; background: radial-gradient(closest-side, rgba(213, 226, 242, 0.32), rgba(213, 226, 242, 0.1) 60%, transparent); transition: opacity 0.4s; }
+    .halo.gold { background: radial-gradient(closest-side, rgba(255, 200, 100, 0.38), rgba(255, 200, 100, 0.1) 60%, transparent); opacity: 0; }
+    /* silver wisps of memory rising from the basin */
+    .wisps { inset: 30%; border-radius: 0; opacity: 0.55; transition: opacity 0.5s; pointer-events: none; }
+    .wisps i {
+      position: absolute;
+      left: calc(50% - 9px);
+      bottom: 40%;
+      width: 18px;
+      height: 74px;
+      border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(235, 243, 255, 0.55), rgba(200, 220, 255, 0.18) 55%, transparent);
+      opacity: 0;
+      animation: wisp 5.6s ease-out infinite;
+    }
+    .wisps i:nth-child(1) { --dx: -26px; --r: -14deg; margin-left: -30px; }
+    .wisps i:nth-child(2) { --dx: 18px; --r: 10deg; margin-left: 8px; animation-delay: -0.9s; }
+    .wisps i:nth-child(3) { --dx: -8px; --r: -4deg; margin-left: -6px; animation-delay: -1.9s; animation-duration: 6.4s; }
+    .wisps i:nth-child(4) { --dx: 30px; --r: 16deg; margin-left: 26px; animation-delay: -2.8s; }
+    .wisps i:nth-child(5) { --dx: -34px; --r: -18deg; margin-left: -20px; animation-delay: -3.7s; animation-duration: 6.8s; }
+    .wisps i:nth-child(6) { --dx: 10px; --r: 6deg; margin-left: 16px; animation-delay: -4.6s; }
     .core {
       position: relative;
       display: grid;
@@ -441,7 +470,10 @@
     }
     .core-sub { font: italic 0.95rem var(--serif); color: #fff; text-shadow: 0 0 6px rgba(13, 20, 36, 0.95), 0 0 12px rgba(13, 20, 36, 0.8); }
     .pensieve:hover, .pensieve:focus-visible { --glow: rgba(255, 200, 100, 0.55); transform: scale(1.04); }
-    .pensieve:hover .basin i, .pensieve:focus-visible .basin i { animation-duration: 4s; }
+    .pensieve:hover .basin i:nth-child(n + 5), .pensieve:focus-visible .basin i:nth-child(n + 5) { opacity: 1; }
+    .pensieve:hover .basin i:nth-child(1), .pensieve:hover .basin i:nth-child(2) { opacity: 0.6; }
+    .pensieve:hover .halo.gold, .pensieve:focus-visible .halo.gold { opacity: 1; }
+    .pensieve:hover .wisps, .pensieve:focus-visible .wisps { opacity: 1; }
     .pensieve:hover .runes text, .pensieve:focus-visible .runes text { opacity: 1; fill: var(--parchment); }
 
     /* Portraits = the other apps, one per house: a gilt frame, a painting that breathes, a brass plate */
@@ -458,19 +490,19 @@
         inset 0 0 0 3px rgba(80, 55, 15, 0.6),
         0 12px 32px rgba(0, 0, 0, 0.65);
       transition: transform 0.25s ease, box-shadow 0.25s ease;
-      animation: rise 0.8s ease-out both;
     }
-    .p1 { grid-area: p1; animation-delay: 0.15s; }
-    .p2 { grid-area: p2; animation-delay: 0.25s; --house: var(--ravenclaw); --house-2: var(--ravenclaw-2); }
-    .p3 { grid-area: p3; animation-delay: 0.35s; --house: var(--hufflepuff); --house-2: var(--hufflepuff-2); }
-    .p4 { grid-area: p4; animation-delay: 0.45s; --house: var(--slytherin); --house-2: var(--slytherin-2); }
+    .p1 { grid-area: p1; --d: 0.1s; --robe: #6e1a1e; }
+    .p2 { grid-area: p2; --d: 0.25s; --house: var(--ravenclaw); --house-2: var(--ravenclaw-2); --robe: #1f3a6e; }
+    .p3 { grid-area: p3; --d: 0.4s; --house: var(--hufflepuff); --house-2: var(--hufflepuff-2); --robe: #7d5f17; }
+    .p4 { grid-area: p4; --d: 0.55s; --house: var(--slytherin); --house-2: var(--slytherin-2); --robe: #1d4a30; }
     .canvas {
       position: relative;
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 0 14px;
+      align-items: start;
       min-height: 128px;
-      padding: 16px 18px 26px;
+      padding: 16px 12px 22px 18px;
       overflow: hidden;
       border-radius: 1px;
       background:
@@ -503,25 +535,25 @@
       text-shadow: 0 0 12px rgba(255, 196, 92, 0.25);
     }
     .say {
-      grid-column: 1 / -1;
+      grid-column: 1;
       margin-top: 6px;
       font: italic 0.9rem var(--serif);
       color: var(--muted);
       opacity: 0.75;
       transition: opacity 0.3s, transform 0.3s;
     }
-    /* Quartered house shield */
+    /* Quartered house shield, beside the counter */
     .crest {
-      grid-column: 2;
-      grid-row: 1;
-      width: 34px;
-      height: 40px;
-      margin-top: 2px;
-      display: grid;
+      display: inline-grid;
       place-items: center;
-      font: 700 0.9rem var(--display);
+      width: 16px;
+      height: 19px;
+      margin-right: 7px;
+      vertical-align: -3px;
+      font: 700 0.5rem var(--display);
+      font-style: normal;
       color: #fff;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
       background:
         conic-gradient(var(--house) 0 90deg, var(--house-2) 90deg 180deg, var(--house) 180deg 270deg, var(--house-2) 270deg);
       clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
@@ -554,6 +586,44 @@
     .portrait:hover .canvas::before, .portrait:focus-visible .canvas::before { opacity: 0.55; animation-duration: 3s; }
     .portrait:hover .say, .portrait:focus-visible .say { opacity: 1; color: var(--parchment); transform: translateX(4px); }
     .portrait:hover .crest, .portrait:focus-visible .crest { animation: sway 1.2s ease-in-out infinite alternate; }
+    /* The sitter of each portrait: breathes, sways, blinks, and follows you with its eyes (script below) */
+    .sitter {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      align-self: end;
+      width: 88px;
+      height: 104px;
+      margin: -10px -4px -22px 0;
+      overflow: visible;
+    }
+    .sitter .figure { transform-box: view-box; transform-origin: 32px 80px; animation: sit-sway 7s ease-in-out infinite alternate; }
+    .sitter .breath { transform-box: view-box; transform-origin: 32px 80px; animation: breathe-in 4.2s ease-in-out infinite; }
+    .p2 .sitter .figure { animation-duration: 8.5s; animation-delay: -3s; }
+    .p3 .sitter .figure { animation-duration: 6.2s; animation-delay: -1.5s; }
+    .p4 .sitter .figure { animation-duration: 9s; animation-delay: -5s; }
+    .p2 .sitter .breath { animation-delay: -1.2s; animation-duration: 4.8s; }
+    .p4 .sitter .breath { animation-delay: -2.4s; animation-duration: 5.2s; }
+    .sitter .robe { fill: var(--robe); }
+    .sitter .eyes { fill: #1b120a; }
+    .sitter .lids rect { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0); animation: blink 5.5s infinite; }
+    .p2 .sitter .lids rect { animation-delay: -2s; animation-duration: 6.3s; }
+    .p3 .sitter .lids rect { animation-delay: -3.6s; animation-duration: 4.7s; }
+    .p4 .sitter .lids rect { animation-delay: -1s; animation-duration: 7.1s; }
+    .sitter .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flicker 1.5s ease-in-out infinite; }
+    .sitter .cglow { animation: glow-pulse 2.3s ease-in-out infinite; }
+    .p2 .sitter .flame { animation-delay: -0.7s; }
+    .p3 .sitter .flame { animation-delay: -0.3s; animation-duration: 1.9s; }
+    .p4 .sitter .flame { animation-delay: -1.1s; }
+    /* A gilt glimmer blooms over the frame when it inks in */
+    .portrait::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(closest-side, rgba(255, 236, 180, 0.55), transparent);
+      opacity: 0;
+      pointer-events: none;
+    }
 
     /* The Marauder's Map: telemetry cards as rooms of the castle. Shown once one of them is */
     .map {
@@ -573,8 +643,9 @@
         radial-gradient(circle at 84% 22%, rgba(150, 100, 40, 0.12), transparent 14%),
         linear-gradient(165deg, #f4e4b8, #e8d29b 50%, #dcc187);
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(120, 80, 30, 0.45);
-      animation: rise 0.9s 0.5s ease-out both;
+      transform-origin: 50% 0;
     }
+    .map > .cartouche, .map > .rooms { position: relative; z-index: 1; }
     .map:not(:has(.bot:not([hidden]))) { display: none; }
     .cartouche { display: grid; justify-items: center; gap: 2px; text-align: center; }
     .cartouche small { font: italic 0.95rem/1.3 var(--serif); color: var(--ink-soft); }
@@ -598,50 +669,52 @@
       cursor: pointer;
     }
     .mischief:hover, .mischief:focus-visible { outline: none; color: var(--gryffindor); border-bottom-color: currentColor; }
-    /* Someone walking across the map: ink footprints with their name on a banner */
-    .walk { position: relative; height: 44px; margin: 8px 0 4px; }
-    .walk i {
+    /* People walking about the castle: ink footprints and their name on a banner (script below) */
+    .trails, .names { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; transition: opacity 1.2s; }
+    .names { z-index: 2; }
+    .fp {
       position: absolute;
-      top: 8px;
-      left: calc(var(--i) * 6% + 1%);
-      width: 11px;
-      height: 24px;
-      /* toes, sole and heel of a bare foot, pointing right */
+      left: 0;
+      top: 0;
+      width: 9px;
+      height: 20px;
+      opacity: 0;
+      /* toes, sole and heel of a bare foot, pointing up */
       background:
-        radial-gradient(circle 1.6px at 22% 6%, var(--ink) 90%, transparent),
-        radial-gradient(circle 1.4px at 46% 3%, var(--ink) 90%, transparent),
-        radial-gradient(circle 1.2px at 68% 6%, var(--ink) 90%, transparent),
-        radial-gradient(circle 1px at 86% 12%, var(--ink) 90%, transparent),
+        radial-gradient(circle 1.4px at 24% 7%, var(--ink) 90%, transparent),
+        radial-gradient(circle 1.3px at 47% 3%, var(--ink) 90%, transparent),
+        radial-gradient(circle 1.1px at 69% 6%, var(--ink) 90%, transparent),
+        radial-gradient(circle 0.9px at 86% 12%, var(--ink) 90%, transparent),
         radial-gradient(ellipse 44% 26% at 50% 36%, var(--ink) 92%, transparent 100%),
         radial-gradient(ellipse 30% 17% at 50% 80%, var(--ink) 92%, transparent 100%);
-      transform: rotate(84deg);
-      opacity: 0;
-      animation: step 8s calc(var(--i) * 0.35s) linear infinite;
+      will-change: opacity;
     }
-    .walk i:nth-child(even) { top: 20px; transform: rotate(96deg) scaleX(-1); }
-    .walker {
+    .wname {
       position: absolute;
-      top: -6px;
       left: 0;
-      padding: 0 8px;
+      top: 0;
+      padding: 0 7px;
       border: 1px solid var(--ink-soft);
-      font: italic 0.8rem/1.4 var(--serif);
+      border-radius: 1px;
+      font: italic 0.78rem/1.4 var(--serif);
       color: var(--ink);
-      background: rgba(244, 228, 184, 0.9);
+      background: rgba(244, 228, 184, 0.92);
       white-space: nowrap;
       opacity: 0;
-      animation: walker 8s linear infinite;
+      transition: opacity 0.6s;
     }
+    .wname.on { opacity: 1; }
     .rooms {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       grid-auto-flow: dense;
       gap: 18px;
-      transition: opacity 1.2s, filter 1.2s;
+      margin-top: 34px; /* a corridor under the cartouche, where people walk */
+      transition: opacity 1.2s;
     }
     /* "Mischief managed": the ink fades and the map goes blank, until the oath is said again */
-    .map.managed .rooms, .map.managed .walk, .map.managed .cartouche small, .map.managed .cartouche h2 { opacity: 0; filter: blur(3px); pointer-events: none; }
-    .map .walk, .cartouche small, .cartouche h2 { transition: opacity 1.2s, filter 1.2s; }
+    .map.managed .rooms, .map.managed .trails, .map.managed .names, .map.managed .cartouche small, .map.managed .cartouche h2 { opacity: 0; pointer-events: none; }
+    .cartouche small, .cartouche h2 { transition: opacity 1.2s; }
 
     /* Each card is a room drawn in ink: double wall, a name in a scroll */
     .bot {
@@ -652,9 +725,42 @@
       border: 1.5px solid var(--ink);
       box-shadow: inset 0 0 0 3px rgba(244, 228, 184, 0.6), inset 0 0 0 4px var(--ink-soft);
       background: rgba(255, 248, 225, 0.22);
-      transition: background-color 0.2s, transform 0.2s;
+      transform-origin: 50% 100%;
+      transition: background-color 0.2s, transform 0.35s cubic-bezier(0.3, 0.7, 0.3, 1);
     }
+    /* A dog-eared corner: the page unfolds it when you hover the room */
+    .bot::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      right: -1px;
+      z-index: 2;
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(225deg, #e4cd93 0 50%, #f6e9c4 50%, #d8bd80 100%);
+      box-shadow: -2px 2px 3px rgba(58, 38, 18, 0.25);
+      transform-origin: 100% 0;
+      transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.3, 1);
+      pointer-events: none;
+    }
+    a.bot:hover::before, a.bot:focus-visible::before, .bifrost:hover::before, .errol:hover::before { transform: scale(0); }
+    /* A blot of ink that spreads and soaks in as the room draws itself */
+    .bot::after {
+      content: "";
+      position: absolute;
+      left: var(--bx, 30%);
+      top: var(--by, 40%);
+      width: 40px;
+      height: 40px;
+      margin: -20px;
+      border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(58, 38, 18, 0.5), rgba(58, 38, 18, 0.2) 55%, transparent);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .bot.inked::after { animation: blot 1.3s ease-out; }
     .bot[hidden] { display: none; }
+    .bot { overflow: hidden; }
     #trading-bot, .sapling, .bifrost { grid-column: 1 / -1; }
     .bot .tag {
       display: flex;
@@ -697,7 +803,7 @@
     .bot-list li { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 0.8fr; gap: 12px; }
     .bot-list li span:last-child { text-align: right; }
     .bot-foot { margin-top: 12px; }
-    a.bot:hover, a.bot:focus-visible, .bifrost:hover { background: rgba(255, 248, 225, 0.55); transform: translateY(-2px); }
+    a.bot:hover, a.bot:focus-visible, .bifrost:hover { background: rgba(255, 248, 225, 0.55); transform: perspective(900px) rotateX(4deg) translateY(-2px); }
     .storage { pointer-events: none; }
     .st-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; margin-top: 12px; font: 1rem var(--serif); }
     .st-row > span { white-space: nowrap; }
@@ -743,13 +849,100 @@
       padding-left: 14px;
       border-left: 1px solid var(--gold-faint);
       font: italic 1.05rem var(--serif);
-      transition: opacity 0.9s, filter 0.9s;
+      transition: opacity 0.9s, transform 0.9s;
     }
-    .quill-line.soak { opacity: 0; filter: blur(2px); }
+    .quill-line.soak { opacity: 0; transform: translateY(-3px); }
+
+
+    /* The Great Hall ceiling: candles floating over the masthead */
+    .ceiling { position: absolute; inset: 0 0 auto; height: 150px; z-index: -1; pointer-events: none; }
+    .ceiling .candle { --h: 34px; width: 7px; }
+    .ceiling .candle:nth-child(odd) { animation-duration: 6s; }
+    .ceiling .candle:nth-child(3n) { animation-duration: 8s; animation-delay: -2s; }
+    .ceiling .candle:nth-child(3n)::before { animation-duration: 2.1s; }
+    .ceiling .candle:nth-child(4n)::before { animation-delay: -0.8s; }
+
+    /* House banners hanging in the hall, stirring in a draught */
+    .banners { position: absolute; inset: 4px 0 auto; height: 0; pointer-events: none; }
+    .banner { position: absolute; top: 0; width: 46px; }
+    .banner::before { /* the gilt rod */
+      content: "";
+      position: absolute;
+      left: -7px;
+      right: -7px;
+      top: 0;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(#f3d27a, #8a6420);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    .cloth {
+      position: relative;
+      display: grid;
+      justify-items: center;
+      align-content: start;
+      gap: 4px;
+      height: 124px;
+      margin-top: 3px;
+      padding-top: 20px;
+      overflow: hidden;
+      font: 700 1.05rem var(--display);
+      color: var(--c2);
+      background: linear-gradient(90deg, rgba(0, 0, 0, 0.3), transparent 25%, rgba(255, 255, 255, 0.07) 50%, transparent 75%, rgba(0, 0, 0, 0.35)), var(--c);
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+      box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.2), inset 0 0 0 3px var(--c2);
+      transform-origin: 50% 0;
+      animation: wave 4.6s ease-in-out infinite alternate;
+    }
+    .cloth::before { content: "\2726"; font-size: 0.6rem; opacity: 0.8; }
+    /* folds rippling across the cloth */
+    .cloth::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: calc(100% + 40px);
+      background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.2) 0, transparent 10px, rgba(255, 255, 255, 0.09) 20px, transparent 30px, rgba(0, 0, 0, 0.2) 40px);
+      animation: ripple 2.6s linear infinite;
+    }
+    .banner.g { --c: #8e1f24; --c2: #d9a63c; left: 4%; }
+    .banner.h { --c: #c9a02c; --c2: #2a2418; left: calc(4% + 64px); top: 14px; }
+    .banner.r { --c: #1f3d78; --c2: #b0814e; right: calc(4% + 64px); top: 14px; }
+    .banner.s { --c: #1d5236; --c2: #c9ced6; right: 4%; }
+    .banner.h .cloth { animation-delay: -1.7s; animation-duration: 5.2s; }
+    .banner.r .cloth { animation-delay: -3.1s; }
+    .banner.s .cloth { animation-delay: -0.9s; animation-duration: 5.6s; }
+    .banner.h .cloth::after, .banner.s .cloth::after { animation-duration: 3.1s; }
+
+    /* An owl crossing now and then with a letter; a Patronus when there is news (script below) */
+    .owl, .patronus { position: fixed; left: 0; top: 0; z-index: 60; display: none; pointer-events: none; will-change: transform; }
+    .owl.flying, .patronus.casting { display: block; }
+    .owl svg { display: block; width: 92px; height: 66px; overflow: visible; }
+    .owl .wing { transform-box: fill-box; transform-origin: 100% 100%; animation: flap 0.42s ease-in-out infinite alternate; }
+    .owl .wing.back { animation-delay: -0.08s; }
+    .patronus svg { display: block; width: 190px; height: 175px; overflow: visible; }
+    .patronus-say {
+      display: block;
+      margin-top: -6px;
+      text-align: center;
+      font: italic 1.05rem var(--serif);
+      color: #eaf2ff;
+      text-shadow: 0 0 8px rgba(160, 200, 255, 0.9), 0 0 2px #000;
+      white-space: nowrap;
+    }
+
+    /* Ink reveal: cards draw themselves in when they come into view (only with motion allowed) */
+    .ink-ready .portrait:not(.inked), .ink-ready .bot:not(.inked) { opacity: 0; }
+    .ink-ready .map:not(.inked) { opacity: 0; transform: perspective(1400px) rotateX(-60deg); }
+    .portrait.inked { animation: ink-rise 0.9s var(--d, 0s) cubic-bezier(0.2, 0.7, 0.3, 1) backwards; }
+    .portrait.inked::after { animation: glimmer 1.4s var(--d, 0s) ease-out; }
+    .bot.inked { animation: ink-rise 0.8s var(--d, 0s) ease-out backwards; }
+    .map.inked { transition: transform 1.3s cubic-bezier(0.2, 0.75, 0.25, 1), opacity 0.5s; }
 
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes show { from { opacity: 0; } }
-    @keyframes rise { from { opacity: 0; transform: translateY(10px); filter: blur(3px); } }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
     @keyframes boot-out { to { opacity: 0; visibility: hidden; } }
     @keyframes unfold-l { from { transform: rotateY(-178deg); } }
     @keyframes unfold-r { from { transform: rotateY(178deg); } }
@@ -771,9 +964,30 @@
     @keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
     @keyframes step { 0% { opacity: 0; } 1% { opacity: 0.85; } 30% { opacity: 0.85; } 48%, 100% { opacity: 0; } }
     @keyframes walker { 0% { left: 2%; opacity: 0; } 3% { opacity: 1; } 70% { left: 88%; opacity: 1; } 76%, 100% { left: 88%; opacity: 0; } }
+    @keyframes wisp {
+      0% { transform: translate(0, 18px) scale(0.4, 0.5) rotate(0deg); opacity: 0; }
+      20% { opacity: 0.7; }
+      60% { transform: translate(var(--dx), -80px) scale(0.9, 1.3) rotate(var(--r)); opacity: 0.4; }
+      100% { transform: translate(calc(var(--dx) * 1.6), -160px) scale(1.3, 1.9) rotate(calc(var(--r) * 2)); opacity: 0; }
+    }
+    @keyframes sit-sway { from { transform: rotate(-2.2deg); } to { transform: rotate(2.4deg) translateX(0.6px); } }
+    @keyframes breathe-in { 0%, 100% { transform: scale(1, 1); } 45% { transform: scale(1.012, 1.03); } }
+    @keyframes blink { 0%, 93%, 100% { transform: scaleY(0); } 95.5% { transform: scaleY(1); } }
+    @keyframes glow-pulse { 0%, 100% { opacity: 0.75; } 40% { opacity: 1; } 70% { opacity: 0.6; } }
+    @keyframes wave {
+      0% { transform: rotate(-1.6deg) skewX(2.5deg) scaleY(1); }
+      50% { transform: rotate(0.6deg) skewX(-1deg) scaleY(0.985); }
+      100% { transform: rotate(1.8deg) skewX(-3deg) scaleY(1); }
+    }
+    @keyframes ripple { to { transform: translateX(-40px); } }
+    @keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(-0.55); } }
+    @keyframes ink-rise { from { opacity: 0; transform: translateY(16px) scale(0.97); } }
+    @keyframes glimmer { 0% { opacity: 0; transform: scale(0.3); } 30% { opacity: 0.9; } 100% { opacity: 0; transform: scale(1.6); } }
+    @keyframes blot { 0% { opacity: 0.9; transform: scale(0.3); } 100% { opacity: 0; transform: scale(14); } }
     @keyframes scribble { from { transform: rotate(-6deg) translateY(-1px); } to { transform: rotate(4deg) translateY(1px); } }
 
     @media (max-width: 1240px) { .candles { display: none; } }
+    @media (max-width: 760px) { .banners { display: none; } .ceiling .candle:nth-child(n + 7) { display: none; } }
     @media (max-width: 980px) {
       main {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -806,13 +1020,12 @@
       .dateline { gap: 6px 16px; }
       .quill { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
       .quill-line { flex-basis: 100%; padding-left: 0; border: 0; }
-      .walk i { left: calc(var(--i) * 5.6% + 1%); }
+      .owl svg { width: 70px; height: 50px; }
+      .patronus svg { width: 140px; height: 129px; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
       .boot { display: none; }
-      .walk i { opacity: 0.6; }
-      .walker { opacity: 1; left: auto; right: 0; }
     }
     /* Errol, the living-room screen: what it shows and its look, in ink */
     .errol-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; font-style: italic; }
@@ -825,9 +1038,20 @@
   <script>
     // The map only unfolds on the first visit of the tab session
     try { if (sessionStorage.getItem("booted-hogwarts")) document.documentElement.classList.add("boot-skip"); sessionStorage.setItem("booted-hogwarts", "1"); } catch {}
+    // Cards ink themselves in as they come into view, unless motion is reduced
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) document.documentElement.classList.add("ink-ready");
   </script>
 </head>
 <body>
+  <!-- Shared paints: candle flames and their glow, the Patronus silver -->
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <radialGradient id="hw-flame" cx="50%" cy="75%" r="60%"><stop offset="0" stop-color="#fff8de" /><stop offset="0.45" stop-color="#ffd36b" /><stop offset="1" stop-color="#ff8c28" stop-opacity="0.6" /></radialGradient>
+      <radialGradient id="hw-glow"><stop offset="0" stop-color="#ffcf7a" stop-opacity="0.5" /><stop offset="1" stop-color="#ffcf7a" stop-opacity="0" /></radialGradient>
+      <linearGradient id="hw-silver" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" /><stop offset="0.6" stop-color="#cfe0ff" /><stop offset="1" stop-color="#9fbfff" /></linearGradient>
+      <filter id="hw-glowf" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+    </defs>
+  </svg>
   <div class="boot" aria-hidden="true" onclick="this.remove()">
     <div class="sheet">
       <span class="leaf l"></span><span class="leaf c"></span><span class="leaf r"></span>
@@ -855,6 +1079,24 @@
 
   <header>
     <div class="houses" aria-hidden="true"></div>
+    <div class="ceiling" aria-hidden="true">
+      <span class="candle" style="left: 3%; top: 64px"></span>
+      <span class="candle" style="left: 95.5%; top: 52px; --h: 28px"></span>
+      <span class="candle" style="left: 17%; top: 20px; --h: 30px"></span>
+      <span class="candle" style="left: 81%; top: 26px"></span>
+      <span class="candle" style="left: 24%; top: 92px; --h: 26px"></span>
+      <span class="candle" style="left: 74%; top: 96px; --h: 30px"></span>
+      <span class="candle" style="left: 29%; top: 34px; --h: 24px"></span>
+      <span class="candle" style="left: 69%; top: 18px; --h: 26px"></span>
+      <span class="candle" style="left: 10%; top: 118px; --h: 22px"></span>
+      <span class="candle" style="left: 89%; top: 120px; --h: 24px"></span>
+    </div>
+    <div class="banners" aria-hidden="true">
+      <span class="banner g"><span class="cloth">G</span></span>
+      <span class="banner h"><span class="cloth">H</span></span>
+      <span class="banner r"><span class="cloth">R</span></span>
+      <span class="banner s"><span class="cloth">S</span></span>
+    </div>
     <div class="mast">
       <small>Hogwarts School of Witchcraft and Wizardry // Home</small>
       <h1>Media Server</h1>
@@ -889,8 +1131,11 @@
         <defs><path id="rim" d="M50 50 m-46 0 a46 46 0 1 1 92 0 a46 46 0 1 1 -92 0" /></defs>
         <text><textPath href="#rim" textLength="286" lengthAdjust="spacing">✦ THE PENSIEVE ✦ HOGWARTS SCHOOL OF WITCHCRAFT AND WIZARDRY ✦ DRACO DORMIENS NUNQUAM TITILLANDUS </textPath></text>
       </svg>
+      <span class="halo" aria-hidden="true"></span>
+      <span class="halo gold" aria-hidden="true"></span>
       <span class="rim"></span>
-      <span class="basin" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="basin" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="wisps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
       <span class="core">
         <span class="core-name">Jellyfin</span>
         <span class="core-sub">Dive into a memory</span>
@@ -899,33 +1144,80 @@
 
     <a class="portrait p1" href="http://{{$host}}:7878" target="_blank" rel="noopener">
       <span class="canvas">
-        <span><span class="tag"><i>I</i>Movies</span><span class="name">Radarr</span></span>
-        <span class="crest" aria-hidden="true">G</span>
+        <span><span class="tag"><span class="crest" aria-hidden="true">G</span><i>I</i>Movies</span><span class="name">Radarr</span></span>
         <span class="say" aria-hidden="true">“Where dwell the brave at heart.”</span>
+        <svg class="sitter" viewBox="0 0 68 80" aria-hidden="true">
+          <path d="M2 80V24Q34 -6 66 24V80Z" fill="rgba(0,0,0,0.22)" />
+          <g class="pcandle"><circle class="cglow" cx="62" cy="52" r="13" fill="url(#hw-glow)" /><rect x="60" y="56" width="4" height="17" rx="1" fill="#efe3c4" /><rect x="57.5" y="72" width="9" height="3" rx="1" fill="#8a6420" /><path class="flame" d="M62 47.5C64.2 51 64.2 54.4 62 55.6 59.8 54.4 59.8 51 62 47.5Z" fill="url(#hw-flame)" /></g>
+          <g class="figure"><g class="breath">
+            <path class="robe" d="M10 80C10 63 19 56 32 56S54 63 54 80Z" />
+            <path d="M27 56L32 67 37 56" fill="none" stroke="var(--house-2)" stroke-width="1.6" />
+            <rect x="29" y="49" width="6" height="8" fill="#b88c64" /><ellipse cx="32" cy="42" rx="8.5" ry="10" fill="#d2a77c" /><g class="eyes"><circle cx="28.6" cy="42.2" r="1.25" /><circle cx="35.4" cy="42.2" r="1.25" /></g>
+            <g class="lids"><rect x="26.9" y="40.4" width="3.4" height="3.6" fill="#d2a77c" /><rect x="33.7" y="40.4" width="3.4" height="3.6" fill="#d2a77c" /></g>
+            <path d="M23.5 44C24 53 28 55.5 32 55.5S40 53 40.5 44C38 48 35 49.6 32 49.6S26 48 23.5 44Z" fill="#7a4a24" />
+            <ellipse cx="32" cy="33.6" rx="15" ry="3.4" fill="#3a1d10" /><path d="M24 33.6C24 24 40 24 40 33.6Z" fill="#4a2414" />
+            <path d="M39 30C44 23 49 21 53 17" fill="none" stroke="var(--house-2)" stroke-width="1.6" stroke-linecap="round" />
+          </g></g>
+        </svg>
       </span>
       <span class="port">:7878</span>
     </a>
     <a class="portrait p2" href="http://{{$host}}:8989" target="_blank" rel="noopener">
       <span class="canvas">
-        <span><span class="tag"><i>II</i>TV shows</span><span class="name">Sonarr</span></span>
-        <span class="crest" aria-hidden="true">R</span>
+        <span><span class="tag"><span class="crest" aria-hidden="true">R</span><i>II</i>TV shows</span><span class="name">Sonarr</span></span>
         <span class="say" aria-hidden="true">“Wit beyond measure is man's greatest treasure.”</span>
+        <svg class="sitter" viewBox="0 0 68 80" aria-hidden="true">
+          <path d="M2 80V24Q34 -6 66 24V80Z" fill="rgba(0,0,0,0.22)" />
+          <g class="pcandle"><circle class="cglow" cx="62" cy="52" r="13" fill="url(#hw-glow)" /><rect x="60" y="56" width="4" height="17" rx="1" fill="#efe3c4" /><rect x="57.5" y="72" width="9" height="3" rx="1" fill="#8a6420" /><path class="flame" d="M62 47.5C64.2 51 64.2 54.4 62 55.6 59.8 54.4 59.8 51 62 47.5Z" fill="url(#hw-flame)" /></g>
+          <g class="figure"><g class="breath">
+            <path d="M21 44C20 28 44 28 43 44L46 62 39 58V45C37 39 27 39 25 45V58L18 62Z" fill="#20160f" /><path class="robe" d="M10 80C10 63 19 56 32 56S54 63 54 80Z" />
+            <path d="M27 56L32 67 37 56" fill="none" stroke="var(--house-2)" stroke-width="1.6" />
+            <rect x="29" y="49" width="6" height="8" fill="#b88c64" /><ellipse cx="32" cy="42" rx="8.5" ry="10" fill="#d2a77c" /><g class="eyes"><circle cx="28.6" cy="42.2" r="1.25" /><circle cx="35.4" cy="42.2" r="1.25" /></g>
+            <g class="lids"><rect x="26.9" y="40.4" width="3.4" height="3.6" fill="#d2a77c" /><rect x="33.7" y="40.4" width="3.4" height="3.6" fill="#d2a77c" /></g><path d="M29.6 48.2Q32 49.6 34.4 48.2" fill="none" stroke="#7a4a32" stroke-width="0.8" />
+            <path d="M23.6 40C24 31 40 31 40.4 40 37 35 27 35 23.6 40Z" fill="#20160f" />
+            <path d="M25 34.6L32 31 39 34.6" fill="none" stroke="#cfd8e6" stroke-width="1.1" /><circle cx="32" cy="31" r="1.4" fill="#9fc3ff" />
+          </g></g>
+        </svg>
       </span>
       <span class="port">:8989</span>
     </a>
     <a class="portrait p3" href="http://{{$host}}:9091" target="_blank" rel="noopener">
       <span class="canvas">
-        <span><span class="tag"><i>III</i>Downloads</span><span class="name">Transmission</span></span>
-        <span class="crest" aria-hidden="true">H</span>
+        <span><span class="tag"><span class="crest" aria-hidden="true">H</span><i>III</i>Downloads</span><span class="name">Transmission</span></span>
         <span class="say" aria-hidden="true">“Just and loyal, and under the Cloak.”</span>
+        <svg class="sitter" viewBox="0 0 68 80" aria-hidden="true">
+          <path d="M2 80V24Q34 -6 66 24V80Z" fill="rgba(0,0,0,0.22)" />
+          <g class="pcandle"><circle class="cglow" cx="62" cy="52" r="13" fill="url(#hw-glow)" /><rect x="60" y="56" width="4" height="17" rx="1" fill="#efe3c4" /><rect x="57.5" y="72" width="9" height="3" rx="1" fill="#8a6420" /><path class="flame" d="M62 47.5C64.2 51 64.2 54.4 62 55.6 59.8 54.4 59.8 51 62 47.5Z" fill="url(#hw-flame)" /></g>
+          <g class="figure"><g class="breath">
+            <path class="robe" d="M10 80C10 63 19 56 32 56S54 63 54 80Z" />
+            <path d="M27 56L32 67 37 56" fill="none" stroke="var(--house-2)" stroke-width="1.6" />
+            <rect x="29" y="49" width="6" height="8" fill="#b88c64" /><circle cx="32" cy="29" r="5" fill="#a5541c" /><ellipse cx="32" cy="42" rx="8.5" ry="10" fill="#d2a77c" /><g class="eyes"><circle cx="28.6" cy="42.2" r="1.25" /><circle cx="35.4" cy="42.2" r="1.25" /></g>
+            <g class="lids"><rect x="26.9" y="40.4" width="3.4" height="3.6" fill="#d2a77c" /><rect x="33.7" y="40.4" width="3.4" height="3.6" fill="#d2a77c" /></g><path d="M29.6 48.2Q32 49.6 34.4 48.2" fill="none" stroke="#7a4a32" stroke-width="0.8" />
+            <path d="M23.4 42C22.5 31 41.5 31 40.6 42 38 36 26 36 23.4 42Z" fill="#a5541c" />
+            <circle cx="23.6" cy="45" r="2.6" fill="#a5541c" /><circle cx="40.4" cy="45" r="2.6" fill="#a5541c" />
+            <circle cx="27.5" cy="46.5" r="1.6" fill="#e08a7a" opacity="0.5" /><circle cx="36.5" cy="46.5" r="1.6" fill="#e08a7a" opacity="0.5" />
+          </g></g>
+        </svg>
       </span>
       <span class="port">:9091</span>
     </a>
     <a class="portrait p4" href="http://{{$host}}:9696" target="_blank" rel="noopener">
       <span class="canvas">
-        <span><span class="tag"><i>IV</i>Indexers</span><span class="name">Prowlarr</span></span>
-        <span class="crest" aria-hidden="true">S</span>
+        <span><span class="tag"><span class="crest" aria-hidden="true">S</span><i>IV</i>Indexers</span><span class="name">Prowlarr</span></span>
         <span class="say" aria-hidden="true">“Cunning folk use any means.”</span>
+        <svg class="sitter" viewBox="0 0 68 80" aria-hidden="true">
+          <path d="M2 80V24Q34 -6 66 24V80Z" fill="rgba(0,0,0,0.22)" />
+          <g class="pcandle"><circle class="cglow" cx="62" cy="52" r="13" fill="url(#hw-glow)" /><rect x="60" y="56" width="4" height="17" rx="1" fill="#efe3c4" /><rect x="57.5" y="72" width="9" height="3" rx="1" fill="#8a6420" /><path class="flame" d="M62 47.5C64.2 51 64.2 54.4 62 55.6 59.8 54.4 59.8 51 62 47.5Z" fill="url(#hw-flame)" /></g>
+          <g class="figure"><g class="breath">
+            <path class="robe" d="M10 80C10 63 19 56 32 56S54 63 54 80Z" />
+            <path d="M27 56L32 67 37 56" fill="none" stroke="var(--house-2)" stroke-width="1.6" />
+            <rect x="29" y="49" width="6" height="8" fill="#b88c64" /><ellipse cx="32" cy="42" rx="8.5" ry="10" fill="#d2a77c" /><g class="eyes"><circle cx="28.6" cy="42.2" r="1.25" /><circle cx="35.4" cy="42.2" r="1.25" /></g>
+            <g class="lids"><rect x="26.9" y="40.4" width="3.4" height="3.6" fill="#d2a77c" /><rect x="33.7" y="40.4" width="3.4" height="3.6" fill="#d2a77c" /></g>
+            <path d="M26.6 39.4L30.6 40.5M37.4 39.4L33.4 40.5" stroke="#3a3a36" stroke-width="0.9" />
+            <path d="M24.5 45C25 60 32 70 32 70S39 60 39.5 45C37 49.6 27 49.6 24.5 45Z" fill="#a7a49a" />
+            <path d="M17 62C16 36 23 28 32 28S48 36 47 62L41 58C42 44 40 37 32 37S22 44 23 58Z" fill="#163d27" />
+          </g></g>
+        </svg>
       </span>
       <span class="port">:9696</span>
     </a>
@@ -936,10 +1228,8 @@
         <h2>The Marauder's Map</h2>
         <button type="button" class="mischief" aria-pressed="false">Mischief managed</button>
       </div>
-      <div class="walk" aria-hidden="true">
-        {{- range until 15}}<i style="--i: {{.}}"></i>{{end -}}
-        <span class="walker">Padfoot</span>
-      </div>
+      <div class="trails" aria-hidden="true"></div>
+      <div class="names" aria-hidden="true"></div>
       <div class="rooms">
         <div class="bot storage" id="storage" role="group" hidden aria-label="Storage used">
           <span class="tag"><i>00</i><span class="room">Storage</span>Gringotts vaults</span>
@@ -948,11 +1238,6 @@
           <span class="st-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></span>
         </div>
 
-        <div class="bot errol" id="errol" role="group" hidden aria-label="Errol, the living-room screen">
-          <span class="tag"><i>09</i><span class="room">Errol</span>Owl post</span>
-          <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
-          <label class="errol-follow"><input type="checkbox" data-errol="follow"> Follow this page's look</label>
-        </div>
 
         <a class="bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
           <span class="tag"><i>05</i><span class="room">Trading bot</span>Diagon Alley exchange <em data-tb="mode">PAPER</em> <span data-tb="state">Running</span></span>
@@ -989,9 +1274,40 @@
           <ul class="bot-list" data-bf="list"></ul>
           <span class="tag bot-foot"><span data-bf="last"></span><span class="bot-more">Dashboard :8582 →</span><a class="bot-more bf-hb" href="http://{{$host}}:8581" target="_blank" rel="noopener">Homebridge :8581 →</a></span>
         </div>
+        <div class="bot errol" id="errol" role="group" hidden aria-label="Errol, the living-room screen">
+          <span class="tag"><i>09</i><span class="room">Errol</span>Owl post</span>
+          <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
+          <label class="errol-follow"><input type="checkbox" data-errol="follow"> Follow this page's look</label>
+        </div>
       </div>
     </section>
   </main>
+
+  <div class="owl" aria-hidden="true">
+    <svg viewBox="0 0 100 72">
+      <g class="wing back"><path d="M44 36C34 18 18 7 3 9 13 15 22 24 30 38Z" fill="#cfc9bb" /><path d="M8 10L14 16M14 9L19 16M20 10L24 18" stroke="#8d887d" stroke-width="0.9" /></g>
+      <path d="M34 40L20 45 34 47Z" fill="#e3ddcf" />
+      <ellipse cx="50" cy="41" rx="17" ry="12" fill="#f4f1e8" />
+      <g fill="#8d887d"><circle cx="45" cy="37" r="0.9" /><circle cx="50" cy="43" r="0.9" /><circle cx="55" cy="37" r="0.9" /><circle cx="42" cy="44" r="0.8" /><circle cx="58" cy="44" r="0.8" /></g>
+      <circle cx="67" cy="34" r="9.5" fill="#f7f5ee" />
+      <circle cx="70.4" cy="32.4" r="2.4" fill="#f2b632" /><circle cx="71" cy="32.4" r="1.1" fill="#1a1208" />
+      <path d="M75.6 34.5L79.4 36.2 75.6 37.8Z" fill="#3b3b3b" />
+      <path d="M52 51V57M56 51V57" stroke="#5a4a3a" stroke-width="1.2" />
+      <g transform="rotate(-8 55 62)"><rect x="44" y="55" width="22" height="14" rx="1" fill="#f3e3b3" stroke="#b39456" stroke-width="0.6" /><path d="M44 55L55 63 66 55" fill="none" stroke="#b39456" stroke-width="0.6" /><circle cx="55" cy="63" r="2.6" fill="#b3242b" /></g>
+      <g class="wing front"><path d="M49 35C43 15 31 3 14 2 24 10 32 20 38 39Z" fill="#fbfaf5" /><path d="M20 4L25 11M26 5L30 13M32 8L35 16" stroke="#a9a397" stroke-width="0.9" /></g>
+    </svg>
+  </div>
+  <div class="patronus" aria-hidden="true">
+    <svg viewBox="0 -14 200 184">
+      <g filter="url(#hw-glowf)" fill="url(#hw-silver)" stroke="#eef5ff" stroke-width="1" opacity="0.92">
+        <path d="M30 92C34 78 52 72 76 74 98 76 118 72 132 64 140 52 146 40 152 30 156 24 164 22 170 26L188 34C191 37 189 41 184 41L168 40C160 46 154 56 150 70 148 84 146 94 140 100L146 128 158 152 152 154 138 130 132 106 124 108 116 140 120 158 113 159 107 140 112 106C96 110 76 110 62 106L56 130 36 150 31 146 46 126 46 104 40 100 24 124 10 134 7 129 20 118 30 98C26 96 24 92 30 92Z" />
+        <path d="M158 28L150 21 156 33Z" />
+        <path d="M162 24C158 12 152 4 140 0M157 15C150 12 146 14 142 18M152 8C150 2 152 -2 156 -6M168 24C172 10 178 2 190 -4M173 13C180 12 186 14 190 18M178 6C178 0 176 -4 172 -9" fill="none" stroke-width="3" stroke-linecap="round" />
+        <path d="M30 90C24 86 19 88 17 93" fill="none" stroke-width="2.5" stroke-linecap="round" />
+      </g>
+    </svg>
+    <span class="patronus-say"></span>
+  </div>
 
   <footer class="quill" id="quill" aria-live="polite">
     <span class="quill-name">Messrs M. W. P. &amp; P.</span>
@@ -1037,11 +1353,14 @@
         l.push("Write a title above, and Accio will fetch it.", "Transmission stays under the Invisibility Cloak, as instructed.", "The wards around {{$host}} hold firm.", "Mischief managed.");
         return l;
       };
+      // News (a new scan, a Patronus) jumps the queue
+      const news = [];
+      window.hubNews = (line) => news.push(line);
       const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
       let i = 0;
       const say = () => {
         const all = lines();
-        const line = all[i++ % all.length];
+        const line = news.length ? news.shift() : all[i++ % all.length];
         out.classList.remove("soak");
         if (still) { out.textContent = line; setTimeout(say, 8000); return; }
         let n = 0;
@@ -1060,6 +1379,292 @@
       setTimeout(say, document.documentElement.classList.contains("boot-skip") ? 300 : 3800);
     })();
   </script>
+  <script>
+    // Life in the castle: cards inking in, people walking on the map, eyes in the portraits,
+    // parallax, the owl post and the Patronus. The moving parts run inside magic.js's single
+    // animation loop (theme/magic.js), so they stop with it: reduced motion, hidden tab.
+    document.addEventListener("DOMContentLoaded", () => {
+      const root = document.documentElement;
+      const rand = (a, b) => a + Math.random() * (b - a);
+      const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+
+      // ---- ink reveal: CSS animates, this only says when (works without magic.js) ----
+      if (root.classList.contains("ink-ready")) {
+        const io = new IntersectionObserver((entries) => {
+          let k = 0;
+          for (const e of entries) {
+            if (!e.isIntersecting) continue;
+            const el = e.target;
+            if (el.classList.contains("bot")) {
+              el.style.setProperty("--d", (k++ * 0.12).toFixed(2) + "s");
+              el.style.setProperty("--bx", rand(15, 85).toFixed(0) + "%");
+              el.style.setProperty("--by", rand(25, 75).toFixed(0) + "%");
+            }
+            el.classList.add("inked");
+            io.unobserve(el);
+          }
+        }, { rootMargin: "0px 0px -6% 0px" });
+        for (const el of document.querySelectorAll(".portrait, .bot, .map")) io.observe(el);
+      }
+
+      // ---- the Patronus: on news, or when someone types the spell ----
+      const patronus = document.querySelector(".patronus");
+      const pSay = patronus.querySelector(".patronus-say");
+      let cast = null;
+      const castPatronus = (text) => {
+        window.hubNews?.(text);
+        if (!window.Magic?.running || cast) return; // still: the quill alone tells the news
+        cast = { t: 0, dur: 6.5 };
+        pSay.textContent = text;
+        patronus.classList.add("casting");
+        cast.sw = patronus.offsetWidth || 190;
+      };
+      const form = document.querySelector(".search");
+      form.addEventListener("submit", (e) => {
+        if (!/expecto\s+patronum/i.test(form.q.value)) return;
+        e.preventDefault();
+        form.q.value = "";
+        castPatronus("Expecto Patronum!");
+      });
+      // Something new since the last visit: a One Piece scan, fills of the trading bot
+      const watch = (id, key, read, tell) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const mo = new MutationObserver(() => check());
+        const check = () => {
+          if (el.hidden) return;
+          mo.disconnect();
+          const v = read(el);
+          if (!v) return;
+          let old = null;
+          try { old = localStorage.getItem(key); localStorage.setItem(key, v); } catch {}
+          const msg = old !== null && old !== v && tell(v, old);
+          if (msg) setTimeout(() => castPatronus(msg), 1500);
+        };
+        mo.observe(el, { attributes: true, attributeFilter: ["hidden"] });
+        check();
+      };
+      const txt = (el, sel) => (el.querySelector(sel)?.textContent || "").trim().replace(/^–$/, "");
+      watch("kpiece", "hogwarts-kpiece-scan", (el) => txt(el, '[data-kp="scan"]'), (v) => `One Piece chapter ${v} is out!`);
+      watch("trading-bot", "hogwarts-tb-fills", (el) => txt(el, '[data-tb="trades"]'), (v, old) => {
+        const n = +v - +old;
+        return n > 0 && `The trading bot made ${n} new fill${n > 1 ? "s" : ""}.`;
+      });
+
+      const Magic = window.Magic;
+      if (!Magic) return;
+
+      // ---- people walking about the Marauder's Map ----
+      const map = document.getElementById("map");
+      const trails = map.querySelector(".trails");
+      const names = map.querySelector(".names");
+      const NAMES = ["Harry Potter", "Hermione Granger", "Ron Weasley", "Severus Snape", "Albus Dumbledore", "Minerva McGonagall",
+        "Argus Filch", "Rubeus Hagrid", "Luna Lovegood", "Draco Malfoy", "Neville Longbottom", "Peeves", "Sebastian Sallow",
+        "Professor Fig", "Nearly Headless Nick", "Sirius Black", "Ginny Weasley", "Remus Lupin"];
+      const STRIDE = 13;
+      const prints = [];
+      let pi = 0;
+      for (let i = 0; i < 84; i++) {
+        const f = document.createElement("i");
+        f.className = "fp";
+        trails.append(f);
+        prints.push(f);
+      }
+      const walkers = [0, 1, 2].map((i) => {
+        const label = document.createElement("span");
+        label.className = "wname";
+        names.append(label);
+        return { label, name: "", wait: 1 + i * 3.5 };
+      });
+
+      // Where one can walk: the corridors round the rooms. Rebuilt every few seconds (cards come and go)
+      let graph = null;
+      const build = () => {
+        const m = map.getBoundingClientRect();
+        const rooms = [...map.querySelectorAll(".bot")].filter((b) => !b.hidden && b.offsetParent);
+        if (!m.width || !rooms.length) return (graph = null);
+        const rel = (r) => ({ l: r.left - m.left, t: r.top - m.top, r: r.right - m.left, b: r.bottom - m.top });
+        const obst = rooms.map((b) => rel(b.getBoundingClientRect()));
+        const cart = rel(map.querySelector(".cartouche").getBoundingClientRect());
+        const box = { l: Math.min(...obst.map((o) => o.l)), t: Math.min(...obst.map((o) => o.t)), r: Math.max(...obst.map((o) => o.r)), b: Math.max(...obst.map((o) => o.b)) };
+        const top = cart.b + 8, W = m.width, H = m.height;
+        const nodes = [];
+        const add = (x, y) => {
+          x = Math.max(7, Math.min(W - 7, x));
+          y = Math.max(top, Math.min(H - 7, y));
+          if (!nodes.some((n) => Math.abs(n.x - x) < 6 && Math.abs(n.y - y) < 6)) nodes.push({ x, y });
+        };
+        for (const o of obst) { add(o.l - 9, o.t - 9); add(o.r + 9, o.t - 9); add(o.l - 9, o.b + 9); add(o.r + 9, o.b + 9); }
+        for (const [x, y] of [[box.l - 13, (box.t + box.b) / 2], [box.r + 13, (box.t + box.b) / 2], [(box.l + box.r) / 2, box.t - 17], [(box.l + box.r) / 2, box.b + 13]]) add(x, y);
+        // a name may cover a room's wall and margin, never its text
+        const text = obst.map((o) => ({ l: o.l + 12, t: o.t + 10, r: o.r - 12, b: o.b - 10 }));
+        obst.push({ l: -1e4, t: -1e4, r: 1e4, b: cart.b });
+        text.push({ l: -1e4, t: -1e4, r: 1e4, b: cart.b });
+        graph = { nodes, obst, text, W, H, top };
+      };
+      const free = (a, b) => {
+        const d = Math.hypot(b.x - a.x, b.y - a.y), n = Math.ceil(d / 5);
+        for (let i = 1; i < n; i++) {
+          const x = a.x + ((b.x - a.x) * i) / n, y = a.y + ((b.y - a.y) * i) / n;
+          for (const o of graph.obst) if (x > o.l - 2 && x < o.r + 2 && y > o.t - 2 && y < o.b + 2) return false;
+        }
+        return true;
+      };
+      const spawn = (w) => {
+        if (!graph || !graph.nodes.length) return;
+        const used = new Set(walkers.map((o) => o.name));
+        w.name = pickOne(NAMES.filter((n) => !used.has(n)));
+        w.label.textContent = w.name;
+        const n = pickOne(graph.nodes);
+        Object.assign(w, { x: n.x, y: n.y, at: n, prev: null, target: null, dist: 0, side: 1, age: 0, life: rand(30, 60), wait: rand(0, 1.5),
+          speed: w.name === "Severus Snape" ? 50 : w.name === "Peeves" ? 60 : rand(28, 40) });
+        w.lw = w.label.offsetWidth;
+      };
+      const pick = (w) => {
+        const ns = graph.nodes;
+        let c = ns.filter((n) => n !== w.at && n !== w.prev && Math.hypot(n.x - w.x, n.y - w.y) > 25 && free(w, n));
+        if (!c.length) c = ns.filter((n) => n !== w.at && free(w, n));
+        if (c.length) w.target = pickOne(c);
+        else { const n = pickOne(ns); Object.assign(w, { x: n.x, y: n.y, at: n }); }
+      };
+      const stepAt = (w, ang) => {
+        const f = prints[pi++ % prints.length];
+        const ox = -Math.sin(ang) * 3.2 * w.side, oy = Math.cos(ang) * 3.2 * w.side;
+        f.style.transform = `translate(${(w.x + ox - 4.5).toFixed(1)}px, ${(w.y + oy - 10).toFixed(1)}px) rotate(${((ang * 180) / Math.PI + 90).toFixed(1)}deg) scaleX(${w.side})`;
+        f._a?.cancel();
+        f._a = f.animate([{ opacity: 0 }, { opacity: 0.8, offset: 0.04 }, { opacity: 0.7, offset: 0.35 }, { opacity: 0 }], { duration: 5200 });
+        w.side = -w.side;
+      };
+      const walk = (w, dt) => {
+        if (!w.name) { if ((w.wait -= dt) <= 0) spawn(w); return; }
+        w.age += dt;
+        if (w.age > w.life) { w.label.classList.remove("on"); w.name = ""; w.wait = rand(1.5, 4); return; }
+        if (w.wait > 0) { w.wait -= dt; return; }
+        if (!w.target) pick(w);
+        if (!w.target) return;
+        const dx = w.target.x - w.x, dy = w.target.y - w.y, d = Math.hypot(dx, dy);
+        const ang = Math.atan2(dy, dx), mv = Math.min(d, w.speed * dt);
+        w.x += Math.cos(ang) * mv;
+        w.y += Math.sin(ang) * mv;
+        if ((w.dist += mv) >= STRIDE) { w.dist -= STRIDE; stepAt(w, ang); }
+        if (d - mv < 0.5) {
+          w.prev = w.at;
+          w.at = w.target;
+          w.target = null;
+          if (Math.random() < 0.35) w.wait = rand(0.6, 2.2); // stops to look around
+        }
+      };
+
+      // ---- portraits whose sitters look at you ----
+      const sitters = [...document.querySelectorAll(".sitter")].map((svg, i) => ({ svg, eyes: svg.querySelector(".eyes"), i, x: 0, y: 0 }));
+
+      // ---- parallax: near things move more than far ones (mouse only) ----
+      const fine = matchMedia("(pointer: fine)");
+      const layers = [[".candles.left", 22], [".candles.right", 22], [".ceiling", 12], [".banners", 7], [".mast", -3], [".pensieve", -9],
+        [".p1", 5], [".p2", 5], [".p3", 5], [".p4", 5]].flatMap(([sel, depth]) => [...document.querySelectorAll(sel)].map((el) => ({ el, depth, x: 0, y: 0 })));
+      let px = 0, py = 0;
+
+      // ---- the Pensieve breathes out silver when you lean over it ----
+      const pensieve = document.querySelector(".pensieve");
+      let lean = false;
+      pensieve.addEventListener("pointerenter", () => (lean = true));
+      pensieve.addEventListener("pointerleave", () => (lean = false));
+      pensieve.addEventListener("focus", () => (lean = true));
+      pensieve.addEventListener("blur", () => (lean = false));
+
+      // ---- the owl post ----
+      const owl = document.querySelector(".owl");
+      let flight = null, owlAt = 0, rebuildAt = 0;
+
+      Magic.onFrame((time, dt, pointer) => {
+        const W = innerWidth, H = innerHeight;
+        // read everything first, then write: no layout thrash
+        if (time > rebuildAt) { build(); rebuildAt = time + 3; }
+        const mr = map.getBoundingClientRect();
+        const mapOn = graph && mr.bottom > 0 && mr.top < H;
+        const eyeRects = sitters.map((s) => s.svg.getBoundingClientRect());
+        const pr = lean ? pensieve.getBoundingClientRect() : null;
+
+        if (mapOn) for (const w of walkers) walk(w, dt);
+        // the name rides beside the feet, wherever it covers no text; it fades out where there is no room
+        for (const w of walkers) {
+          if (!w.name || !graph) continue;
+          const spots = [[w.x - w.lw / 2, w.y - 32], [w.x - w.lw / 2, w.y + 12], [w.x + 10, w.y - 10], [w.x - w.lw - 10, w.y - 10]];
+          const spot = spots.find(([x, y]) => x > 4 && x + w.lw < graph.W - 4 && y > 0 && y + 20 < graph.H - 2 &&
+            !graph.text.some((o) => x < o.r && x + w.lw > o.l && y < o.b && y + 20 > o.t));
+          if (spot) w.label.style.transform = `translate(${spot[0].toFixed(1)}px, ${spot[1].toFixed(1)}px)`;
+          const on = !!spot && w.age < w.life - 0.6;
+          if (on !== w.label.classList.contains("on")) w.label.classList.toggle("on", on);
+        }
+
+        sitters.forEach((s, i) => {
+          const r = eyeRects[i];
+          if (r.bottom < 0 || r.top > H) return;
+          const cx = r.left + (r.width * 32) / 68, cy = r.top + (r.height * 42) / 80;
+          let tx, ty;
+          if (pointer.active) {
+            const dx = pointer.x - cx, dy = pointer.y - cy, d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 160) * 1.5;
+            tx = (dx / d) * k;
+            ty = (dy / d) * k * 0.8;
+          } else { // no mouse: they glance about
+            tx = Math.sin(time * 0.4 + i * 2) * 1.3;
+            ty = Math.sin(time * 0.27 + i) * 0.6;
+          }
+          s.x += (tx - s.x) * Math.min(1, dt * 7);
+          s.y += (ty - s.y) * Math.min(1, dt * 7);
+          s.eyes.style.transform = `translate(${s.x.toFixed(2)}px, ${s.y.toFixed(2)}px)`;
+        });
+
+        if (fine.matches && pointer.active) {
+          px += ((pointer.x / W - 0.5) - px) * Math.min(1, dt * 3);
+          py += ((pointer.y / H - 0.5) - py) * Math.min(1, dt * 3);
+          for (const l of layers) {
+            const x = -px * l.depth, y = -py * l.depth * 0.6;
+            if (Math.abs(x - l.x) + Math.abs(y - l.y) < 0.05) continue;
+            l.x = x;
+            l.y = y;
+            l.el.style.translate = `${x.toFixed(2)}px ${y.toFixed(2)}px`;
+          }
+        }
+
+        if (pr && Math.random() < 0.6) {
+          const a = rand(0, Math.PI * 2), rad = pr.width * 0.36;
+          Magic.emit(pr.left + pr.width / 2 + Math.cos(a) * rad * rand(0.2, 1), pr.top + pr.height / 2 + Math.sin(a) * rad * rand(0.2, 1),
+            { n: 1, color: "silver", speed: 30, dir: -Math.PI / 2, spread: 0.6, life: 1.6, size: 8, gravity: -26 });
+        }
+
+        // the owl crosses the hall now and then, carrying a letter
+        if (!owlAt) owlAt = time + rand(9, 18);
+        if (!flight && time > owlAt) {
+          flight = { t: 0, dur: rand(9, 13), dir: Math.random() < 0.5 ? 1 : -1, y: rand(H * 0.12, H * 0.5) };
+          owl.classList.add("flying");
+        }
+        if (flight) {
+          flight.t += dt / flight.dur;
+          if (flight.t >= 1) { flight = null; owl.classList.remove("flying"); owlAt = time + rand(50, 110); }
+          else {
+            const k = flight.t, x = flight.dir > 0 ? -120 + (W + 240) * k : W + 120 - (W + 240) * k;
+            const y = flight.y + Math.sin(k * Math.PI * 3) * 18 - k * 40;
+            owl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scaleX(${flight.dir})`;
+          }
+        }
+
+        // the Patronus gallops across, shedding silver
+        if (cast) {
+          cast.t += dt / cast.dur;
+          const k = cast.t;
+          if (k >= 1) { cast = null; patronus.classList.remove("casting"); }
+          else {
+            const x = -220 + (W + 280) * k, y = H * 0.42 - 90 - Math.abs(Math.sin(k * Math.PI * 7)) * 22;
+            patronus.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${(Math.sin(k * Math.PI * 14) * 3).toFixed(2)}deg)`;
+            patronus.style.opacity = Math.min(1, k / 0.1, (1 - k) / 0.18).toFixed(2);
+            Magic.emit(x + rand(0.1, 0.7) * cast.sw, y + rand(0.3, 0.85) * cast.sw, { n: 2, color: "silver", speed: 26, life: 1.4, size: 10, gravity: -10 });
+          }
+        }
+      });
+    });
+  </script>
+  <script src="/theme/magic.js" defer></script>
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
   <script src="/sapling-sunrise.js" defer></script>

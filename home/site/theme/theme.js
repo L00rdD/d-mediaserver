@@ -8,6 +8,9 @@
 // page is drawn. On a <body class="t-app"> it also adds the hub bar: a link back to the
 // hub and a theme switch. window.Theme is there for scripts: Theme.name, Theme.set(name),
 // Theme.color("accent") and Theme.onChange(fn).
+//
+// The Hogwarts look also loads magic.js (dust, sparks, the Snitch, gilt that draws itself),
+// and stops it when the look changes. <body data-t-calm> or reduced motion keep it still.
 (() => {
   const THEMES = ["reactor", "cyberpunk", "hogwarts"];
   const LABELS = { reactor: "Reactor", cyberpunk: "Cyberpunk", hogwarts: "Hogwarts" };
@@ -24,9 +27,23 @@
     return m && THEMES.includes(m[1]) ? m[1] : "reactor";
   };
 
+  // magic.js only while the look is Hogwarts; it starts by itself once loaded
+  let magicLoading = false;
+  const magic = (name) => {
+    if (name !== "hogwarts") return window.Magic?.stop();
+    if (window.Magic) return window.Magic.start();
+    if (magicLoading) return;
+    magicLoading = true;
+    const s = document.createElement("script");
+    s.src = hub + "/theme/magic.js";
+    s.async = true;
+    document.head.append(s);
+  };
+
   const apply = (name) => {
     if (root.dataset.theme === name) return;
     root.dataset.theme = name;
+    magic(name);
     if (bar) for (const b of bar.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.value === name));
     for (const fn of listeners) fn(name);
   };

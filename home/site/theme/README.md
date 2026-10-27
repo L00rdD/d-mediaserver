@@ -6,6 +6,7 @@ The hub serves it at `http://<host>/theme/`:
 
 - `theme.css`: the `--t-*` variables of each look, and the `.t-*` components.
 - `theme.js`: picks the look and adds the hub bar.
+- `magic.js`: the moving magic of the Hogwarts look. `theme.js` loads it by itself (see below).
 - `fonts/`: Michroma, Rajdhani, Cinzel and IM Fell English, all under the SIL Open Font License (`OFL-*.txt`).
 
 ## How a page knows the look
@@ -69,6 +70,34 @@ The cookie belongs to the name used in the address. A page opened as `192.168.1.
 | `--t-font-display`, `--t-font-body`, `--t-font-mono` | fonts |
 | `--t-glow` | text-shadow for titles |
 
+## Hogwarts magic
+
+While the look is Hogwarts, `theme.js` also loads `magic.js`. It stops it when the look changes and starts it again when the look comes back, so a project has nothing to do. It draws on one canvas laid over the page, which lets clicks through and pauses while the tab is hidden:
+
+- golden dust drifting in the candlelight;
+- a trail of sparks behind the mouse, like a wand (not on touch screens, where a finger scrolls);
+- a *Lumos* burst where you click;
+- now and then a Golden Snitch darting across the screen (click it to catch it).
+
+It also animates the kit components, without changing their layout:
+
+- each `.t-panel` draws gold filigree in its corners, and fades in, when it comes into view. A glint runs along its gilt rule now and then. For this `magic.js` adds a `<span class="t-filigree">` inside the panel, and sets `position: relative` on it if it had none. Panels that scroll (`overflow: auto`) are left alone. Panels a page draws later get the filigree too, but without fading in, so a page that redraws its panels does not flicker;
+- `.t-title` shimmers like liquid gold, `.t-heading` stars twinkle, and `.t-bar` gauges ripple with a glint passing through.
+
+To keep a page still, put `data-t-calm` on its `<body>` (a page where people read figures for a long time, a kiosk). Reduced motion in the system settings (`prefers-reduced-motion`) keeps every page still too. The look itself stays: only the movement goes.
+
+A page can add its own magic through `window.Magic`, which exists once `magic.js` is loaded:
+
+| Call | Does |
+|---|---|
+| `Magic.running` | `true` while the magic plays |
+| `Magic.emit(x, y, { n, color, speed, life, size, dir, spread, gravity })` | sparks at a point of the window; `color` is `"gold"`, `"silver"` or `"white"`; a negative `gravity` makes them rise |
+| `Magic.burst(x, y, color)` | a *Lumos* burst |
+| `Magic.snitch()` | sends the Snitch now |
+| `Magic.onFrame(fn)` | runs `fn(time, dt, pointer)` in the same animation frame as the canvas; the hub's walkers, portraits, owl and Patronus use it |
+
+A page that sets `<html data-theme="hogwarts">` by itself, as the hub's `hogwarts.html` does, can load `magic.js` with a plain `<script src="/theme/magic.js" defer>`: it starts by itself.
+
 ## Add a look
 
-Add its tokens and its component variants in `theme.css` (copy a `[data-theme="reactor"]` block). Then add its name to `THEMES` and `LABELS` in `theme.js` and to the `/style/` regexp in the Caddyfile, and give the hub a page for it, as `reactor.html` and `cyberpunk.html` are.
+Add its tokens and its component variants in `theme.css` (copy a `[data-theme="reactor"]` block). Then add its name to `THEMES` and `LABELS` in `theme.js` and to the `/style/` regexp in the Caddyfile, and give the hub a page for it, as `reactor.html`, `cyberpunk.html` and `hogwarts.html` are.
