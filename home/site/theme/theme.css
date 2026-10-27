@@ -69,7 +69,7 @@
   --t-glow: 0 0 16px rgba(255, 97, 88, 0.45);
 }
 
-/* Hogwarts at night: candlelit gold on ink, parchment text, Gryffindor scarlet for what matters */
+/* Hogwarts, the Great Hall at night: candlelit gold on the dark, ink on parchment in panels, Gryffindor scarlet for what matters */
 :root[data-theme="hogwarts"] {
   color-scheme: dark;
   --t-bg: #0b0a12;
@@ -95,6 +95,14 @@
   /* Figures: IM Fell's are old-style and uneven, so data takes a book serif with lining ones */
   --t-font-mono: "Hoefler Text", "Iowan Old Style", Baskerville, "Baskerville Old Face", "Times New Roman", serif;
   --t-glow: 0 0 14px rgba(255, 196, 92, 0.4);
+  /* the pictures of the hall, for pages that draw more of it (the hub): a sheet of parchment
+     (grain, fibres, stains), its four torn edges as mask half-planes, the candle flame */
+  --t-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520' viewBox='0 0 520 520'%3E %3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .2 0 0 0 0 .08 0 0 0 -1.4 .9'/%3E%3C/filter%3E %3Cfilter id='s' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='1' seed='21' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .28 0 0 0 0 .16 0 0 0 0 .05 0 0 0 -30 9.6'/%3E%3C/filter%3E %3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.03 .45' numOctaves='2' seed='8' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .24 0 0 0 0 .1 0 0 0 -5 2.45'/%3E%3C/filter%3E %3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.008' numOctaves='4' seed='12' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .46 0 0 0 0 .28 0 0 0 0 .1 0 0 0 -3 1.6'/%3E%3C/filter%3E %3Crect width='520' height='520' filter='url(%23m)' opacity='.8'/%3E %3Crect width='520' height='520' filter='url(%23f)' opacity='.16'/%3E %3Crect width='520' height='520' filter='url(%23g)' opacity='.16'/%3E %3Crect width='520' height='520' filter='url(%23s)' opacity='.22'/%3E %3C/svg%3E");
+  --t-edge-top: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0.0 4.8 4.0 3.9 8.0 4.7 12.0 4.0 16.0 2.8 20.0 3.4 24.0 4.8 28.0 4.4 32.0 3.2 36.0 2.1 40.0 3.1 44.0 3.9 48.0 2.3 52.0 2.8 56.0 4.2 60.0 3.0 64.0 2.3 68.0 2.4 72.0 3.7 76.0 3.0 80.0 2.5 84.0 3.9 88.0 4.4 92.0 2.9 96.0 2.0 100.0 2.6 104.0 2.0 108.0 1.2 112.0 2.1 116.0 3.6 120.0 4.3 124.0 3.6 128.0 2.1 132.0 2.1 136.0 3.4 140.0 4.4 144.0 3.9 148.0 2.4 152.0 1.2 156.0 1.7 160.0 2.4 164.0 2.3 168.0 1.8 172.0 3.5 176.0 3.1 180.0 3.0 184.0 2.4 188.0 3.5 192.0 3.7 196.0 2.3 200.0 2.5 204.0 4.7 208.0 4.9 212.0 4.2 216.0 4.4 220.0 3.3 224.0 2.1 228.0 1.7 232.0 2.5 236.0 2.7 240.0 3.6 244.0 4.9 248.0 4.1 252.0 3.2 256.0 3.1 260.0 2.2 264.0 2.8 268.0 3.1 272.0 3.9 276.0 5.0 280.0 4.0 284.0 3.4 288.0 2.8 292.0 2.5 296.0 2.0 300.0 2.0 304.0 1.9 308.0 1.8 312.0 2.6 316.0 1.7 320.0 1.7 324.0 2.2 328.0 2.9 332.0 1.9 336.0 0.8 340.0 1.9 344.0 3.2 348.0 2.9 352.0 1.7 356.0 1.2 360.0 2.7 364.0 2.9 368.0 2.0 372.0 2.0 376.0 2.2 380.0 2.6 384.0 1.9 388.0 1.9 392.0 2.0 396.0 1.4 400.0 2.2 404.0 3.3 408.0 4.1 412.0 4.3 416.0 2.9 420.0 1.0 424.0 1.4 428.0 3.0 432.0 3.5 436.0 3.9 440.0 4.7 444.0 3.3 448.0 2.3 452.0 2.2 456.0 2.5 460.0 2.4 464.0 2.7 468.0 3.6 472.0 4.3 476.0 3.5 480.0 4.0 484.0 4.1 488.0 3.3 492.0 1.7 496.0 2.6 500.0 3.1 504.0 4.2 508.0 3.8 512.0 4.4 516.0 4.7 520.0 3.9 524.0 4.6 528.0 3.9 532.0 2.3 536.0 2.5 540.0 2.9 544.0 3.4 548.0 3.7 552.0 3.7 556.0 3.7 560.0 3.4 564.0 3.5 568.0 3.6 572.0 3.0 576.0 2.4 580.0 1.9 584.0 2.0 588.0 3.8 592.0 4.5 596.0 3.3 600.0 4.1 604.0 2.5 608.0 2.8 612.0 4.3 616.0 3.7 620.0 2.8 624.0 2.9 628.0 3.4 632.0 4.0 636.0 3.7 640.0 4.8V8H0Z'/%3E%3Crect y='7.5' width='100%25' height='100%25'/%3E%3C/svg%3E");
+  --t-edge-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' x='-7.5'/%3E%3Csvg x='100%25' overflow='visible'%3E%3Cpath transform='translate(-8 0)' d='M0 0 5.0 0.0 4.4 4.0 3.1 8.0 4.8 12.0 5.7 16.0 4.2 20.0 3.9 24.0 4.1 28.0 5.4 32.0 6.2 36.0 6.6 40.0 5.3 44.0 5.8 48.0 4.7 52.0 3.7 56.0 4.1 60.0 5.0 64.0 5.4 68.0 3.7 72.0 3.2 76.0 3.5 80.0 5.2 84.0 5.8 88.0 5.4 92.0 5.7 96.0 5.5 100.0 3.9 104.0 5.5 108.0 6.0 112.0 5.4 116.0 4.6 120.0 4.1 124.0 4.5 128.0 4.9 132.0 5.7 136.0 5.4 140.0 6.3 144.0 6.0 148.0 5.0 152.0 4.9 156.0 5.2 160.0 5.1 164.0 3.7 168.0 3.3 172.0 3.2 176.0 3.5 180.0 3.9 184.0 4.7 188.0 5.8 192.0 5.1 196.0 4.5 200.0 4.6 204.0 3.3 208.0 3.9 212.0 4.8 216.0 5.4 220.0 5.1 224.0 4.2 228.0 3.7 232.0 5.0 236.0 6.5 240.0 6.1 244.0 3.9 248.0 3.2 252.0 4.1 256.0 5.1 260.0 4.1 264.0 4.7 268.0 5.0 272.0 4.6 276.0 4.0 280.0 4.4 284.0 6.5 288.0 6.5 292.0 5.3 296.0 4.3 300.0 5.0 304.0 5.0 308.0 6.2 312.0 6.9 316.0 5.6 320.0 4.1 324.0 4.0 328.0 5.0 332.0 3.9 336.0 3.5 340.0 3.4 344.0 3.5 348.0 3.8 352.0 3.0 356.0 3.3 360.0 3.2 364.0 4.0 368.0 4.8 372.0 5.2 376.0 5.6 380.0 4.5 384.0 6.1 388.0 5.9 392.0 4.6 396.0 4.0 400.0 3.7 404.0 4.7 408.0 6.0 412.0 6.2 416.0 6.0 420.0 6.1 424.0 6.5 428.0 6.8 432.0 5.7 436.0 3.0 440.0 3.4 444.0 3.4 448.0 4.5 452.0 4.8 456.0 4.5 460.0 4.0 464.0 5.3 468.0 6.0 472.0 5.6 476.0 4.3 480.0 3.8 484.0 3.4 488.0 4.7 492.0 5.0 496.0 4.4 500.0 3.8 504.0 5.0 508.0 5.7 512.0 4.8 516.0 4.8 520.0 5.5 524.0 4.9 528.0 4.4 532.0 5.5 536.0 5.0 540.0 4.3 544.0 3.4 548.0 4.2 552.0 4.4 556.0 3.2 560.0 3.2 564.0 3.7 568.0 6.2 572.0 6.0 576.0 5.9 580.0 6.0 584.0 6.4 588.0 5.8 592.0 3.9 596.0 4.4 600.0 5.5 604.0 5.5 608.0 4.4 612.0 4.4 616.0 5.6 620.0 6.6 624.0 6.5 628.0 5.2 632.0 4.6 636.0 5.0 640.0H0V0Z'/%3E%3C/svg%3E%3C/svg%3E");
+  --t-edge-bottom: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' y='-7.5'/%3E%3Csvg y='100%25' overflow='visible'%3E%3Cpath transform='translate(0 -8)' d='M0.0 5.2 4.0 5.5 8.0 5.9 12.0 4.4 16.0 5.2 20.0 5.6 24.0 5.5 28.0 4.7 32.0 4.1 36.0 4.2 40.0 4.4 44.0 4.5 48.0 4.6 52.0 3.8 56.0 3.8 60.0 3.5 64.0 4.7 68.0 5.3 72.0 3.9 76.0 4.8 80.0 5.6 84.0 5.1 88.0 4.2 92.0 3.7 96.0 3.1 100.0 3.6 104.0 2.4 108.0 2.8 112.0 3.4 116.0 4.3 120.0 5.2 124.0 4.7 128.0 4.8 132.0 3.9 136.0 2.8 140.0 4.0 144.0 5.3 148.0 4.2 152.0 4.2 156.0 6.2 160.0 5.9 164.0 5.5 168.0 5.3 172.0 4.0 176.0 4.0 180.0 4.8 184.0 5.1 188.0 4.3 192.0 4.2 196.0 5.5 200.0 4.9 204.0 5.3 208.0 5.7 212.0 5.0 216.0 5.2 220.0 4.9 224.0 4.7 228.0 5.5 232.0 5.3 236.0 4.4 240.0 4.9 244.0 5.1 248.0 4.9 252.0 3.3 256.0 2.8 260.0 3.5 264.0 4.8 268.0 5.5 272.0 4.4 276.0 5.2 280.0 5.7 284.0 5.8 288.0 6.0 292.0 6.0 296.0 6.8 300.0 6.9 304.0 4.5 308.0 3.6 312.0 4.9 316.0 5.2 320.0 5.0 324.0 5.9 328.0 5.7 332.0 3.8 336.0 3.6 340.0 3.6 344.0 4.0 348.0 4.5 352.0 4.6 356.0 4.5 360.0 3.1 364.0 2.9 368.0 3.2 372.0 3.8 376.0 4.7 380.0 5.2 384.0 3.8 388.0 2.7 392.0 3.1 396.0 4.0 400.0 5.8 404.0 5.4 408.0 4.6 412.0 5.4 416.0 6.2 420.0 4.5 424.0 5.0 428.0 6.3 432.0 6.0 436.0 4.3 440.0 4.7 444.0 6.6 448.0 6.5 452.0 5.4 456.0 5.0 460.0 5.6 464.0 5.9 468.0 6.2 472.0 5.5 476.0 6.1 480.0 5.0 484.0 3.7 488.0 3.4 492.0 4.1 496.0 5.6 500.0 5.3 504.0 4.7 508.0 6.3 512.0 6.2 516.0 5.6 520.0 4.1 524.0 3.3 528.0 3.1 532.0 4.9 536.0 6.2 540.0 6.3 544.0 6.7 548.0 5.8 552.0 5.9 556.0 5.0 560.0 4.4 564.0 4.3 568.0 6.2 572.0 5.1 576.0 5.0 580.0 6.2 584.0 6.5 588.0 5.9 592.0 5.3 596.0 5.9 600.0 5.1 604.0 3.1 608.0 3.5 612.0 5.4 616.0 5.2 620.0 5.9 624.0 5.6 628.0 3.6 632.0 3.2 636.0 4.6 640.0 5.2V0H0Z'/%3E%3C/svg%3E%3C/svg%3E");
+  --t-edge-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 4.2 0.0 5.2 4.0 3.7 8.0 2.7 12.0 2.7 16.0 3.4 20.0 2.4 24.0 2.2 28.0 1.5 32.0 2.7 36.0 2.4 40.0 1.6 44.0 1.6 48.0 1.5 52.0 2.9 56.0 2.8 60.0 3.7 64.0 3.1 68.0 2.7 72.0 2.1 76.0 3.5 80.0 4.2 84.0 4.4 88.0 5.1 92.0 4.4 96.0 3.3 100.0 3.9 104.0 3.6 108.0 3.0 112.0 2.9 116.0 2.4 120.0 1.4 124.0 3.0 128.0 3.7 132.0 3.7 136.0 3.3 140.0 3.8 144.0 3.5 148.0 2.3 152.0 2.7 156.0 3.1 160.0 1.9 164.0 0.8 168.0 1.4 172.0 0.9 176.0 2.0 180.0 3.2 184.0 3.9 188.0 2.9 192.0 2.7 196.0 2.1 200.0 2.6 204.0 3.8 208.0 3.5 212.0 2.5 216.0 2.0 220.0 4.0 224.0 4.9 228.0 4.3 232.0 2.5 236.0 3.3 240.0 4.6 244.0 4.7 248.0 3.5 252.0 3.7 256.0 4.4 260.0 3.9 264.0 3.3 268.0 2.6 272.0 3.4 276.0 4.1 280.0 4.7 284.0 4.9 288.0 5.0 292.0 4.5 296.0 4.6 300.0 3.9 304.0 3.4 308.0 4.1 312.0 2.9 316.0 1.3 320.0 1.9 324.0 2.2 328.0 3.3 332.0 4.4 336.0 4.5 340.0 2.4 344.0 1.9 348.0 2.7 352.0 2.8 356.0 3.3 360.0 3.6 364.0 2.3 368.0 3.4 372.0 3.8 376.0 3.1 380.0 2.7 384.0 3.8 388.0 4.8 392.0 5.2 396.0 4.2 400.0 3.6 404.0 4.1 408.0 4.1 412.0 3.2 416.0 2.5 420.0 2.4 424.0 4.5 428.0 4.5 432.0 3.7 436.0 3.3 440.0 3.1 444.0 2.7 448.0 2.4 452.0 3.1 456.0 3.3 460.0 3.8 464.0 3.7 468.0 3.5 472.0 2.7 476.0 2.5 480.0 3.5 484.0 4.4 488.0 3.3 492.0 2.8 496.0 3.2 500.0 3.0 504.0 2.3 508.0 2.3 512.0 3.7 516.0 2.5 520.0 3.5 524.0 3.1 528.0 3.2 532.0 2.1 536.0 2.7 540.0 2.8 544.0 2.4 548.0 2.7 552.0 4.0 556.0 4.1 560.0 3.1 564.0 3.6 568.0 2.6 572.0 2.7 576.0 3.6 580.0 3.3 584.0 4.4 588.0 4.6 592.0 3.9 596.0 3.8 600.0 4.1 604.0 3.8 608.0 2.6 612.0 2.6 616.0 1.9 620.0 3.2 624.0 4.0 628.0 2.7 632.0 3.5 636.0 4.2 640.0H8V0Z'/%3E%3Crect x='7.5' width='100%25' height='100%25'/%3E%3C/svg%3E");
+  --t-flame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 48'%3E %3Cdefs%3E %3CradialGradient id='o' cx='12' cy='35' r='17' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.22' stop-color='%23fff6cc'/%3E%3Cstop offset='.46' stop-color='%23ffd05c'/%3E%3Cstop offset='.74' stop-color='%23ff9428'/%3E%3Cstop offset='1' stop-color='%23ff6a10' stop-opacity='0'/%3E%3C/radialGradient%3E %3CradialGradient id='k' cx='12' cy='36' r='7' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.6' stop-color='%23fffbea'/%3E%3Cstop offset='1' stop-color='%23fff2c0' stop-opacity='0'/%3E%3C/radialGradient%3E %3CradialGradient id='b' cx='12' cy='41' r='2.2' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%238fb8ff' stop-opacity='.7'/%3E%3Cstop offset='1' stop-color='%233a66d8' stop-opacity='0'/%3E%3C/radialGradient%3E %3Cfilter id='f' x='-60%25' y='-40%25' width='220%25' height='180%25'%3E%3CfeGaussianBlur stdDeviation='1.7'/%3E%3C/filter%3E %3Cfilter id='g' x='-30%25' y='-20%25' width='160%25' height='140%25'%3E%3CfeGaussianBlur stdDeviation='.4'/%3E%3C/filter%3E %3C/defs%3E %3Cpath d='M12 5C14.6 13.6 19.4 21.4 18.9 31 18.5 38.6 15.4 43 12 43 8.6 43 5.5 38.6 5.1 31 4.6 21.4 9.4 13.6 12 5Z' fill='%23ff8a24' opacity='.5' filter='url(%23f)'/%3E %3Cpath d='M12 8C13.7 15.6 17.2 22.8 16.8 31 16.5 37.4 14.5 41.4 12 41.4 9.5 41.4 7.5 37.4 7.2 31 6.8 22.8 10.3 15.6 12 8Z' fill='url(%23o)' filter='url(%23g)'/%3E %3Cpath d='M12 21C13.1 26 14.6 30 14.3 34.4 14.1 37.8 13.2 39.8 12 39.8 10.8 39.8 9.9 37.8 9.7 34.4 9.4 30 10.9 26 12 21Z' fill='url(%23k)'/%3E %3Cellipse cx='12' cy='40.6' rx='1.8' ry='1.6' fill='url(%23b)'/%3E %3C/svg%3E");
 }
 
 /* ---------- page: <body class="t-app"> ---------- */
@@ -126,17 +134,18 @@
     var(--t-bg);
   background-attachment: fixed;
 }
+/* Hogwarts: the enchanted ceiling of the Great Hall, a night sky melting into the dark of the
+   hall. The stars, clouds and floating candles are drawn by magic.js behind the page (.t-hall) */
+:root[data-theme="hogwarts"] {
+  background:
+    radial-gradient(ellipse 34% 26% at 80% 3%, rgba(196, 210, 248, 0.16), transparent 70%),
+    radial-gradient(ellipse 110% 55% at 50% -6%, rgba(46, 66, 124, 0.5), transparent 72%),
+    linear-gradient(#0e1530 0, #121a37 16%, #0e1127 40%, #0b0a12 68%) fixed,
+    var(--t-bg);
+}
 [data-theme="hogwarts"] body.t-app {
   font-size: 17px;
-  background:
-    radial-gradient(ellipse at 50% -10%, rgba(255, 190, 90, 0.16), transparent 55%),
-    radial-gradient(ellipse at 100% 100%, rgba(111, 155, 224, 0.08), transparent 50%),
-    radial-gradient(1px 1px at 12% 18%, rgba(243, 227, 179, 0.5), transparent),
-    radial-gradient(1px 1px at 78% 9%, rgba(243, 227, 179, 0.4), transparent),
-    radial-gradient(1px 1px at 41% 31%, rgba(243, 227, 179, 0.35), transparent),
-    radial-gradient(1px 1px at 91% 44%, rgba(243, 227, 179, 0.3), transparent),
-    var(--t-bg);
-  background-attachment: fixed;
+  background: transparent;
 }
 /* Scanlines and vignette over the whole screen */
 [data-theme] body.t-app::after {
@@ -149,11 +158,9 @@
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0 1px, transparent 1px 3px),
     radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.5));
 }
-/* Hogwarts: no screen, so no scanlines; a candlelit vignette and a parchment grain */
+/* Hogwarts: no screen, so no scanlines; the dark of the hall closing in at the edges */
 [data-theme="hogwarts"] body.t-app::after {
-  background:
-    repeating-radial-gradient(circle at 30% 40%, rgba(243, 227, 179, 0.012) 0 1px, transparent 1px 3px),
-    radial-gradient(ellipse at center, transparent 55%, rgba(5, 3, 8, 0.65));
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(5, 3, 8, 0.6));
 }
 [data-theme] body.t-app a { color: var(--t-accent); }
 [data-theme] body.t-app a:hover { color: var(--t-accent-2); }
@@ -265,19 +272,100 @@
     var(--t-surface);
   box-shadow: inset 3px 0 0 var(--t-accent);
 }
-/* Hogwarts: a page of parchment in the dark, double gilt rule like a book binding */
-[data-theme="hogwarts"] .t-panel {
-  border: 1px solid var(--t-accent-soft);
-  border-radius: 3px;
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 196, 92, 0.08), transparent 70%),
-    var(--t-surface);
-  box-shadow: inset 0 0 0 3px var(--t-bg), inset 0 0 0 4px var(--t-line), 0 8px 30px rgba(0, 0, 0, 0.45);
-}
 /* Make one panel stand out: the main action, the tracked item */
 [data-theme="reactor"] .t-panel.t-main { --c: var(--t-highlight); }
 [data-theme="cyberpunk"] .t-panel.t-main { border-color: var(--t-highlight); box-shadow: inset 4px 0 0 var(--t-highlight); }
-[data-theme="hogwarts"] .t-panel.t-main { border-color: var(--t-accent); box-shadow: inset 0 0 0 3px var(--t-bg), inset 0 0 0 4px var(--t-highlight), 0 0 24px rgba(255, 196, 92, 0.18); }
+
+/* Hogwarts: a sheet of old parchment written in iron-gall ink. The paper is the panel's own
+   background (grain, fibres, stains, a scorched rim), the deckled edge is a mask, so nothing
+   is added to the page and a redrawn panel is dressed at once. Inside the sheet the tokens
+   turn to ink; see "Ink on parchment" in README.md */
+[data-theme="hogwarts"] .t-panel {
+  --t-text: #2b1d0e;
+  --t-muted: #6a5232;
+  --t-accent: #7b4f14;
+  --t-accent-soft: rgba(123, 79, 20, 0.42);
+  --t-accent-faint: rgba(123, 79, 20, 0.09);
+  --t-accent-2: #8e1d1d;
+  --t-line: rgba(74, 48, 18, 0.24);
+  --t-surface: transparent;
+  --t-progress: #b07d22;
+  --t-up: #2d6a36;
+  --t-down: #a3211f;
+  --t-series-1: #8a5a12;
+  --t-series-2: #24508f;
+  --t-series-3: #a3211f;
+  --t-series-4: #3a2a18;
+  --t-glow: none;
+  /* the names projects usually give these tokens (--text: var(--t-text) on :root) are
+     resolved on :root, in candlelight colours: inside the sheet they are pointed at the ink */
+  --text: var(--t-text);
+  --muted: var(--t-muted);
+  --line: var(--t-line);
+  --accent: var(--t-accent);
+  --cyan: var(--t-accent);
+  --cyan-soft: var(--t-accent-soft);
+  --cyan-faint: var(--t-line);
+  --green: var(--t-accent);
+  --up: var(--t-up);
+  --down: var(--t-down);
+  --s1: var(--t-series-1);
+  --s2: var(--t-series-2);
+  --s3: var(--t-series-3);
+  --s4: var(--t-series-4);
+  --t-eo: 0px;  /* where the deckle starts: each sheet tears differently */
+  color: var(--t-text);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    var(--t-rule, linear-gradient(transparent, transparent)),
+    /* scorched rim, darker right at the edge */
+    linear-gradient(rgba(64, 36, 10, 0.55), rgba(110, 70, 26, 0.16) 7px, transparent 20px),
+    linear-gradient(0deg, rgba(64, 36, 10, 0.55), rgba(110, 70, 26, 0.16) 7px, transparent 20px),
+    linear-gradient(90deg, rgba(64, 36, 10, 0.55), rgba(110, 70, 26, 0.16) 7px, transparent 20px),
+    linear-gradient(270deg, rgba(64, 36, 10, 0.55), rgba(110, 70, 26, 0.16) 7px, transparent 20px),
+    /* foxing: a few rust spots and a water stain */
+    radial-gradient(circle at var(--t-fx, 86%) 18%, rgba(140, 80, 25, 0.22) 0 1.5px, rgba(150, 95, 35, 0.08) 3px, transparent 6px),
+    radial-gradient(circle at 12% var(--t-fy, 78%), rgba(140, 80, 25, 0.18) 0 2px, rgba(150, 95, 35, 0.06) 4px, transparent 8px),
+    radial-gradient(ellipse 30% 22% at var(--t-sx, 72%) var(--t-sy, 64%), rgba(160, 110, 45, 0.1), rgba(160, 110, 45, 0.04) 70%, transparent 72%),
+    var(--t-paper) var(--t-eo) 0 / 520px 520px,
+    radial-gradient(ellipse 130% 110% at 45% 35%, #f3e6c4 0, #ead7aa 50%, #d6b97f 100%);
+  /* four torn half-planes, intersected: the corners tear as the edges do */
+  -webkit-mask:
+    var(--t-edge-top) var(--t-eo) 0 / 640px 100% repeat-x,
+    var(--t-edge-bottom) calc(var(--t-eo) * -1.7) 0 / 640px 100% repeat-x,
+    var(--t-edge-left) 0 calc(var(--t-eo) * 0.6) / 100% 640px repeat-y,
+    var(--t-edge-right) 0 calc(var(--t-eo) * -1.3) / 100% 640px repeat-y;
+  -webkit-mask-composite: source-in;
+  mask:
+    var(--t-edge-top) var(--t-eo) 0 / 640px 100% repeat-x,
+    var(--t-edge-bottom) calc(var(--t-eo) * -1.7) 0 / 640px 100% repeat-x,
+    var(--t-edge-left) 0 calc(var(--t-eo) * 0.6) / 100% 640px repeat-y,
+    var(--t-edge-right) 0 calc(var(--t-eo) * -1.3) / 100% 640px repeat-y;
+  mask-composite: intersect;
+  rotate: var(--t-tilt, 0deg);
+}
+/* each sheet a little different: torn elsewhere, stained elsewhere, laid a little askew */
+[data-theme="hogwarts"] .t-panel:nth-child(4n + 1) { --t-eo: 0px; --t-tilt: -0.3deg; }
+[data-theme="hogwarts"] .t-panel:nth-child(4n + 2) { --t-eo: 230px; --t-tilt: 0.25deg; --t-fx: 9%; --t-fy: 30%; --t-sx: 24%; --t-sy: 70%; }
+[data-theme="hogwarts"] .t-panel:nth-child(4n + 3) { --t-eo: 410px; --t-tilt: -0.15deg; --t-fx: 62%; --t-fy: 88%; --t-sx: 82%; --t-sy: 26%; }
+[data-theme="hogwarts"] .t-panel:nth-child(4n + 4) { --t-eo: 120px; --t-tilt: 0.35deg; --t-fx: 30%; --t-fy: 12%; --t-sx: 40%; --t-sy: 80%; }
+/* figures in a table are read along rows: those sheets lie straight */
+[data-theme="hogwarts"] .t-panel:has(table) { --t-tilt: 0deg; }
+/* The one that matters: a gilt double rule inside the edge, like an illuminated page */
+[data-theme="hogwarts"] .t-panel.t-main {
+  --g: rgba(166, 116, 34, 0.7);
+  --t-rule:
+    linear-gradient(var(--g), var(--g)) 10px 10px / calc(100% - 20px) 1px no-repeat,
+    linear-gradient(var(--g), var(--g)) 10px calc(100% - 10px) / calc(100% - 20px) 1px no-repeat,
+    linear-gradient(var(--g), var(--g)) 10px 10px / 1px calc(100% - 20px) no-repeat,
+    linear-gradient(var(--g), var(--g)) calc(100% - 10px) 10px / 1px calc(100% - 20px) no-repeat,
+    linear-gradient(var(--g), var(--g)) 14px 14px / calc(100% - 28px) 2px no-repeat,
+    linear-gradient(var(--g), var(--g)) 14px calc(100% - 14px) / calc(100% - 28px) 2px no-repeat,
+    linear-gradient(var(--g), var(--g)) 14px 14px / 2px calc(100% - 28px) no-repeat,
+    linear-gradient(var(--g), var(--g)) calc(100% - 14px) 14px / 2px calc(100% - 28px) no-repeat;
+}
 
 /* ---------- figures: <dl class="t-stats"><div><dt>..</dt><dd>..</dd></div></dl> ---------- */
 
@@ -364,46 +452,146 @@
 
 @media (max-width: 600px) { [data-theme] .t-hubbar { padding: 8px 16px; } }
 
-/* ---------- Hogwarts magic: only while magic.js runs (it adds html.t-magic) ---------- */
+/* ---------- Hogwarts: the hall behind the page, built by magic.js ---------- */
 
-/* Gold filigree drawn round each panel as it comes into view; magic.js adds the .t-filigree span */
-.t-filigree { display: none; }
-[data-theme="hogwarts"].t-magic .t-filigree { display: block; position: absolute; inset: -1px; z-index: 1; border-radius: inherit; pointer-events: none; }
-[data-theme="hogwarts"].t-magic .t-corner { position: absolute; width: 34px; height: 34px; }
-[data-theme="hogwarts"].t-magic .t-tl { top: -5px; left: -5px; }
-[data-theme="hogwarts"].t-magic .t-tr { top: -5px; right: -5px; transform: scaleX(-1); }
-[data-theme="hogwarts"].t-magic .t-bl { bottom: -5px; left: -5px; transform: scaleY(-1); }
-[data-theme="hogwarts"].t-magic .t-br { bottom: -5px; right: -5px; transform: scale(-1); }
-[data-theme="hogwarts"].t-magic .t-corner svg { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke: var(--t-accent); stroke-width: 1.1; stroke-linecap: round; }
-[data-theme="hogwarts"].t-magic .t-corner path { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.5s cubic-bezier(0.5, 0, 0.2, 1) 0.2s; }
-[data-theme="hogwarts"].t-magic .t-corner .t-gem { fill: var(--t-accent-2); stroke: none; opacity: 0; transition: opacity 0.6s 1.3s; }
-[data-theme="hogwarts"].t-magic .t-ink .t-corner path { stroke-dashoffset: 0; }
-[data-theme="hogwarts"].t-magic .t-ink .t-corner .t-gem { opacity: 1; }
-[data-theme="hogwarts"].t-magic .t-ink-now .t-corner path, [data-theme="hogwarts"].t-magic .t-ink-now .t-corner .t-gem { transition: none; }
-/* The panel inks itself in: off-screen ones wait, then rise and fade in */
-[data-theme="hogwarts"].t-magic .t-panel.t-ink-wait { opacity: 0; transform: translateY(14px) scale(0.985); }
-[data-theme="hogwarts"].t-magic .t-panel.t-ink:not(.t-ink-now) { animation: t-ink-in 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) backwards; }
-/* A glint of light running along the gilt rule now and then */
-[data-theme="hogwarts"].t-magic .t-sheen {
+/* <div class="t-hall">: the enchanted ceiling (stars, drifting clouds, shooting stars) and the
+   floating candles, fixed behind the page. It is built even for still pages; it only moves
+   while magic.js runs (html.t-magic). */
+.t-hall { display: none; }
+[data-theme="hogwarts"] .t-hall { display: block; position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+[data-theme="hogwarts"] .t-hall > * { position: absolute; inset: 0; }
+[data-theme="hogwarts"] .t-sky { bottom: auto; height: 78vh; -webkit-mask: linear-gradient(#000 35%, transparent); mask: linear-gradient(#000 35%, transparent); }
+[data-theme="hogwarts"] .t-stars { position: absolute; inset: -40px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='360' viewBox='0 0 520 360'%3E%3Ccircle cx='168.4' cy='54.3' r='0.9' fill='%23fff8e6' opacity='0.40'/%3E%3Ccircle cx='278.7' cy='131.6' r='0.45' fill='%23cfdcff' opacity='0.49'/%3E%3Ccircle cx='44.7' cy='150.5' r='0.55' fill='%23fff8e6' opacity='0.71'/%3E%3Ccircle cx='30.7' cy='203.6' r='0.55' fill='%23cfdcff' opacity='0.97'/%3E%3Ccircle cx='300.1' cy='142.8' r='0.55' fill='%23fff8e6' opacity='0.71'/%3E%3Ccircle cx='69.3' cy='150.9' r='0.8' fill='%23fff8e6' opacity='0.72'/%3E%3Ccircle cx='291.3' cy='245.5' r='0.45' fill='%23cfdcff' opacity='0.72'/%3E%3Ccircle cx='97.7' cy='35.1' r='0.9' fill='%23fff8e6' opacity='0.72'/%3E%3Ccircle cx='321.9' cy='178.7' r='0.8' fill='%23dfe8ff' opacity='0.86'/%3E%3Ccircle cx='242.1' cy='332.4' r='0.6' fill='%23fff3d6' opacity='0.51'/%3E%3Ccircle cx='93.5' cy='280.7' r='0.45' fill='%23cfdcff' opacity='0.55'/%3E%3Ccircle cx='257.5' cy='123.7' r='0.7' fill='%23fff3d6' opacity='0.75'/%3E%3Ccircle cx='38.1' cy='184.3' r='0.55' fill='%23fff3d6' opacity='0.45'/%3E%3Ccircle cx='254.3' cy='14.1' r='0.9' fill='%23fff8e6' opacity='0.85'/%3E%3Ccircle cx='298.0' cy='315.2' r='0.6' fill='%23fff3d6' opacity='0.80'/%3E%3Ccircle cx='309.1' cy='208.8' r='0.7' fill='%23fff8e6' opacity='0.90'/%3E%3Ccircle cx='491.2' cy='170.7' r='0.9' fill='%23fff8e6' opacity='0.39'/%3E%3Ccircle cx='364.8' cy='233.0' r='0.9' fill='%23dfe8ff' opacity='0.53'/%3E%3Ccircle cx='200.6' cy='240.7' r='0.45' fill='%23dfe8ff' opacity='0.58'/%3E%3Ccircle cx='317.7' cy='177.7' r='0.55' fill='%23fff3d6' opacity='0.43'/%3E%3Ccircle cx='128.8' cy='140.7' r='1.1' fill='%23dfe8ff' opacity='0.40'/%3E%3Ccircle cx='233.6' cy='197.8' r='0.55' fill='%23dfe8ff' opacity='0.91'/%3E%3Ccircle cx='144.8' cy='149.5' r='0.6' fill='%23dfe8ff' opacity='0.97'/%3E%3Ccircle cx='78.5' cy='63.4' r='0.55' fill='%23fff8e6' opacity='0.36'/%3E%3Ccircle cx='432.2' cy='65.6' r='0.6' fill='%23fff8e6' opacity='0.44'/%3E%3Ccircle cx='278.0' cy='219.5' r='0.6' fill='%23fff8e6' opacity='0.80'/%3E%3Ccircle cx='268.1' cy='222.3' r='0.9' fill='%23fff8e6' opacity='0.65'/%3E%3Ccircle cx='452.9' cy='342.7' r='0.9' fill='%23cfdcff' opacity='0.61'/%3E%3Ccircle cx='207.5' cy='37.3' r='0.9' fill='%23dfe8ff' opacity='0.39'/%3E%3Ccircle cx='35.0' cy='75.2' r='0.55' fill='%23fff8e6' opacity='0.57'/%3E%3Ccircle cx='27.3' cy='0.1' r='0.55' fill='%23cfdcff' opacity='0.42'/%3E%3Ccircle cx='189.1' cy='9.2' r='1.1' fill='%23fff8e6' opacity='0.75'/%3E%3Ccircle cx='77.2' cy='90.8' r='0.6' fill='%23cfdcff' opacity='0.59'/%3E%3Ccircle cx='63.9' cy='305.6' r='0.7' fill='%23dfe8ff' opacity='0.66'/%3E%3Ccircle cx='44.7' cy='36.8' r='0.6' fill='%23fff3d6' opacity='0.66'/%3E%3Ccircle cx='359.9' cy='185.9' r='0.55' fill='%23cfdcff' opacity='0.59'/%3E%3Ccircle cx='358.8' cy='329.1' r='1.1' fill='%23cfdcff' opacity='0.54'/%3E%3Ccircle cx='334.3' cy='32.8' r='1.1' fill='%23fff3d6' opacity='0.69'/%3E%3Ccircle cx='472.3' cy='128.1' r='0.55' fill='%23cfdcff' opacity='0.70'/%3E%3Ccircle cx='261.4' cy='229.1' r='0.8' fill='%23fff8e6' opacity='0.87'/%3E%3Ccircle cx='425.5' cy='266.4' r='0.55' fill='%23fff8e6' opacity='0.69'/%3E%3Ccircle cx='184.9' cy='10.4' r='0.45' fill='%23fff3d6' opacity='0.66'/%3E%3Ccircle cx='100.7' cy='217.9' r='0.6' fill='%23dfe8ff' opacity='0.88'/%3E%3Ccircle cx='376.0' cy='125.8' r='0.6' fill='%23fff8e6' opacity='0.49'/%3E%3Ccircle cx='118.0' cy='70.8' r='0.55' fill='%23dfe8ff' opacity='0.76'/%3E%3Ccircle cx='468.2' cy='302.6' r='0.7' fill='%23fff3d6' opacity='0.87'/%3E%3Ccircle cx='44.1' cy='237.8' r='0.7' fill='%23fff8e6' opacity='0.66'/%3E%3Ccircle cx='92.8' cy='284.1' r='0.6' fill='%23fff8e6' opacity='0.87'/%3E%3Ccircle cx='505.3' cy='142.5' r='0.7' fill='%23fff8e6' opacity='0.82'/%3E%3Ccircle cx='88.4' cy='45.7' r='0.55' fill='%23cfdcff' opacity='0.94'/%3E%3Ccircle cx='419.4' cy='52.6' r='1.1' fill='%23cfdcff' opacity='0.99'/%3E%3Ccircle cx='341.8' cy='126.1' r='0.8' fill='%23cfdcff' opacity='0.44'/%3E%3Ccircle cx='7.4' cy='349.5' r='0.9' fill='%23fff8e6' opacity='0.69'/%3E%3Ccircle cx='485.5' cy='156.2' r='1.1' fill='%23fff8e6' opacity='0.89'/%3E%3Ccircle cx='109.7' cy='90.7' r='0.6' fill='%23cfdcff' opacity='0.51'/%3E%3Ccircle cx='304.9' cy='93.4' r='0.7' fill='%23fff8e6' opacity='0.39'/%3E%3Ccircle cx='384.8' cy='323.2' r='0.9' fill='%23cfdcff' opacity='0.88'/%3E%3Ccircle cx='268.7' cy='297.8' r='0.8' fill='%23fff8e6' opacity='0.70'/%3E%3Ccircle cx='272.2' cy='6.7' r='0.7' fill='%23fff8e6' opacity='0.75'/%3E%3Ccircle cx='403.5' cy='53.9' r='0.55' fill='%23dfe8ff' opacity='0.75'/%3E%3Ccircle cx='62.6' cy='22.2' r='0.9' fill='%23cfdcff' opacity='0.69'/%3E%3Ccircle cx='250.9' cy='279.5' r='0.8' fill='%23fff8e6' opacity='0.51'/%3E%3Ccircle cx='144.0' cy='278.0' r='0.8' fill='%23dfe8ff' opacity='0.72'/%3E%3Ccircle cx='395.2' cy='328.5' r='0.7' fill='%23fff3d6' opacity='0.75'/%3E%3Ccircle cx='262.9' cy='184.4' r='0.9' fill='%23fff3d6' opacity='0.64'/%3E%3Ccircle cx='277.3' cy='172.1' r='0.55' fill='%23cfdcff' opacity='0.92'/%3E%3Ccircle cx='489.9' cy='93.5' r='0.8' fill='%23fff8e6' opacity='0.90'/%3E%3Ccircle cx='71.3' cy='43.8' r='0.7' fill='%23fff3d6' opacity='0.40'/%3E%3Ccircle cx='125.1' cy='26.3' r='0.9' fill='%23fff3d6' opacity='0.86'/%3E%3Ccircle cx='466.5' cy='55.6' r='0.9' fill='%23fff3d6' opacity='0.44'/%3E%3Cg transform='translate(451.4 339.0)' fill='%23fffaf0'%3E%3Ccircle r='1.2'/%3E%3Cpath d='M0 -3.5L.35 0 0 3.5-.35 0ZM-3.5 0L0 .35 3.5 0 0-.35Z' opacity='.75'/%3E%3C/g%3E%3Cg transform='translate(486.3 145.4)' fill='%23fffaf0'%3E%3Ccircle r='1.2'/%3E%3Cpath d='M0 -4.2L.35 0 0 4.2-.35 0ZM-4.2 0L0 .35 4.2 0 0-.35Z' opacity='.75'/%3E%3C/g%3E%3Cg transform='translate(504.9 293.0)' fill='%23fffaf0'%3E%3Ccircle r='1.2'/%3E%3Cpath d='M0 -3.4L.35 0 0 3.4-.35 0ZM-3.4 0L0 .35 3.4 0 0-.35Z' opacity='.75'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 520px 360px; }
+[data-theme="hogwarts"] .t-stars.t-b { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='300' viewBox='0 0 380 300'%3E%3Ccircle cx='171.9' cy='167.9' r='1.1' fill='%23dfe8ff' opacity='0.64'/%3E%3Ccircle cx='324.9' cy='57.0' r='1.1' fill='%23cfdcff' opacity='0.66'/%3E%3Ccircle cx='233.3' cy='55.9' r='0.7' fill='%23fff3d6' opacity='0.44'/%3E%3Ccircle cx='204.7' cy='267.1' r='0.9' fill='%23fff8e6' opacity='0.74'/%3E%3Ccircle cx='150.5' cy='135.9' r='0.9' fill='%23cfdcff' opacity='0.77'/%3E%3Ccircle cx='236.8' cy='249.5' r='0.45' fill='%23fff8e6' opacity='0.37'/%3E%3Ccircle cx='334.2' cy='179.9' r='1.1' fill='%23dfe8ff' opacity='0.56'/%3E%3Ccircle cx='224.6' cy='58.6' r='0.55' fill='%23fff3d6' opacity='0.67'/%3E%3Ccircle cx='251.7' cy='137.2' r='0.6' fill='%23dfe8ff' opacity='1.00'/%3E%3Ccircle cx='378.4' cy='252.1' r='0.9' fill='%23fff3d6' opacity='0.55'/%3E%3Ccircle cx='87.3' cy='86.7' r='0.45' fill='%23cfdcff' opacity='0.85'/%3E%3Ccircle cx='152.2' cy='254.0' r='0.7' fill='%23fff8e6' opacity='0.97'/%3E%3Ccircle cx='322.0' cy='0.2' r='0.55' fill='%23fff8e6' opacity='0.66'/%3E%3Ccircle cx='372.5' cy='119.2' r='0.45' fill='%23cfdcff' opacity='0.76'/%3E%3Ccircle cx='295.8' cy='80.9' r='0.45' fill='%23fff3d6' opacity='0.57'/%3E%3Ccircle cx='366.3' cy='227.4' r='0.45' fill='%23fff8e6' opacity='0.51'/%3E%3Ccircle cx='38.4' cy='18.0' r='1.1' fill='%23dfe8ff' opacity='0.47'/%3E%3Ccircle cx='212.5' cy='134.2' r='0.55' fill='%23fff8e6' opacity='0.62'/%3E%3Ccircle cx='145.8' cy='118.5' r='0.55' fill='%23fff8e6' opacity='0.53'/%3E%3Ccircle cx='369.0' cy='241.0' r='0.6' fill='%23fff8e6' opacity='0.49'/%3E%3Ccircle cx='149.8' cy='256.3' r='0.9' fill='%23cfdcff' opacity='0.42'/%3E%3Ccircle cx='375.9' cy='64.0' r='0.6' fill='%23fff8e6' opacity='0.85'/%3E%3Ccircle cx='125.0' cy='88.9' r='0.45' fill='%23fff8e6' opacity='0.41'/%3E%3Ccircle cx='221.4' cy='72.9' r='0.8' fill='%23fff3d6' opacity='0.59'/%3E%3Ccircle cx='172.2' cy='287.7' r='0.7' fill='%23cfdcff' opacity='0.44'/%3E%3Ccircle cx='146.7' cy='188.2' r='0.6' fill='%23fff8e6' opacity='0.88'/%3E%3Ccircle cx='94.8' cy='56.9' r='0.9' fill='%23cfdcff' opacity='0.48'/%3E%3Ccircle cx='361.1' cy='264.7' r='0.8' fill='%23fff8e6' opacity='0.62'/%3E%3Ccircle cx='39.5' cy='11.6' r='0.6' fill='%23fff8e6' opacity='0.83'/%3E%3Ccircle cx='148.8' cy='126.2' r='0.8' fill='%23dfe8ff' opacity='0.54'/%3E%3Ccircle cx='66.7' cy='216.1' r='0.45' fill='%23fff8e6' opacity='0.50'/%3E%3Ccircle cx='212.6' cy='255.7' r='0.8' fill='%23fff8e6' opacity='0.53'/%3E%3Ccircle cx='348.6' cy='61.2' r='0.45' fill='%23fff8e6' opacity='0.52'/%3E%3Ccircle cx='169.4' cy='18.1' r='0.55' fill='%23fff3d6' opacity='0.59'/%3E%3Ccircle cx='217.4' cy='39.5' r='0.6' fill='%23fff8e6' opacity='0.93'/%3E%3Ccircle cx='372.6' cy='197.1' r='0.9' fill='%23cfdcff' opacity='0.73'/%3E%3Ccircle cx='53.3' cy='10.5' r='0.45' fill='%23dfe8ff' opacity='0.94'/%3E%3Ccircle cx='266.4' cy='288.8' r='0.45' fill='%23cfdcff' opacity='0.76'/%3E%3Ccircle cx='183.2' cy='219.1' r='0.6' fill='%23fff8e6' opacity='1.00'/%3E%3Ccircle cx='28.6' cy='163.8' r='0.9' fill='%23fff8e6' opacity='0.94'/%3E%3Ccircle cx='280.1' cy='211.1' r='1.1' fill='%23fff3d6' opacity='0.58'/%3E%3Ccircle cx='260.4' cy='270.3' r='1.1' fill='%23dfe8ff' opacity='0.96'/%3E%3Ccircle cx='11.5' cy='150.0' r='0.45' fill='%23cfdcff' opacity='0.78'/%3E%3Ccircle cx='144.1' cy='3.7' r='0.45' fill='%23fff8e6' opacity='0.41'/%3E%3Ccircle cx='43.9' cy='77.2' r='0.7' fill='%23fff3d6' opacity='0.60'/%3E%3Cg transform='translate(274.6 172.7)' fill='%23fffaf0'%3E%3Ccircle r='1.2'/%3E%3Cpath d='M0 -4.1L.35 0 0 4.1-.35 0ZM-4.1 0L0 .35 4.1 0 0-.35Z' opacity='.75'/%3E%3C/g%3E%3Cg transform='translate(311.8 33.5)' fill='%23fffaf0'%3E%3Ccircle r='1.2'/%3E%3Cpath d='M0 -4.9L.35 0 0 4.9-.35 0ZM-4.9 0L0 .35 4.9 0 0-.35Z' opacity='.75'/%3E%3C/g%3E%3C/svg%3E") 170px 90px / 380px 300px; opacity: 0.8; }
+[data-theme="hogwarts"] .t-clouds { position: absolute; left: 0; top: 4%; width: calc(100% + 1400px); height: 260px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1400' height='260' viewBox='0 0 1400 260'%3E%3Cdefs%3E%3Cfilter id='b' x='-20%25' y='-50%25' width='140%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='14'/%3E%3C/filter%3E%3Cfilter id='c' x='-20%25' y='-50%25' width='140%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='5'/%3E%3C/filter%3E%3C/defs%3E%3Cg filter='url(%23b)'%3E%3Cellipse cx='-1067' cy='136' rx='101' ry='31' fill='%237d8fb8' opacity='0.47'/%3E%3Cellipse cx='333' cy='136' rx='101' ry='31' fill='%237d8fb8' opacity='0.47'/%3E%3Cellipse cx='1733' cy='136' rx='101' ry='31' fill='%237d8fb8' opacity='0.47'/%3E%3Cellipse cx='-1308' cy='67' rx='152' ry='24' fill='%237d8fb8' opacity='0.33'/%3E%3Cellipse cx='92' cy='67' rx='152' ry='24' fill='%237d8fb8' opacity='0.33'/%3E%3Cellipse cx='1492' cy='67' rx='152' ry='24' fill='%237d8fb8' opacity='0.33'/%3E%3Cellipse cx='-6' cy='126' rx='152' ry='28' fill='%237d8fb8' opacity='0.47'/%3E%3Cellipse cx='1394' cy='126' rx='152' ry='28' fill='%237d8fb8' opacity='0.47'/%3E%3Cellipse cx='2794' cy='126' rx='152' ry='28' fill='%237d8fb8' opacity='0.47'/%3E%3Cellipse cx='-1189' cy='148' rx='155' ry='30' fill='%237d8fb8' opacity='0.51'/%3E%3Cellipse cx='211' cy='148' rx='155' ry='30' fill='%237d8fb8' opacity='0.51'/%3E%3Cellipse cx='1611' cy='148' rx='155' ry='30' fill='%237d8fb8' opacity='0.51'/%3E%3Cellipse cx='-460' cy='73' rx='143' ry='31' fill='%237d8fb8' opacity='0.36'/%3E%3Cellipse cx='940' cy='73' rx='143' ry='31' fill='%237d8fb8' opacity='0.36'/%3E%3Cellipse cx='2340' cy='73' rx='143' ry='31' fill='%237d8fb8' opacity='0.36'/%3E%3Cellipse cx='-1357' cy='178' rx='112' ry='34' fill='%237d8fb8' opacity='0.56'/%3E%3Cellipse cx='43' cy='178' rx='112' ry='34' fill='%237d8fb8' opacity='0.56'/%3E%3Cellipse cx='1443' cy='178' rx='112' ry='34' fill='%237d8fb8' opacity='0.56'/%3E%3Cellipse cx='-400' cy='185' rx='103' ry='36' fill='%237d8fb8' opacity='0.41'/%3E%3Cellipse cx='1000' cy='185' rx='103' ry='36' fill='%237d8fb8' opacity='0.41'/%3E%3Cellipse cx='2400' cy='185' rx='103' ry='36' fill='%237d8fb8' opacity='0.41'/%3E%3Cellipse cx='-90' cy='179' rx='71' ry='21' fill='%237d8fb8' opacity='0.33'/%3E%3Cellipse cx='1310' cy='179' rx='71' ry='21' fill='%237d8fb8' opacity='0.33'/%3E%3Cellipse cx='2710' cy='179' rx='71' ry='21' fill='%237d8fb8' opacity='0.33'/%3E%3Cellipse cx='-48' cy='122' rx='129' ry='25' fill='%237d8fb8' opacity='0.43'/%3E%3Cellipse cx='1352' cy='122' rx='129' ry='25' fill='%237d8fb8' opacity='0.43'/%3E%3Cellipse cx='2752' cy='122' rx='129' ry='25' fill='%237d8fb8' opacity='0.43'/%3E%3Cellipse cx='-860' cy='111' rx='124' ry='31' fill='%237d8fb8' opacity='0.57'/%3E%3Cellipse cx='540' cy='111' rx='124' ry='31' fill='%237d8fb8' opacity='0.57'/%3E%3Cellipse cx='1940' cy='111' rx='124' ry='31' fill='%237d8fb8' opacity='0.57'/%3E%3Cellipse cx='-445' cy='186' rx='154' ry='40' fill='%237d8fb8' opacity='0.48'/%3E%3Cellipse cx='955' cy='186' rx='154' ry='40' fill='%237d8fb8' opacity='0.48'/%3E%3Cellipse cx='2355' cy='186' rx='154' ry='40' fill='%237d8fb8' opacity='0.48'/%3E%3Cellipse cx='-1172' cy='177' rx='166' ry='38' fill='%237d8fb8' opacity='0.45'/%3E%3Cellipse cx='228' cy='177' rx='166' ry='38' fill='%237d8fb8' opacity='0.45'/%3E%3Cellipse cx='1628' cy='177' rx='166' ry='38' fill='%237d8fb8' opacity='0.45'/%3E%3Cellipse cx='-401' cy='92' rx='151' ry='31' fill='%237d8fb8' opacity='0.35'/%3E%3Cellipse cx='999' cy='92' rx='151' ry='31' fill='%237d8fb8' opacity='0.35'/%3E%3Cellipse cx='2399' cy='92' rx='151' ry='31' fill='%237d8fb8' opacity='0.35'/%3E%3Cellipse cx='-1311' cy='176' rx='169' ry='20' fill='%237d8fb8' opacity='0.53'/%3E%3Cellipse cx='89' cy='176' rx='169' ry='20' fill='%237d8fb8' opacity='0.53'/%3E%3Cellipse cx='1489' cy='176' rx='169' ry='20' fill='%237d8fb8' opacity='0.53'/%3E%3Cellipse cx='-825' cy='85' rx='92' ry='35' fill='%237d8fb8' opacity='0.56'/%3E%3Cellipse cx='575' cy='85' rx='92' ry='35' fill='%237d8fb8' opacity='0.56'/%3E%3Cellipse cx='1975' cy='85' rx='92' ry='35' fill='%237d8fb8' opacity='0.56'/%3E%3Cellipse cx='-1338' cy='145' rx='65' ry='34' fill='%237d8fb8' opacity='0.37'/%3E%3Cellipse cx='62' cy='145' rx='65' ry='34' fill='%237d8fb8' opacity='0.37'/%3E%3Cellipse cx='1462' cy='145' rx='65' ry='34' fill='%237d8fb8' opacity='0.37'/%3E%3C/g%3E%3Cg filter='url(%23c)'%3E%3Cellipse cx='-1082' cy='122' rx='55' ry='10' fill='%23c9d6f0' opacity='0.23'/%3E%3Cellipse cx='318' cy='122' rx='55' ry='10' fill='%23c9d6f0' opacity='0.23'/%3E%3Cellipse cx='1718' cy='122' rx='55' ry='10' fill='%23c9d6f0' opacity='0.23'/%3E%3Cellipse cx='-29' cy='113' rx='84' ry='9' fill='%23c9d6f0' opacity='0.24'/%3E%3Cellipse cx='1371' cy='113' rx='84' ry='9' fill='%23c9d6f0' opacity='0.24'/%3E%3Cellipse cx='2771' cy='113' rx='84' ry='9' fill='%23c9d6f0' opacity='0.24'/%3E%3Cellipse cx='-482' cy='59' rx='79' ry='10' fill='%23c9d6f0' opacity='0.18'/%3E%3Cellipse cx='918' cy='59' rx='79' ry='10' fill='%23c9d6f0' opacity='0.18'/%3E%3Cellipse cx='2318' cy='59' rx='79' ry='10' fill='%23c9d6f0' opacity='0.18'/%3E%3Cellipse cx='-416' cy='169' rx='57' ry='11' fill='%23c9d6f0' opacity='0.20'/%3E%3Cellipse cx='984' cy='169' rx='57' ry='11' fill='%23c9d6f0' opacity='0.20'/%3E%3Cellipse cx='2384' cy='169' rx='57' ry='11' fill='%23c9d6f0' opacity='0.20'/%3E%3Cellipse cx='-68' cy='111' rx='71' ry='8' fill='%23c9d6f0' opacity='0.21'/%3E%3Cellipse cx='1332' cy='111' rx='71' ry='8' fill='%23c9d6f0' opacity='0.21'/%3E%3Cellipse cx='2732' cy='111' rx='71' ry='8' fill='%23c9d6f0' opacity='0.21'/%3E%3Cellipse cx='-468' cy='168' rx='85' ry='13' fill='%23c9d6f0' opacity='0.24'/%3E%3Cellipse cx='932' cy='168' rx='85' ry='13' fill='%23c9d6f0' opacity='0.24'/%3E%3Cellipse cx='2332' cy='168' rx='85' ry='13' fill='%23c9d6f0' opacity='0.24'/%3E%3Cellipse cx='-423' cy='79' rx='83' ry='10' fill='%23c9d6f0' opacity='0.17'/%3E%3Cellipse cx='977' cy='79' rx='83' ry='10' fill='%23c9d6f0' opacity='0.17'/%3E%3Cellipse cx='2377' cy='79' rx='83' ry='10' fill='%23c9d6f0' opacity='0.17'/%3E%3Cellipse cx='-839' cy='69' rx='51' ry='11' fill='%23c9d6f0' opacity='0.28'/%3E%3Cellipse cx='561' cy='69' rx='51' ry='11' fill='%23c9d6f0' opacity='0.28'/%3E%3Cellipse cx='1961' cy='69' rx='51' ry='11' fill='%23c9d6f0' opacity='0.28'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 1400px 260px repeat-x; opacity: 0.75; }
+[data-theme="hogwarts"] .t-clouds.t-b { top: 24%; width: calc(100% + 1100px); height: 220px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1100' height='220' viewBox='0 0 1100 220'%3E%3Cdefs%3E%3Cfilter id='b' x='-20%25' y='-50%25' width='140%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='14'/%3E%3C/filter%3E%3Cfilter id='c' x='-20%25' y='-50%25' width='140%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='5'/%3E%3C/filter%3E%3C/defs%3E%3Cg filter='url(%23b)'%3E%3Cellipse cx='-415' cy='137' rx='147' ry='39' fill='%235b6a90' opacity='0.51'/%3E%3Cellipse cx='685' cy='137' rx='147' ry='39' fill='%235b6a90' opacity='0.51'/%3E%3Cellipse cx='1785' cy='137' rx='147' ry='39' fill='%235b6a90' opacity='0.51'/%3E%3Cellipse cx='-85' cy='58' rx='111' ry='39' fill='%235b6a90' opacity='0.48'/%3E%3Cellipse cx='1015' cy='58' rx='111' ry='39' fill='%235b6a90' opacity='0.48'/%3E%3Cellipse cx='2115' cy='58' rx='111' ry='39' fill='%235b6a90' opacity='0.48'/%3E%3Cellipse cx='-109' cy='67' rx='112' ry='23' fill='%235b6a90' opacity='0.44'/%3E%3Cellipse cx='991' cy='67' rx='112' ry='23' fill='%235b6a90' opacity='0.44'/%3E%3Cellipse cx='2091' cy='67' rx='112' ry='23' fill='%235b6a90' opacity='0.44'/%3E%3Cellipse cx='-469' cy='56' rx='84' ry='24' fill='%235b6a90' opacity='0.57'/%3E%3Cellipse cx='631' cy='56' rx='84' ry='24' fill='%235b6a90' opacity='0.57'/%3E%3Cellipse cx='1731' cy='56' rx='84' ry='24' fill='%235b6a90' opacity='0.57'/%3E%3Cellipse cx='-258' cy='73' rx='148' ry='21' fill='%235b6a90' opacity='0.47'/%3E%3Cellipse cx='842' cy='73' rx='148' ry='21' fill='%235b6a90' opacity='0.47'/%3E%3Cellipse cx='1942' cy='73' rx='148' ry='21' fill='%235b6a90' opacity='0.47'/%3E%3Cellipse cx='-961' cy='55' rx='156' ry='23' fill='%235b6a90' opacity='0.33'/%3E%3Cellipse cx='139' cy='55' rx='156' ry='23' fill='%235b6a90' opacity='0.33'/%3E%3Cellipse cx='1239' cy='55' rx='156' ry='23' fill='%235b6a90' opacity='0.33'/%3E%3Cellipse cx='-19' cy='151' rx='92' ry='39' fill='%235b6a90' opacity='0.44'/%3E%3Cellipse cx='1081' cy='151' rx='92' ry='39' fill='%235b6a90' opacity='0.44'/%3E%3Cellipse cx='2181' cy='151' rx='92' ry='39' fill='%235b6a90' opacity='0.44'/%3E%3Cellipse cx='-354' cy='78' rx='164' ry='33' fill='%235b6a90' opacity='0.59'/%3E%3Cellipse cx='746' cy='78' rx='164' ry='33' fill='%235b6a90' opacity='0.59'/%3E%3Cellipse cx='1846' cy='78' rx='164' ry='33' fill='%235b6a90' opacity='0.59'/%3E%3Cellipse cx='-117' cy='88' rx='100' ry='22' fill='%235b6a90' opacity='0.30'/%3E%3Cellipse cx='983' cy='88' rx='100' ry='22' fill='%235b6a90' opacity='0.30'/%3E%3Cellipse cx='2083' cy='88' rx='100' ry='22' fill='%235b6a90' opacity='0.30'/%3E%3Cellipse cx='-1028' cy='88' rx='126' ry='18' fill='%235b6a90' opacity='0.49'/%3E%3Cellipse cx='72' cy='88' rx='126' ry='18' fill='%235b6a90' opacity='0.49'/%3E%3Cellipse cx='1172' cy='88' rx='126' ry='18' fill='%235b6a90' opacity='0.49'/%3E%3Cellipse cx='-728' cy='89' rx='150' ry='29' fill='%235b6a90' opacity='0.36'/%3E%3Cellipse cx='372' cy='89' rx='150' ry='29' fill='%235b6a90' opacity='0.36'/%3E%3Cellipse cx='1472' cy='89' rx='150' ry='29' fill='%235b6a90' opacity='0.36'/%3E%3Cellipse cx='-571' cy='133' rx='66' ry='39' fill='%235b6a90' opacity='0.26'/%3E%3Cellipse cx='529' cy='133' rx='66' ry='39' fill='%235b6a90' opacity='0.26'/%3E%3Cellipse cx='1629' cy='133' rx='66' ry='39' fill='%235b6a90' opacity='0.26'/%3E%3C/g%3E%3Cg filter='url(%23c)'%3E%3Cellipse cx='-437' cy='119' rx='81' ry='12' fill='%23aab8dc' opacity='0.25'/%3E%3Cellipse cx='663' cy='119' rx='81' ry='12' fill='%23aab8dc' opacity='0.25'/%3E%3Cellipse cx='1763' cy='119' rx='81' ry='12' fill='%23aab8dc' opacity='0.25'/%3E%3Cellipse cx='-126' cy='57' rx='61' ry='7' fill='%23aab8dc' opacity='0.22'/%3E%3Cellipse cx='974' cy='57' rx='61' ry='7' fill='%23aab8dc' opacity='0.22'/%3E%3Cellipse cx='2074' cy='57' rx='61' ry='7' fill='%23aab8dc' opacity='0.22'/%3E%3Cellipse cx='-280' cy='63' rx='81' ry='7' fill='%23aab8dc' opacity='0.23'/%3E%3Cellipse cx='820' cy='63' rx='81' ry='7' fill='%23aab8dc' opacity='0.23'/%3E%3Cellipse cx='1920' cy='63' rx='81' ry='7' fill='%23aab8dc' opacity='0.23'/%3E%3Cellipse cx='-33' cy='133' rx='51' ry='13' fill='%23aab8dc' opacity='0.22'/%3E%3Cellipse cx='1067' cy='133' rx='51' ry='13' fill='%23aab8dc' opacity='0.22'/%3E%3Cellipse cx='2167' cy='133' rx='51' ry='13' fill='%23aab8dc' opacity='0.22'/%3E%3Cellipse cx='-132' cy='78' rx='55' ry='7' fill='%23aab8dc' opacity='0.15'/%3E%3Cellipse cx='968' cy='78' rx='55' ry='7' fill='%23aab8dc' opacity='0.15'/%3E%3Cellipse cx='2068' cy='78' rx='55' ry='7' fill='%23aab8dc' opacity='0.15'/%3E%3Cellipse cx='-751' cy='76' rx='83' ry='9' fill='%23aab8dc' opacity='0.18'/%3E%3Cellipse cx='349' cy='76' rx='83' ry='9' fill='%23aab8dc' opacity='0.18'/%3E%3Cellipse cx='1449' cy='76' rx='83' ry='9' fill='%23aab8dc' opacity='0.18'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 1100px 220px repeat-x; opacity: 0.6; }
+[data-theme="hogwarts"].t-magic .t-stars { animation: t-stars 4.6s ease-in-out infinite alternate; }
+[data-theme="hogwarts"].t-magic .t-stars.t-b { animation-duration: 3.3s; animation-delay: -1.7s; }
+[data-theme="hogwarts"].t-magic .t-clouds { animation: t-drift 190s linear infinite; }
+[data-theme="hogwarts"].t-magic .t-clouds.t-b { animation-duration: 120s; animation-direction: reverse; }
+@keyframes t-stars { from { opacity: 1; } to { opacity: 0.45; } }
+@keyframes t-drift { to { transform: translateX(-1400px); } }
+@keyframes t-drift-b { to { transform: translateX(-1100px); } }
+[data-theme="hogwarts"].t-magic .t-clouds.t-b { animation-name: t-drift-b; }
+/* a shooting star: a streak of light, put in the sky by magic.js now and then */
+[data-theme="hogwarts"] .t-shoot {
   position: absolute;
-  inset: 0;
-  overflow: hidden;
-  padding: 1px;
-  border-radius: inherit;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  width: 170px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(220, 230, 255, 0.5) 70%, #fff);
+  box-shadow: 0 0 6px rgba(220, 230, 255, 0.6);
+  transform-origin: 100% 50%;
+  opacity: 0;
+  animation: t-shoot 1.2s ease-out forwards;
 }
-[data-theme="hogwarts"].t-magic .t-sheen::before {
+@keyframes t-shoot {
+  0% { opacity: 0; transform: rotate(var(--a)) translateX(0) scaleX(0.2); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--l, 420px)) scaleX(1); }
+}
+
+/* The floating candles of the Great Hall: tall ivory tapers, melted at the top and dripping, a
+   teardrop flame white at the heart and orange at the edge, a warm halo. Each bobs at its own
+   pace; far ones are smaller and dimmer. <i class="t-candle t-ca" style="--w: 14"><b></b></i> */
+[data-theme="hogwarts"] .t-depth { will-change: transform; }
+[data-theme="hogwarts"] .t-candle {
+  position: absolute;
+  width: calc(var(--w, 14) * 1px);
+  aspect-ratio: 24 / 140;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 140'%3E %3Cdefs%3E %3ClinearGradient id='w' gradientUnits='userSpaceOnUse' x1='5' y1='0' x2='19' y2='0'%3E%3Cstop offset='0' stop-color='%2376654a'/%3E%3Cstop offset='.16' stop-color='%23c7b590'/%3E%3Cstop offset='.38' stop-color='%23f5ecd6'/%3E%3Cstop offset='.5' stop-color='%23fffaf0'/%3E%3Cstop offset='.66' stop-color='%23ebdfc2'/%3E%3Cstop offset='.86' stop-color='%23b39d77'/%3E%3Cstop offset='1' stop-color='%2365543b'/%3E%3C/linearGradient%3E %3ClinearGradient id='d' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23a8936e'/%3E%3Cstop offset='.35' stop-color='%23fffaf0'/%3E%3Cstop offset='.7' stop-color='%23e6d8b8'/%3E%3Cstop offset='1' stop-color='%238f7b5a'/%3E%3C/linearGradient%3E %3ClinearGradient id='v' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='140'%3E%3Cstop offset='0' stop-color='%23ffb860' stop-opacity='.65'/%3E%3Cstop offset='0.129' stop-color='%23ffd59a' stop-opacity='.25'/%3E%3Cstop offset='0.3' stop-color='%23fff' stop-opacity='0'/%3E%3Cstop offset='.55' stop-color='%23140c06' stop-opacity='.12'/%3E%3Cstop offset='.85' stop-color='%23140c06' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%230b0a12' stop-opacity='.85'/%3E%3C/linearGradient%3E %3CradialGradient id='p' cx='.5' cy='.4' r='.6'%3E%3Cstop offset='0' stop-color='%23fff6d8'/%3E%3Cstop offset='.55' stop-color='%23ffd58a'/%3E%3Cstop offset='1' stop-color='%23c99650'/%3E%3C/radialGradient%3E %3Cpath id='b' d='M5.2 15.4C5.1 12.6 6.2 12.4 7.2 11.1 8.2 9.8 9.8 11.4 11.6 11 13.4 10.6 14.6 8.2 16.2 8 17.7 7.8 18.8 10.4 18.8 14.6L18.4 140H5.6Z'/%3E %3Cpath id='d0' d='M5.4 13.6C4.4 18.6 3.9 27 4.3 32.4 4.5 35.2 7.4 35.3 7.4 32.2 7.5 27 7.1 19.6 7.6 14.4Z'/%3E%3Cpath id='d1' d='M16.4 11C18.6 16.6 19.6 22.4 19.3 26.6 19.1 29 16.8 29 16.8 26.4 16.7 21.6 16.2 16.4 15.6 12.2Z'/%3E%3Cpath id='d2' d='M10.2 12.8C9.9 18 10 22.6 10.3 26.2 10.5 28 12.2 28 12.2 26.2 12.2 22.6 12 18 12.1 12.8Z'/%3E %3CclipPath id='c'%3E%3Cuse href='%23b'/%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3Cuse href='%23d2'/%3E%3C/clipPath%3E %3C/defs%3E %3Cuse href='%23b' fill='url(%23w)'/%3E %3Cpath d='M11 13C10.6 24 10.9 46 11.4 60 11.6 63 13 63 13 60 13.1 46 12.7 24 12.9 13Z' fill='%23fffdf6' opacity='.4'/%3E %3Cg fill='%233a2a16' opacity='.35' transform='translate(.7 .6)'%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3Cuse href='%23d2'/%3E%3C/g%3E %3Cg fill='url(%23d)'%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3Cuse href='%23d2'/%3E%3C/g%3E %3Crect width='24' height='140' fill='url(%23v)' clip-path='url(%23c)'/%3E %3Cellipse cx='12' cy='12.6' rx='5.3' ry='1.8' fill='url(%23p)'/%3E %3Cpath d='M7.4 12.8C9.4 14.3 14.6 14.3 16.6 12.5' fill='none' stroke='%23fff4d6' stroke-width='.45' opacity='.8'/%3E %3Cpath d='M12 12.8C11.9 11.2 12.5 10 12.2 8.4' stroke='%2324160c' stroke-width='.9' fill='none' stroke-linecap='round'/%3E %3Ccircle cx='12.2' cy='8.5' r='.55' fill='%23ff8a2a'/%3E %3C/svg%3E") 0 0 / 100% 100%;
+  opacity: var(--o, 1);
+}
+[data-theme="hogwarts"] .t-candle.t-cb { aspect-ratio: 24 / 112; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 112'%3E %3Cdefs%3E %3ClinearGradient id='w' gradientUnits='userSpaceOnUse' x1='5' y1='0' x2='19' y2='0'%3E%3Cstop offset='0' stop-color='%2376654a'/%3E%3Cstop offset='.16' stop-color='%23c7b590'/%3E%3Cstop offset='.38' stop-color='%23f5ecd6'/%3E%3Cstop offset='.5' stop-color='%23fffaf0'/%3E%3Cstop offset='.66' stop-color='%23ebdfc2'/%3E%3Cstop offset='.86' stop-color='%23b39d77'/%3E%3Cstop offset='1' stop-color='%2365543b'/%3E%3C/linearGradient%3E %3ClinearGradient id='d' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23a8936e'/%3E%3Cstop offset='.35' stop-color='%23fffaf0'/%3E%3Cstop offset='.7' stop-color='%23e6d8b8'/%3E%3Cstop offset='1' stop-color='%238f7b5a'/%3E%3C/linearGradient%3E %3ClinearGradient id='v' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='112'%3E%3Cstop offset='0' stop-color='%23ffb860' stop-opacity='.65'/%3E%3Cstop offset='0.161' stop-color='%23ffd59a' stop-opacity='.25'/%3E%3Cstop offset='0.375' stop-color='%23fff' stop-opacity='0'/%3E%3Cstop offset='.55' stop-color='%23140c06' stop-opacity='.12'/%3E%3Cstop offset='.85' stop-color='%23140c06' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%230b0a12' stop-opacity='.85'/%3E%3C/linearGradient%3E %3CradialGradient id='p' cx='.5' cy='.4' r='.6'%3E%3Cstop offset='0' stop-color='%23fff6d8'/%3E%3Cstop offset='.55' stop-color='%23ffd58a'/%3E%3Cstop offset='1' stop-color='%23c99650'/%3E%3C/radialGradient%3E %3Cpath id='b' d='M5.2 13.6C5.4 9.6 6.6 7.6 8 8.2 9.4 8.8 10 11 12 11.2 14 11.4 14.8 10.2 16.4 10.6 18 11 18.8 12.2 18.8 14.6L18.4 112H5.6Z'/%3E %3Cpath id='d0' d='M13.4 12.6C13.2 20 13.4 31 13.8 38.6 14 41.8 16.2 41.8 16.2 38.4 16.2 31 15.6 20 15.6 12.6Z'/%3E%3Cpath id='d1' d='M17.4 12.4C19 15.6 19.6 18.6 19.4 20.8 19.2 22.6 17.4 22.6 17.3 20.8 17.2 18 17 15.6 16.6 13.2Z'/%3E%3Cpath id='d2' d='M5.6 13C4.6 15.6 4.3 18.2 4.6 20 4.8 21.6 6.6 21.6 6.7 20 6.8 18 6.8 15.6 7.2 13.6Z'/%3E %3CclipPath id='c'%3E%3Cuse href='%23b'/%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3Cuse href='%23d2'/%3E%3C/clipPath%3E %3C/defs%3E %3Cuse href='%23b' fill='url(%23w)'/%3E %3Cpath d='M11 13C10.6 24 10.9 46 11.4 60 11.6 63 13 63 13 60 13.1 46 12.7 24 12.9 13Z' fill='%23fffdf6' opacity='.4'/%3E %3Cg fill='%233a2a16' opacity='.35' transform='translate(.7 .6)'%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3Cuse href='%23d2'/%3E%3C/g%3E %3Cg fill='url(%23d)'%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3Cuse href='%23d2'/%3E%3C/g%3E %3Crect width='24' height='112' fill='url(%23v)' clip-path='url(%23c)'/%3E %3Cellipse cx='12' cy='12.6' rx='5.3' ry='1.8' fill='url(%23p)'/%3E %3Cpath d='M7.4 12.8C9.4 14.3 14.6 14.3 16.6 12.5' fill='none' stroke='%23fff4d6' stroke-width='.45' opacity='.8'/%3E %3Cpath d='M12 12.8C11.9 11.2 12.5 10 12.2 8.4' stroke='%2324160c' stroke-width='.9' fill='none' stroke-linecap='round'/%3E %3Ccircle cx='12.2' cy='8.5' r='.55' fill='%23ff8a2a'/%3E %3C/svg%3E"); }
+[data-theme="hogwarts"] .t-candle.t-cc { aspect-ratio: 24 / 168; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 168'%3E %3Cdefs%3E %3ClinearGradient id='w' gradientUnits='userSpaceOnUse' x1='5' y1='0' x2='19' y2='0'%3E%3Cstop offset='0' stop-color='%2376654a'/%3E%3Cstop offset='.16' stop-color='%23c7b590'/%3E%3Cstop offset='.38' stop-color='%23f5ecd6'/%3E%3Cstop offset='.5' stop-color='%23fffaf0'/%3E%3Cstop offset='.66' stop-color='%23ebdfc2'/%3E%3Cstop offset='.86' stop-color='%23b39d77'/%3E%3Cstop offset='1' stop-color='%2365543b'/%3E%3C/linearGradient%3E %3ClinearGradient id='d' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23a8936e'/%3E%3Cstop offset='.35' stop-color='%23fffaf0'/%3E%3Cstop offset='.7' stop-color='%23e6d8b8'/%3E%3Cstop offset='1' stop-color='%238f7b5a'/%3E%3C/linearGradient%3E %3ClinearGradient id='v' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='168'%3E%3Cstop offset='0' stop-color='%23ffb860' stop-opacity='.65'/%3E%3Cstop offset='0.107' stop-color='%23ffd59a' stop-opacity='.25'/%3E%3Cstop offset='0.25' stop-color='%23fff' stop-opacity='0'/%3E%3Cstop offset='.55' stop-color='%23140c06' stop-opacity='.12'/%3E%3Cstop offset='.85' stop-color='%23140c06' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%230b0a12' stop-opacity='.85'/%3E%3C/linearGradient%3E %3CradialGradient id='p' cx='.5' cy='.4' r='.6'%3E%3Cstop offset='0' stop-color='%23fff6d8'/%3E%3Cstop offset='.55' stop-color='%23ffd58a'/%3E%3Cstop offset='1' stop-color='%23c99650'/%3E%3C/radialGradient%3E %3Cpath id='b' d='M5.2 14.8C5.2 11.4 6 10.2 7.6 10.6 9.2 11 10.4 10.4 12 10.4 13.6 10.4 14.4 11.4 16 11 17.6 10.6 18.8 11.8 18.8 14.4L18.4 168H5.6Z'/%3E %3Cpath id='d0' d='M7.6 12.4C6.8 20 6.6 33 7 44 7.2 47.6 9.8 47.6 9.8 44 9.8 33 9.4 20 9.6 12.6Z'/%3E%3Cpath id='d1' d='M15.6 12C17.8 16 18.8 21 18.6 24.6 18.4 27 16.2 27 16.1 24.6 16 21 15.6 16.8 14.6 13Z'/%3E %3CclipPath id='c'%3E%3Cuse href='%23b'/%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3C/clipPath%3E %3C/defs%3E %3Cuse href='%23b' fill='url(%23w)'/%3E %3Cpath d='M11 13C10.6 24 10.9 46 11.4 60 11.6 63 13 63 13 60 13.1 46 12.7 24 12.9 13Z' fill='%23fffdf6' opacity='.4'/%3E %3Cg fill='%233a2a16' opacity='.35' transform='translate(.7 .6)'%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3C/g%3E %3Cg fill='url(%23d)'%3E%3Cuse href='%23d0'/%3E%3Cuse href='%23d1'/%3E%3C/g%3E %3Crect width='24' height='168' fill='url(%23v)' clip-path='url(%23c)'/%3E %3Cellipse cx='12' cy='12.6' rx='5.3' ry='1.8' fill='url(%23p)'/%3E %3Cpath d='M7.4 12.8C9.4 14.3 14.6 14.3 16.6 12.5' fill='none' stroke='%23fff4d6' stroke-width='.45' opacity='.8'/%3E %3Cpath d='M12 12.8C11.9 11.2 12.5 10 12.2 8.4' stroke='%2324160c' stroke-width='.9' fill='none' stroke-linecap='round'/%3E %3Ccircle cx='12.2' cy='8.5' r='.55' fill='%23ff8a2a'/%3E %3C/svg%3E"); }
+/* the flame sits on the wick (8.4 units down the 24-unit-wide candle, flame base 41.6 units down its box) */
+[data-theme="hogwarts"] .t-candle > b {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: calc(var(--w, 14) * -1.385px);
+  aspect-ratio: 24 / 48;
+  background: var(--t-flame) 0 0 / 100% 100%;
+  transform-origin: 50% 87%;
+}
+/* the halo of warm light round the flame */
+[data-theme="hogwarts"] .t-candle > b::before {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -30%;
-  width: 30%;
-  background: linear-gradient(90deg, transparent, rgba(255, 240, 200, 0.95), transparent);
-  animation: t-sheen 9s var(--t-d, 0s) ease-in-out infinite;
+  left: 50%;
+  top: 72%;
+  width: calc(var(--w, 14) * 7px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: radial-gradient(closest-side, rgba(255, 214, 140, 0.42), rgba(255, 178, 80, 0.16) 38%, rgba(255, 160, 60, 0.05) 68%, transparent);
 }
+[data-theme="hogwarts"].t-magic .t-candle { animation: t-bob var(--bd, 7s) ease-in-out var(--bl, 0s) infinite alternate; }
+[data-theme="hogwarts"].t-magic .t-candle > b { animation: t-flicker var(--fd, 1.8s) ease-in-out var(--fl, 0s) infinite; }
+[data-theme="hogwarts"].t-magic .t-candle > b::before { animation: t-halo var(--hd, 2.6s) ease-in-out var(--fl, 0s) infinite alternate; }
+/* now and then one gutters, almost goes out, and comes back */
+[data-theme="hogwarts"].t-magic .t-candle.t-gutter > b { animation: t-gutter 1.9s ease-in-out; }
+/* a draught: every flame leans the same way */
+[data-theme="hogwarts"].t-magic.t-gust .t-candle > b { animation: t-lean 2.8s ease-in-out; }
+@keyframes t-bob {
+  from { transform: translateY(0) rotate(-0.7deg); }
+  to { transform: translateY(var(--by, -9px)) rotate(0.7deg); }
+}
+@keyframes t-flicker {
+  0%, 100% { transform: scale(1, 1) skewX(0deg); }
+  16% { transform: scale(0.96, 1.07) skewX(1.6deg); }
+  31% { transform: scale(1.03, 0.95) skewX(-1.2deg); }
+  48% { transform: scale(0.97, 1.09) skewX(2.2deg); }
+  63% { transform: scale(1.02, 0.97) skewX(-1.8deg); }
+  81% { transform: scale(0.98, 1.04) skewX(0.8deg); }
+}
+@keyframes t-halo { from { opacity: 1; } to { opacity: 0.72; } }
+@keyframes t-gutter {
+  0%, 100% { transform: none; opacity: 1; }
+  22% { transform: scale(0.75, 0.55) skewX(-8deg); opacity: 0.8; }
+  40% { transform: scale(0.35, 0.22); opacity: 0.35; }
+  55% { transform: scale(0.3, 0.2); opacity: 0.3; }
+  75% { transform: scale(1.05, 1.15) skewX(3deg); opacity: 1; }
+}
+@keyframes t-lean {
+  0%, 100% { transform: none; }
+  30% { transform: skewX(-14deg) scale(0.95, 0.9); }
+  55% { transform: skewX(-6deg) scale(1, 1.05); }
+  75% { transform: skewX(-10deg) scale(0.97, 0.95); }
+}
+
+/* Flying through the hall now and then (magic.js): the owl post, a ghost, a Patronus */
+[data-theme="hogwarts"] .t-flyer { position: fixed; left: 0; top: 0; z-index: 998; pointer-events: none; will-change: transform; }
+[data-theme="hogwarts"] .t-flyer svg { display: block; width: 100%; height: 100%; overflow: visible; }
+[data-theme="hogwarts"] .t-owl { width: 110px; height: 80px; }
+[data-theme="hogwarts"] .t-owl .t-wing { transform-box: fill-box; animation: t-flap 0.42s ease-in-out infinite alternate; }
+[data-theme="hogwarts"] .t-owl .t-wing.t-fw { transform-origin: 100% 100%; }
+[data-theme="hogwarts"] .t-owl .t-wing.t-bw { transform-origin: 100% 100%; animation-delay: -0.06s; }
+[data-theme="hogwarts"] .t-owl.t-glide .t-wing { animation-play-state: paused; }
+@keyframes t-flap { from { transform: rotate(-30deg) scaleY(1); } to { transform: rotate(26deg) scaleY(0.55); } }
+[data-theme="hogwarts"] .t-letter { width: 30px; height: 21px; }
+[data-theme="hogwarts"] .t-ghost { width: 120px; height: 160px; opacity: 0; }
+[data-theme="hogwarts"] .t-patronus { width: 220px; height: 200px; opacity: 0; }
+
+/* ---------- Hogwarts magic on the page: only while magic.js runs (it adds html.t-magic) ---------- */
+
+/* A flourish drawn in ink in each corner of a sheet as it comes into view; magic.js adds the .t-filigree span */
+.t-filigree { display: none; }
+[data-theme="hogwarts"].t-magic .t-filigree { display: block; position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+[data-theme="hogwarts"].t-magic .t-corner { position: absolute; width: 30px; height: 30px; opacity: 0.55; }
+[data-theme="hogwarts"].t-magic .t-tl { top: 6px; left: 6px; }
+[data-theme="hogwarts"].t-magic .t-tr { top: 6px; right: 6px; transform: scaleX(-1); }
+[data-theme="hogwarts"].t-magic .t-bl { bottom: 6px; left: 6px; transform: scaleY(-1); }
+[data-theme="hogwarts"].t-magic .t-br { bottom: 6px; right: 6px; transform: scale(-1); }
+[data-theme="hogwarts"].t-magic .t-corner svg { display: block; width: 100%; height: 100%; overflow: visible; fill: none; stroke: #5a3a14; stroke-width: 0.9; stroke-linecap: round; }
+[data-theme="hogwarts"].t-magic .t-corner path { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.6s cubic-bezier(0.5, 0, 0.2, 1) 0.25s; }
+[data-theme="hogwarts"].t-magic .t-corner .t-gem { fill: #8e1d1d; stroke: none; opacity: 0; transition: opacity 0.6s 1.4s; }
+[data-theme="hogwarts"].t-magic .t-ink .t-corner path { stroke-dashoffset: 0; }
+[data-theme="hogwarts"].t-magic .t-ink .t-corner .t-gem { opacity: 0.8; }
+[data-theme="hogwarts"].t-magic .t-ink-now .t-corner path, [data-theme="hogwarts"].t-magic .t-ink-now .t-corner .t-gem { transition: none; }
+/* The sheet is laid down: off-screen ones wait, then drop in and settle */
+[data-theme="hogwarts"].t-magic .t-panel.t-ink-wait { opacity: 0; transform: translateY(16px) scale(0.985); }
+[data-theme="hogwarts"].t-magic .t-panel.t-ink:not(.t-ink-now) { animation: t-ink-in 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) backwards; }
 /* The title: liquid gold with a slow glint */
 [data-theme="hogwarts"].t-magic .t-title {
   background: linear-gradient(105deg, var(--t-accent) 0 40%, #fff3cc 50%, var(--t-accent) 60% 100%) 100% 0 / 300% 100%;
@@ -441,8 +629,7 @@
   transform: translateX(-100%);
   animation: t-bar-sheen 4.5s ease-in-out infinite;
 }
-@keyframes t-ink-in { from { opacity: 0; transform: translateY(14px) scale(0.985); } }
-@keyframes t-sheen { 0% { transform: translateX(0); } 30%, 100% { transform: translateX(440%); } }
+@keyframes t-ink-in { from { opacity: 0; transform: translateY(16px) scale(0.985); } }
 @keyframes t-title-sheen { 0%, 50% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 @keyframes t-twinkle {
   0%, 100% { opacity: 0.5; transform: scale(0.8) rotate(0deg); }
