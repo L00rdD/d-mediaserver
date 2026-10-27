@@ -13,10 +13,12 @@ state, so a restart does not replay the past.
 import json
 import os
 import re
+import threading
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 OUT = os.environ.get("OUT", "/status/screen.json")
 JELLYFIN = os.environ.get("JELLYFIN_URL", "http://jellyfin:8096")
@@ -27,6 +29,9 @@ TRANSMISSION = os.environ.get("TRANSMISSION_URL", "http://gluetun:9091/transmiss
 RADARR = os.environ.get("RADARR_URL", "http://radarr:7878")
 SONARR = os.environ.get("SONARR_URL", "http://sonarr:8989")
 STATUS = os.environ.get("STATUS_DIR", "/status")
+SETTINGS = os.path.join(STATUS, "screen-settings.json")
+SETTINGS_PORT = int(os.environ.get("SETTINGS_PORT", "8584"))
+LOOKS = {"friday", "cyberpunk", "hogwarts"}
 TICK = 3                 # seconds between two passes
 SLOW = 30                # seconds between two passes on the slow sources
 KEEP_EVENTS = 30
@@ -166,6 +171,73 @@ def recent(items, n=6):
     return out[:n]
 
 
+# ---------- settings: the screen's remote control ----------
+# The home page's Errol card reads and changes them (GET/POST /screen/settings,
+# through Caddy); they go into screen.json, and Errol applies them live.
+# look: the screen's look, or None for its own default; follow_hub: the home
+# page sets the look to its own whenever it is opened.
+
+def load_settings():
+    try:
+        with open(SETTINGS) as f:
+            saved = json.load(f)
+    except (OSError, ValueError):
+        saved = {}
+    look = saved.get("look")
+    return {"look": look if look in LOOKS else None, "follow_hub": bool(saved.get("follow_hub"))}
+
+
+def save_settings(changes):
+    settings = load_settings()
+    if "look" in changes:
+        if changes["look"] is not None and changes["look"] not in LOOKS:
+            raise ValueError(f"unknown look {changes['look']!r}")
+        settings["look"] = changes["look"]
+    if "follow_hub" in changes:
+        settings["follow_hub"] = bool(changes["follow_hub"])
+    tmp = SETTINGS + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(settings, f)
+    os.replace(tmp, SETTINGS)
+    return settings
+
+
+class SettingsHandler(BaseHTTPRequestHandler):
+    def reply(self, code, body):
+        data = json.dumps(body).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self):
+        if self.path.rstrip("/") != "/screen/settings":
+            return self.reply(404, {"error": "not found"})
+        self.reply(200, load_settings())
+
+    def do_POST(self):
+        if self.path.rstrip("/") != "/screen/settings":
+            return self.reply(404, {"error": "not found"})
+        try:
+            length = min(int(self.headers.get("Content-Length") or 0), 1024)
+            changes = json.loads(self.rfile.read(length) or b"{}")
+            if not isinstance(changes, dict):
+                raise ValueError("expected an object")
+            self.reply(200, save_settings(changes))
+        except ValueError as error:
+            self.reply(400, {"error": str(error)})
+
+    def log_message(self, *args):
+        pass
+
+
+def serve_settings():
+    server = ThreadingHTTPServer(("", SETTINGS_PORT), SettingsHandler)
+    threading.Thread(target=server.serve_forever, name="settings", daemon=True).start()
+
+
 # ---------- events ----------
 
 class Feed:
@@ -265,11 +337,13 @@ class Feed:
             "portfolio": self.slow.get("draupnir"),
             "disk": disk,
             "services": {"up": sum(1 for s in services if s.get("state") == "running"), "total": len(services)},
+            "settings": load_settings(),
             "errors": self.errors,
         }
 
 
 def main():
+    serve_settings()
     feed = Feed()
     while True:
         started = time.time()

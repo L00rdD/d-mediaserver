@@ -635,6 +635,13 @@
       *, *::before, *::after { animation: none !important; transition: none !important; }
       .boot { display: none; }
     }
+    /* Errol, the living-room screen: what it shows and its look */
+    .errol-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; }
+    .errol-looks { display: flex; gap: 6px; }
+    .errol-looks button { font: inherit; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 4px 10px; color: var(--cyan); background: transparent; border: 1px solid var(--cyan-soft); cursor: pointer; }
+    .errol-looks button[aria-pressed="true"], .errol-looks button:hover, .errol-looks button:focus-visible { outline: none; color: var(--bg); background: var(--cyan); }
+    .errol-follow { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); font-size: 0.85rem; cursor: pointer; }
+    .errol-follow input { accent-color: var(--cyan); }
   </style>
   <script>
     // The power-up only plays on the first visit of the tab session
@@ -748,6 +755,12 @@
       <span class="st-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></span>
     </div>
 
+    <div class="panel bot errol" id="errol" role="group" hidden aria-label="Errol, the living-room screen">
+      <span class="tag"><i>09</i> // Errol <span>living-room screen</span></span>
+      <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
+      <label class="errol-follow"><input type="checkbox" data-errol="follow"> Follow this page's look</label>
+    </div>
+
     <a class="panel bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
       <span class="tag"><i>05</i> // Trading bot <em data-tb="mode">PAPER</em> <span data-tb="state">Running</span></span>
       <dl class="bot-stats">
@@ -839,5 +852,6 @@
   <script src="/kpiece.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
+  <script src="/errol.js" defer></script>
 </body>
 </html>

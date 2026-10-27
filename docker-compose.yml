@@ -68,7 +68,8 @@ services:
   # Feed of the living-room screen (Errol, github.com/L00rdD/errol): what plays
   # on Jellyfin, the lamps, projection screen and projector (Bifrost), finished
   # downloads, films and episodes imported, One Piece and Draupnir, in
-  # screen.json every 3 s. Needs JELLYFIN_API_KEY in .env for the cinema mode; reads the Radarr
+  # screen.json every 3 s. It also keeps the screen's settings (the home page's
+  # Errol card, /screen/settings on port 8584 inside the network). Needs JELLYFIN_API_KEY in .env for the cinema mode; reads the Radarr
   # and Sonarr API keys from their config, read-only.
   screen:
     image: python:3-alpine

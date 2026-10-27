@@ -455,6 +455,8 @@ sh ~/errol/deploy/install.sh friday        # or cyberpunk
 
 `curl -s localhost/screen.json` shows what the screen gets. Its `errors` field lists the sources the feed could not read.
 
+The home page has an **Errol** card in every look: it shows what the screen shows now, and switches its look (Friday, Cyberpunk, Hogwarts) within a few seconds. With *Follow this page's look* ticked, opening the home page in a look sets the screen to the same one. The settings are kept by the `screen` service (`/screen/settings`, in the `disk-status` volume).
+
 ## 🔑 Passwords
 
 By default Radarr, Sonarr and Prowlarr each ask you to set up a login the first time you open them. If you would rather have no password to remember, add this line to your `.env` and run `docker compose up -d` again:

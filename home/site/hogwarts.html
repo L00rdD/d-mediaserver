@@ -814,6 +814,13 @@
       .walk i { opacity: 0.6; }
       .walker { opacity: 1; left: auto; right: 0; }
     }
+    /* Errol, the living-room screen: what it shows and its look, in ink */
+    .errol-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; font-style: italic; }
+    .errol-looks { display: flex; gap: 6px; font-style: normal; }
+    .errol-looks button { font: 600 0.7rem/1.6 var(--display); letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 10px; color: var(--ink); background: transparent; border: 1px solid var(--ink-soft); border-radius: 999px; cursor: pointer; }
+    .errol-looks button[aria-pressed="true"], .errol-looks button:hover, .errol-looks button:focus-visible { outline: none; color: var(--t-on-highlight); background: radial-gradient(circle at 40% 35%, #d4434a, var(--scarlet) 60%, #7d1419); border-color: transparent; }
+    .errol-follow { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--ink-soft); font: italic 0.9rem var(--serif); cursor: pointer; }
+    .errol-follow input { accent-color: var(--scarlet); }
   </style>
   <script>
     // The map only unfolds on the first visit of the tab session
@@ -941,6 +948,12 @@
           <span class="st-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></span>
         </div>
 
+        <div class="bot errol" id="errol" role="group" hidden aria-label="Errol, the living-room screen">
+          <span class="tag"><i>09</i><span class="room">Errol</span>Owl post</span>
+          <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
+          <label class="errol-follow"><input type="checkbox" data-errol="follow"> Follow this page's look</label>
+        </div>
+
         <a class="bot" id="trading-bot" href="http://{{$host}}:8080" target="_blank" rel="noopener" hidden aria-label="Trading bot, open its dashboard">
           <span class="tag"><i>05</i><span class="room">Trading bot</span>Diagon Alley exchange <em data-tb="mode">PAPER</em> <span data-tb="state">Running</span></span>
           <dl class="bot-stats">
@@ -1053,5 +1066,6 @@
   <script src="/kpiece.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
+  <script src="/errol.js" defer></script>
 </body>
 </html>

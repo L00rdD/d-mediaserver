@@ -37,6 +37,12 @@
 	# service (404 when it is off, and the card stays hidden). /services.json lists
 	# the containers and their ports, written by the services service. /screen.json
 	# feeds the living-room screen, written by the screen service
+	# /screen/settings is the living-room screen's remote control (the Errol card),
+	# answered by the screen service
+	handle /screen/settings {
+		reverse_proxy screen:8584
+	}
+
 	@status path /disk.json /kpiece.json /services.json /screen.json
 	handle @status {
 		root * /status
