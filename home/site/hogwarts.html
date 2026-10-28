@@ -332,6 +332,8 @@
       .quill-name { display: none; }
       .quill-text { font-size: 1rem; }
     }
+    html.t-gecko header, html.t-gecko .quill-line { -webkit-backdrop-filter: none; backdrop-filter: none; }
+    html.t-gecko header { background: linear-gradient(rgba(5, 9, 18, 0.9), rgba(5, 9, 18, 0.7)); }
     @media (prefers-reduced-motion: reduce) {
       .note, .app { transition: none; }
     }
@@ -343,6 +345,7 @@
       let seen = true;
       try { seen = !!sessionStorage.getItem("opened-case"); sessionStorage.setItem("opened-case", "1"); } catch {}
       if (!seen && !matchMedia("(prefers-reduced-motion: reduce)").matches) root.classList.add("intro", "t-hold");
+      if (/\bFirefox\/\d/.test(navigator.userAgent)) root.classList.add("t-gecko"); // see theme.css: no backdrop blur there
     })();
   </script>
 </head>

@@ -45,7 +45,11 @@
   const pointer = { x: -1, y: -1, active: false, moved: 0 };
   const view = { px: 0, py: 0, scroll: 0 };
   let canvas = null, ctx = null, raf = 0, running = false, last = 0, dpr = 1, W = 0, H = 0;
-  let flies = [], wisps = [], sparks = [], rings = [], circles = [], waves = [], snitch = null, occ = null;
+  // Firefox (Zen, Librewolf…) composites backdrop-filter and big canvases far slower than Chrome and
+  // Safari: html.t-gecko lets the CSS drop the blur, and the canvas draws at 1 device pixel per CSS pixel
+  const gecko = /\bFirefox\/\d/.test(navigator.userAgent);
+  if (gecko) root.classList.add("t-gecko");
+  let flies = [], wisps = [], sparks = [], rings = [], circles = [], waves = [], snitch = null, occ = null, cleared = false;
   let io = null, mo = null, startedAt = 0;
   let hall = null, layers = [], flyers = [];
   const next = {}; // when each ambient event comes next (seconds)
@@ -170,7 +174,7 @@
 
   // ---------- canvas ----------
   const resize = () => {
-    dpr = Math.min(window.devicePixelRatio || 1, 1.5); // phones: plenty sharp for glows, a third of the pixels
+    dpr = gecko ? 1 : Math.min(window.devicePixelRatio || 1, 1.5); // phones: plenty sharp for glows, a third of the pixels
     W = innerWidth;
     H = innerHeight;
     canvas.width = Math.round(W * dpr);
@@ -569,7 +573,16 @@
       l.el.style.translate = `${x.toFixed(2)}px ${y.toFixed(2)}px`;
     }
 
+    // nothing to draw (a page with its own air, between two events): leave the canvas alone
+    const busy = flies.length || wisps.length || sparks.length || rings.length || circles.length || waves.length || snitch || occ;
+    if (!busy && cleared) {
+      for (let i = flyers.length - 1; i >= 0; i--) { const f = flyers[i]; if (!f.step(f, dt)) { f.el.remove(); flyers.splice(i, 1); } }
+      for (const fn of frameFns) { try { fn(time, dt, pointer, view); } catch (e) { console.error(e); } }
+      pointer.moved = 0;
+      return;
+    }
     ctx.clearRect(0, 0, W, H);
+    cleared = !busy;
     ctx.globalCompositeOperation = "lighter";
     const S = sprites();
 

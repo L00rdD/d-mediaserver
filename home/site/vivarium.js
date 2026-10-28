@@ -38,6 +38,17 @@ const finishIntro = () => {
   window.Magic?.release();
 };
 
+// Quality: the picture adapts to the machine. Tiers from the sharpest down; the loop steps down when
+// frames take too long and back up when they are easy again. ?gl=0..3 pins a tier (for testing).
+const TIERS = [
+  { px: 1.5, shadow: 2048, bloom: true, shafts: true },
+  { px: 1.15, shadow: 1536, bloom: true, shafts: true },
+  { px: 0.9, shadow: 1024, bloom: true, shafts: false },
+  { px: 0.7, shadow: 0, bloom: false, shafts: false },
+];
+const pinned = new URLSearchParams(location.search).get("gl");
+let tier = pinned !== null ? clamp(+pinned || 0, 0, 3) : 0;
+const Q = () => TIERS[tier];
 let renderer;
 try {
   renderer = new T.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
@@ -49,7 +60,7 @@ try {
   throw e;
 }
 root.classList.add("gl");
-renderer.shadowMap.enabled = true; // the creatures and props stand on the photographed ground with their shadows
+renderer.shadowMap.enabled = Q().shadow > 0; // the creatures and props stand on the photographed ground with their shadows
 renderer.shadowMap.type = T.PCFShadowMap;
 renderer.toneMapping = T.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
@@ -128,7 +139,7 @@ const BLEND_FS = GLSL_NOISE + /* glsl */ `
 class WorldsPass extends T.Pass {
   constructor() {
     super();
-    const o = { type: T.HalfFloatType, samples: 4 };
+    const o = { type: T.HalfFloatType, samples: 2 }; // 2 samples: the film grain hides the rest
     this.rtA = new T.WebGLRenderTarget(1, 1, o);
     this.rtB = new T.WebGLRenderTarget(1, 1, o);
     this.a = null; this.b = null; this.k = 0; this.time = 0;
@@ -333,8 +344,9 @@ const MIST_FS = GLSL_NOISE + /* glsl */ `
   uniform float uTime, uAlpha; uniform vec3 uColA, uColB; varying vec2 vUv;
   void main() {
     vec2 p = vUv * vec2(3.0, 1.6);
-    float n = fbm(vec3(p + vec2(uTime * 0.012, 0.0), uTime * 0.02));
-    float m = fbm(vec3(p * 2.0 - vec2(uTime * 0.02, 0.0), 3.0));
+    vec3 q = vec3(p + vec2(uTime * 0.012, 0.0), uTime * 0.02), q2 = vec3(p * 2.0 - vec2(uTime * 0.02, 0.0), 3.0);
+    float n = 0.5 * vnoise(q) + 0.25 * vnoise(q * 2.03 + 1.7) + 0.125 * vnoise(q * 4.1 + 3.4) + 0.0625;
+    float m = 0.5 * vnoise(q2) + 0.25 * vnoise(q2 * 2.03 + 1.7) + 0.125 * vnoise(q2 * 4.1 + 3.4) + 0.0625;
     float a = smoothstep(0.35, 0.85, n) * (0.6 + 0.4 * m);
     a *= smoothstep(0.0, 0.25, vUv.y) * smoothstep(1.0, 0.6, vUv.y) * smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.85, vUv.x);
     gl_FragColor = vec4(mix(uColA, uColB, m) * a * uAlpha, 1.0);
@@ -352,8 +364,10 @@ const SHAFT_FS = GLSL_NOISE + /* glsl */ `
     a *= pow(max(1.0 - uv.y, 0.0), 0.8) * smoothstep(0.0, 0.08, uv.y) * g * g;
     gl_FragColor = vec4(uColor * a * uAlpha, 1.0);
   }`;
+const shaftGroups = [];
 const shafts = (w, o) => {
   const g = new T.Group();
+  shaftGroups.push(g);
   const mat = new T.ShaderMaterial({
     uniforms: { uTime: { value: rand(0, 50) }, uAlpha: { value: o.alpha ?? 0.3 }, uColor: { value: new T.Color(...o.color) } },
     vertexShader: QUAD_VS, fragmentShader: SHAFT_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false,
@@ -454,7 +468,7 @@ const makeWorld = (name, def) => {
   sun.position.set(...(def.sunPos ?? [3, 9, 2]));
   sun.target.position.set(0, 0, -4);
   sun.castShadow = true;
-  sun.shadow.mapSize.setScalar(small() ? 1024 : 2048);
+  sun.shadow.mapSize.setScalar(small() ? 1024 : Q().shadow || 1024);
   Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 0.5, far: 40 });
   sun.shadow.camera.updateProjectionMatrix();
   sun.shadow.bias = -0.0004;
@@ -1081,7 +1095,7 @@ const hedwig = () => {
   Object.assign(h, { t: 0, dir: Math.random() < 0.5 ? 1 : -1, y: rand(0.0, 0.3), depth: rand(3.4, 5) });
   return true;
 };
-window.Vivarium = { hedwig };
+window.Vivarium = { hedwig, stats: () => { const n = stats.frames || 1; const r = { frames: stats.frames, wallMs: +(stats.wall / n).toFixed(1), jsMs: +(stats.js / n).toFixed(1), glCallMs: +(stats.gl / n).toFixed(1) }; stats.frames = stats.js = stats.gl = stats.wall = 0; return r; } };
 let nextHedwig = rand(40, 70);
 const into = (o, scene) => { if (o.parent !== scene) scene.add(o); };
 const tmpV = new T.Vector3(), tmpD = new T.Vector3();
@@ -1145,13 +1159,17 @@ const layout = () => {
 const resize = () => {
   W = innerWidth;
   H = innerHeight;
-  pr = Math.min(devicePixelRatio || 1, small() ? 1.25 : 1.5);
+  pr = Math.min(devicePixelRatio || 1, small() ? Math.min(1.25, Q().px) : Q().px);
   FOV = W / H < 0.8 ? 68 : 50;
   renderer.setPixelRatio(pr);
   renderer.setSize(W, H, false);
   composer.setPixelRatio(pr);
   composer.setSize(W, H);
-  bloom.resolution.set(W, H);
+  bloom.resolution.set(W, H).multiplyScalar(0.5); // the bloom is a blur: half the pixels look the same
+  bloom.enabled = Q().bloom;
+  renderer.shadowMap.enabled = Q().shadow > 0;
+  for (const w of Object.values(worlds)) if (w.sun && Q().shadow && w.sun.shadow.mapSize.x !== Q().shadow) { w.sun.shadow.mapSize.setScalar(Q().shadow); w.sun.shadow.map?.dispose(); w.sun.shadow.map = null; }
+  for (const g of shaftGroups) g.visible = Q().shafts;
   for (const w of [...Object.values(worlds), caseWorld]) {
     if (!w) continue;
     w.camera.fov = w === caseWorld ? 40 : FOV;
@@ -1197,8 +1215,12 @@ const step = (w, dt, t) => {
   w.sparks.update(dt);
 };
 
+const stats = { frames: 0, js: 0, gl: 0, wall: 0, last: 0 }; // where the time goes (window.Vivarium.stats)
 const render = (now) => {
   raf = still ? 0 : requestAnimationFrame(render);
+  const t0 = performance.now();
+  if (stats.last) { stats.wall += t0 - stats.last; stats.frames++; }
+  stats.last = t0;
   const tt = now / 1000;
   const dt = still ? 0 : Math.min(0.05, last ? tt - last : 0.016);
   last = tt;
@@ -1244,7 +1266,23 @@ const render = (now) => {
   if (drop > 0) drop = Math.max(0, drop - dt * (drop * 1.8 + 0.3));
   if (grade.uniforms.uFlash.value > 0) grade.uniforms.uFlash.value = Math.max(0, grade.uniforms.uFlash.value - dt * 1.1);
   if (grade.uniforms.uFade.value < 1) grade.uniforms.uFade.value = Math.min(1, grade.uniforms.uFade.value + dt * 1.5);
+  const t1 = performance.now();
   composer.render(dt);
+  stats.js += t1 - t0; stats.gl += performance.now() - t1;
+  adapt(t0);
+};
+// every 2 s: frames over 28 ms on average step the quality down; under 12 ms for 8 s step it back up
+let judgeAt = 0, judgeFrames = 0, judgeWall = 0, easySince = 0;
+const adapt = (now) => {
+  judgeFrames++;
+  if (!judgeAt) { judgeAt = now; return; }
+  judgeWall = now - judgeAt;
+  if (judgeWall < 2000 || judgeFrames < 10 || pinned !== null || document.hidden) return;
+  const ms = judgeWall / judgeFrames;
+  judgeAt = now; judgeFrames = 0;
+  if (ms > 28 && tier < TIERS.length - 1) { tier++; easySince = 0; resize(); console.info("vivarium: quality down to", tier, `(${ms.toFixed(0)} ms/frame)`); }
+  else if (ms < 12 && tier > 0) { easySince += 2000; if (easySince >= 8000) { tier--; easySince = 0; resize(); console.info("vivarium: quality up to", tier); } }
+  else easySince = 0;
 };
 
 // ---- the intro, step by step
