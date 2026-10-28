@@ -453,6 +453,15 @@ git clone https://github.com/L00rdD/errol ~/errol
 sh ~/errol/deploy/install.sh friday        # or cyberpunk
 ```
 
+**Claude Code sessions (optional).** With [Cerebro](https://github.com/L00rdD/cerebro) running on a Mac, the screen and the home page show its Claude Code sessions: a card with each session, its room of the X-Mansion and what it does, and on the screen a notice whenever a session waits for your answer. In Cerebro's panel, turn on the network the Pi can reach (ZeroTier if the Pi has joined it, its address does not change; otherwise the local network) and copy its link, `http://<address>:4243/?key=<key>`. Put both halves in `.env`, then run `docker compose up -d`:
+
+```text
+CEREBRO_URL=http://10.147.17.5:4243
+CEREBRO_KEY=...
+```
+
+While the Mac sleeps or is away, the feed has no `cerebro` and the card stays hidden; it asks the Mac again every 30 s. The card opens Cerebro's phone page: its link, key included, is in `screen.json`, so anyone on the home network can follow the sessions (the key only lets one read them).
+
 `curl -s localhost/screen.json` shows what the screen gets. Its `errors` field lists the sources the feed could not read.
 
 The home page has an **Errol** card in every look: it shows what the screen shows now, and switches its look (Friday, Cyberpunk, Hogwarts) within a few seconds. With *Follow this page's look* ticked, opening the home page in a look sets the screen to the same one. The settings are kept by the `screen` service (`/screen/settings`, in the `disk-status` volume).

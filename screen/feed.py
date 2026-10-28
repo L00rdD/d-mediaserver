@@ -1,6 +1,7 @@
 """Feed of the living-room screen: what plays on Jellyfin, what the house does
 (Bifrost: lamps, projection screen, projector), what finished downloading, the
-latest One Piece scan, Draupnir, the disks. Written to /status/screen.json every
+latest One Piece scan, Draupnir, the disks, and the Claude Code sessions of
+the Mac when Cerebro answers. Written to /status/screen.json every
 few seconds; Errol (https://github.com/L00rdD/errol), the screen's renderer,
 reads it through the home page (/screen.json) and turns every change into a scene.
 The same document is pushed as it changes on /screen/events (Server-Sent Events,
@@ -9,7 +10,8 @@ instant instead of asking every few seconds. Python standard library only.
 
 Changes become events: a lamp switched, the projection screen moving, the
 projector turned on or switching app, a torrent finished, Radarr or Sonarr
-importing a film or an episode, a new scan. The first pass only records the
+importing a film or an episode, a new scan, a Claude Code session waiting
+for an answer (Cerebro). The first pass only records the
 state, so a restart does not replay the past.
 """
 import json
@@ -19,6 +21,7 @@ import re
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -32,6 +35,11 @@ DRAUPNIR = os.environ.get("DRAUPNIR_URL", "http://host.docker.internal:8080/api/
 TRANSMISSION = os.environ.get("TRANSMISSION_URL", "http://gluetun:9091/transmission/rpc")
 RADARR = os.environ.get("RADARR_URL", "http://radarr:7878")
 SONARR = os.environ.get("SONARR_URL", "http://sonarr:8989")
+# Cerebro, on the Mac: its phone page's address (http://<the Mac's ZeroTier or local IP>:4243)
+# and the key of its link (~/.cerebro/mobile-key). Without them, or while the Mac sleeps,
+# screen.json has no "cerebro".
+CEREBRO = os.environ.get("CEREBRO_URL", "").rstrip("/")
+CEREBRO_KEY = os.environ.get("CEREBRO_KEY", "")
 STATUS = os.environ.get("STATUS_DIR", "/status")
 SETTINGS = os.path.join(STATUS, "screen-settings.json")
 SETTINGS_PORT = int(os.environ.get("SETTINGS_PORT", "8584"))
@@ -205,6 +213,58 @@ def recent(items, n=6):
     return out[:n]
 
 
+def cerebro_names():
+    """Cerebro's rooms and characters by id, with the names its panel shows."""
+    rooms = get(f"{CEREBRO}/rooms/rooms.json", timeout=2).get("rooms") or []
+    characters = get(f"{CEREBRO}/characters/characters.json", timeout=2).get("characters") or []
+    return ({r["id"]: r.get("name") for r in rooms if "id" in r},
+            {c["id"]: c.get("name") for c in characters if "id" in c})
+
+
+def cerebro_snapshot():
+    """Cerebro's latest snapshot; None when the Mac does not answer (asleep, away) or has none yet."""
+    try:
+        req = urllib.request.Request(f"{CEREBRO}/api/snapshot?key={urllib.parse.quote(CEREBRO_KEY)}")
+        with urllib.request.urlopen(req, timeout=2) as r:
+            return json.load(r) if r.status == 200 else None
+    except urllib.error.HTTPError:
+        raise                    # it answers, but refuses: a wrong key is worth an error
+    except (OSError, ValueError):
+        return None
+
+
+ORDER = {"waiting": 0, "busy": 1}
+
+
+def cerebro(snapshot, names):
+    """The sessions as the screens show them, those waiting for an answer first, then those working."""
+    rooms, characters = names
+    home = re.compile(r"^/(Users|home)/[^/]+")
+    sessions = []
+    for s in snapshot.get("scenes") or []:
+        actors = s.get("actors") or []
+        lead = actors[0].get("character") if actors else None
+        since = s.get("statusSince")
+        sessions.append({
+            "id": s.get("id"),
+            "name": s.get("name"),
+            "project": home.sub("~", s.get("cwd") or "") or None,
+            "status": s.get("status"),
+            "since": datetime.fromtimestamp(since / 1000, timezone.utc).astimezone().isoformat(timespec="seconds") if since else None,
+            "room": rooms.get(s.get("room")) or s.get("room"),
+            "lead": characters.get(lead) or lead,
+            "agents": max(len(actors) - 1, 0),
+        })
+    sessions.sort(key=lambda s: (ORDER.get(s["status"], 2), s["name"] or ""))
+    return {
+        "sessions": sessions,
+        "busy": sum(1 for s in sessions if s["status"] == "busy"),
+        "waiting": sum(1 for s in sessions if s["status"] == "waiting"),
+        # the phone page, for the home page's card; the key only lets one read the sessions
+        "link": f"{CEREBRO}/?key={urllib.parse.quote(CEREBRO_KEY)}",
+    }
+
+
 # ---------- the event stream ----------
 # Whoever asks /screen/events gets the document at once, then again each time
 # it changes (and every HEARTBEAT seconds anyway); a comment line every
@@ -366,6 +426,8 @@ class Feed:
         self.slow = {}
         self.radarr_key = api_key("radarr")
         self.sonarr_key = api_key("sonarr")
+        self.cerebro_at = 0       # when to ask Cerebro again after the Mac did not answer
+        self.cerebro_names = None
         self.n = 0
 
     def emit(self, kind, **data):
@@ -379,6 +441,22 @@ class Feed:
         except Exception as e:     # one dead source must not stop the screen
             self.errors[name] = f"{type(e).__name__}: {e}"[:160]
             return default
+
+    def cerebro(self, t):
+        """The Mac's Claude Code sessions, or None. A Mac that does not answer is asked
+        again in SLOW seconds only, so its timeouts do not slow the screen down."""
+        if not CEREBRO or t < self.cerebro_at:
+            return None
+        snapshot = cerebro_snapshot()
+        if snapshot is None:
+            self.cerebro_at = t + SLOW
+            return None
+        if self.cerebro_names is None:
+            try:
+                self.cerebro_names = cerebro_names()
+            except (OSError, ValueError):
+                pass             # the ids stand in for the names until the next pass
+        return cerebro(snapshot, self.cerebro_names or ({}, {}))
 
     def tick(self):
         self.errors = {}
@@ -394,6 +472,7 @@ class Feed:
         playing = self.safe("jellyfin", jellyfin, [])
         house = self.safe("bifrost", lambda: get(BIFROST), None)
         torrents = self.safe("transmission", transmission, None)
+        claude = self.safe("cerebro", lambda: self.cerebro(t), None)
         kpiece = read_status("kpiece.json")
         disk = read_status("disk.json")
         services = read_status("services.json") or []
@@ -406,6 +485,7 @@ class Feed:
             "imports": {x["id"] for x in self.slow.get("radarr", []) + self.slow.get("sonarr", [])},
             "scan": ((kpiece or {}).get("latest") or {}).get("scan"),
             "playing": {p["id"] for p in playing},
+            "sessions": {x["id"]: x["status"] for x in (claude or {}).get("sessions", [])},
         }
         prev = self.seen
         if prev is not None:
@@ -432,6 +512,10 @@ class Feed:
                     self.emit("import", **{k: v for k, v in x.items() if k != "id"})
             if state["scan"] and prev["scan"] and state["scan"] != prev["scan"]:
                 self.emit("scan", **(kpiece.get("latest") or {}))
+            if claude is not None:
+                for x in claude["sessions"]:
+                    if x["status"] == "waiting" and prev["sessions"].get(x["id"], "waiting") != "waiting":
+                        self.emit("cerebro", **{k: x[k] for k in ("name", "project", "status", "room", "lead")})
             for p in playing:
                 if p["id"] not in prev["playing"]:
                     self.emit("play", title=p["title"], series=p["series"], season=p["season"], episode=p["episode"], device=p["device"])
@@ -442,6 +526,8 @@ class Feed:
                     state[k] = prev[k]
             if torrents is None:
                 state["done"] = prev["done"]
+            if claude is None:
+                state["sessions"] = prev["sessions"]
         self.seen = state
 
         return {
@@ -455,6 +541,7 @@ class Feed:
             "recent": recent(self.slow.get("radarr", []) + self.slow.get("sonarr", [])),
             "one_piece": kpiece,
             "portfolio": self.slow.get("draupnir"),
+            "cerebro": claude,
             "disk": disk,
             "services": {"up": sum(1 for s in services if s.get("state") == "running"), "total": len(services)},
             "settings": load_settings(),

@@ -258,7 +258,8 @@
         "sap sap sap"
         "kp kp kp"
         "bf bf bf"
-        "er er er";
+        "er er er"
+        "cb cb cb";
       gap: 28px 56px;
       width: 100%;
       max-width: 1080px;
@@ -558,6 +559,8 @@
     /* Bifrost card: hidden until bifrost answers on :8582 (see bifrost.js) */
     .errol { grid-area: er; animation-delay: 0.8s; }
     .bifrost { grid-area: bf; animation-delay: 0.75s; }
+    /* Cerebro card: hidden while the feed has no "cerebro", the Mac asleep (see cerebro.js) */
+    .cerebro { grid-area: cb; animation-delay: 0.85s; }
     /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
     .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
     .bifrost .bf-hb { position: relative; z-index: 2; margin-left: 0; }
@@ -614,7 +617,8 @@
           "sap sap"
           "kp kp"
           "bf bf"
-          "er er";
+          "er er"
+          "cb cb";
         gap: 16px;
         padding: 20px 16px 36px;
       }
@@ -628,7 +632,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf" "er";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf" "er" "cb";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -799,6 +803,11 @@
       <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
       <label class="errol-follow"><input type="checkbox" data-errol="follow"> The screens follow this page's look</label>
     </div>
+    <a class="panel bot cerebro" id="cerebro" href="#" target="_blank" rel="noopener" hidden aria-label="Cerebro, open the Claude Code sessions of the Mac">
+      <span class="tag"><i>10</i> // Cerebro <span data-cb="state"></span></span>
+      <ul class="bot-list" data-cb="list"></ul>
+      <span class="tag bot-foot"><span data-cb="counts"></span><span class="bot-more">X-Mansion :4243 →</span></span>
+    </a>
   </main>
 
   <footer class="jarvis" id="jarvis" aria-live="polite">
@@ -856,5 +865,6 @@
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
+  <script src="/cerebro.js" defer></script>
 </body>
 </html>
