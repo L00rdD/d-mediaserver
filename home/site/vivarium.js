@@ -18,11 +18,6 @@
 //   shed       Newt's shed, an owl under the rafters (Errol)
 // Coming near an element with data-creature="phoenix|niffler|bowtruckle|hippogriff|owl" wakes its
 // creature up. Assets load as their world comes near; a creature not there yet is simply absent.
-// What makes the worlds hold together: every world has a sun matched to its photo that casts the
-// shadows of the creatures and props onto a ground that only shows shadows, a contact shadow under
-// each creature, fog for depth, shafts of light with dust drifting in them, pools of light painted
-// on the ground under the lamps and the hoard (the photographed ground takes no light), and a camera
-// that breathes. The passage between worlds is a ring of runes that bends the light at its rim.
 // Reduced motion: no intro, a still picture redrawn on scroll. Without WebGL: <html class="no-gl">.
 import * as T from "./vendor/three-r186.min.js";
 
@@ -38,17 +33,6 @@ const finishIntro = () => {
   window.Magic?.release();
 };
 
-// Quality: the picture adapts to the machine. Tiers from the sharpest down; the loop steps down when
-// frames take too long and back up when they are easy again. ?gl=0..3 pins a tier (for testing).
-const TIERS = [
-  { px: 1.5, shadow: 2048, bloom: true, shafts: true },
-  { px: 1.15, shadow: 1536, bloom: true, shafts: true },
-  { px: 0.9, shadow: 1024, bloom: true, shafts: false },
-  { px: 0.7, shadow: 0, bloom: false, shafts: false },
-];
-const pinned = new URLSearchParams(location.search).get("gl");
-let tier = pinned !== null ? clamp(+pinned || 0, 0, 3) : 0;
-const Q = () => TIERS[tier];
 let renderer;
 try {
   renderer = new T.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
@@ -60,8 +44,6 @@ try {
   throw e;
 }
 root.classList.add("gl");
-renderer.shadowMap.enabled = Q().shadow > 0; // the creatures and props stand on the photographed ground with their shadows
-renderer.shadowMap.type = T.PCFShadowMap;
 renderer.toneMapping = T.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = T.SRGBColorSpace;
@@ -106,45 +88,35 @@ const GLSL_NOISE = /* glsl */ `
 // middle of the screen, swallowing the old world in a swirl and unrolling the new one.
 const QUAD_VS = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 const BLEND_FS = GLSL_NOISE + /* glsl */ `
-  uniform sampler2D tA, tB, tRune; uniform float uK, uTime, uAspect; uniform vec3 uGradeA, uGradeB; varying vec2 vUv;
+  uniform sampler2D tA, tB; uniform float uK, uTime, uAspect; uniform vec3 uGradeA, uGradeB; varying vec2 vUv;
   void main() {
     vec2 c = vUv - 0.5; c.x *= uAspect;
     float r = length(c);
     float n = fbm(vec3(c * 3.0, uTime * 0.3));
-    float R = uK * 2.1 - 0.3;                       // the ring's radius
-    float d = R - (r + (n - 0.5) * 0.3);            // signed distance to its wavering edge, positive inside the new world
-    float m = smoothstep(0.0, 0.04, d);
-    float on = smoothstep(0.02, 0.3, uK) * smoothstep(1.0, 0.75, uK); // the ring grows in, and fades once through
-    // the old world swirls into the ring; the new one unrolls; the rim bends the light like a lens
+    float d = uK * 2.1 - 0.3 - (r + (n - 0.5) * 0.45);
+    float m = smoothstep(0.0, 0.05, d);
     float sw = (1.0 - m) * uK * 2.5;
     float s = sin(sw * (1.2 - r)), co = cos(sw * (1.2 - r));
-    vec2 dirn = c / max(r, 1e-4);
-    float lens = exp(-abs(d) * 14.0) * on;
-    vec2 ca = mat2(co, -s, s, co) * (c * (1.0 - uK * 0.35)) + dirn * lens * 0.035;
-    vec2 cb = c * (1.25 - uK * 0.25) - dirn * lens * 0.02;
+    vec2 ca = mat2(co, -s, s, co) * (c * (1.0 - uK * 0.35));
+    vec2 cb = c * (1.25 - uK * 0.25);
     vec2 ua = vec2(ca.x / uAspect, ca.y) + 0.5, ub = vec2(cb.x / uAspect, cb.y) + 0.5;
     vec3 A = texture2D(tA, ua).rgb * uGradeA, B = texture2D(tB, ub).rgb * uGradeB;
     vec3 col = mix(A, B, m);
-    // a thin bright edge, a wide faint glow, and a circle of runes turning in the rim
-    float rim = exp(-abs(d) * 70.0) * on;
-    float glow = exp(-abs(d) * 9.0) * on;
-    float ang = atan(c.y, c.x) + uTime * 0.25;
-    vec2 ruv = 0.5 + vec2(cos(ang), sin(ang)) * (r / max(R, 0.05)) * 0.42;
-    float runes = texture2D(tRune, ruv).r * smoothstep(0.16, 0.0, abs(r - R)) * on * step(0.05, R);
-    vec3 blue = vec3(0.35, 1.1, 1.6), gold = vec3(1.8, 1.2, 0.5);
-    col += min(vec3(1.5), rim * mix(blue, gold, n) * 0.5 + glow * blue * 0.05 + runes * mix(gold, blue, 0.5) * 0.32);
-    col += on * (1.0 - m) * smoothstep(0.5, 0.0, abs(d)) * vec3(0.03, 0.08, 0.12);
+    float on = smoothstep(0.02, 0.3, uK) * smoothstep(1.0, 0.75, uK); // the ring grows in, and fades once through
+    float rim = exp(-abs(d - 0.025) * 38.0) * on;
+    col += rim * (vec3(0.6, 1.6, 2.1) * 1.1 + vec3(2.0, 1.5, 0.8) * 0.45 * n);
+    col += on * (1.0 - m) * smoothstep(0.4, 0.0, abs(d)) * vec3(0.05, 0.12, 0.16);
     gl_FragColor = vec4(col, 1.0);
   }`;
 class WorldsPass extends T.Pass {
   constructor() {
     super();
-    const o = { type: T.HalfFloatType, samples: 2 }; // 2 samples: the film grain hides the rest
+    const o = { type: T.HalfFloatType, samples: 4 };
     this.rtA = new T.WebGLRenderTarget(1, 1, o);
     this.rtB = new T.WebGLRenderTarget(1, 1, o);
     this.a = null; this.b = null; this.k = 0; this.time = 0;
     this.quad = new T.FullScreenQuad(new T.ShaderMaterial({
-      uniforms: { tA: { value: null }, tB: { value: null }, tRune: { value: null }, uK: { value: 0 }, uTime: { value: 0 }, uAspect: { value: 1 }, uGradeA: { value: new T.Vector3(1, 1, 1) }, uGradeB: { value: new T.Vector3(1, 1, 1) } },
+      uniforms: { tA: { value: null }, tB: { value: null }, uK: { value: 0 }, uTime: { value: 0 }, uAspect: { value: 1 }, uGradeA: { value: new T.Vector3(1, 1, 1) }, uGradeB: { value: new T.Vector3(1, 1, 1) } },
       vertexShader: QUAD_VS, fragmentShader: BLEND_FS,
     }));
   }
@@ -159,7 +131,6 @@ class WorldsPass extends T.Pass {
     const two = this.b && this.k > 0.002;
     if (two) { draw(this.b, this.rtB); grade(this.b, u.uGradeB.value); }
     u.tB.value = two ? this.rtB.texture : this.rtA.texture;
-    if (two && !u.tRune.value) u.tRune.value = runeTex()[0];
     u.uK.value = two ? this.k : 0;
     u.uTime.value = this.time;
     r.setRenderTarget(this.renderToScreen ? null : writeBuffer);
@@ -229,7 +200,7 @@ class Sparks {
   constructor(n) {
     this.n = n;
     this.pos = new Float32Array(n * 3); this.col = new Float32Array(n * 3); this.size = new Float32Array(n); this.alpha = new Float32Array(n);
-    this.vel = new Float32Array(n * 3); this.life = new Float32Array(n); this.max = new Float32Array(n); this.g = new Float32Array(n); this.s0 = new Float32Array(n); this.grow = new Float32Array(n);
+    this.vel = new Float32Array(n * 3); this.life = new Float32Array(n); this.max = new Float32Array(n); this.g = new Float32Array(n); this.s0 = new Float32Array(n);
     this.i = 0;
     const g = new T.BufferGeometry();
     g.setAttribute("position", new T.BufferAttribute(this.pos, 3).setUsage(T.DynamicDrawUsage));
@@ -252,7 +223,6 @@ class Sparks {
     this.life[k] = this.max[k] = (o.life ?? 1) * rand(0.6, 1);
     this.s0[k] = (o.size ?? 0.08) * rand(0.6, 1.2);
     this.g[k] = o.gravity ?? -0.5;
-    this.grow[k] = o.grow ?? 0.4; // size at the end of its life, relative
   }
   update(dt) {
     for (let k = 0; k < this.n; k++) {
@@ -263,7 +233,7 @@ class Sparks {
       this.pos[j] += this.vel[j] * dt; this.pos[j + 1] += this.vel[j + 1] * dt; this.pos[j + 2] += this.vel[j + 2] * dt;
       const t = Math.max(0, this.life[k] / this.max[k]);
       this.alpha[k] = Math.min(1, t * 1.5);
-      this.size[k] = this.s0[k] * lerp(this.grow[k], 1, t);
+      this.size[k] = this.s0[k] * (0.4 + 0.6 * t);
     }
     const a = this.points.geometry.attributes;
     a.position.needsUpdate = a.aColor.needsUpdate = a.aSize.needsUpdate = a.aAlpha.needsUpdate = true;
@@ -345,77 +315,12 @@ const MIST_FS = GLSL_NOISE + /* glsl */ `
   uniform float uTime, uAlpha; uniform vec3 uColA, uColB; varying vec2 vUv;
   void main() {
     vec2 p = vUv * vec2(3.0, 1.6);
-    vec3 q = vec3(p + vec2(uTime * 0.012, 0.0), uTime * 0.02), q2 = vec3(p * 2.0 - vec2(uTime * 0.02, 0.0), 3.0);
-    float n = 0.5 * vnoise(q) + 0.25 * vnoise(q * 2.03 + 1.7) + 0.125 * vnoise(q * 4.1 + 3.4) + 0.0625;
-    float m = 0.5 * vnoise(q2) + 0.25 * vnoise(q2 * 2.03 + 1.7) + 0.125 * vnoise(q2 * 4.1 + 3.4) + 0.0625;
+    float n = fbm(vec3(p + vec2(uTime * 0.012, 0.0), uTime * 0.02));
+    float m = fbm(vec3(p * 2.0 - vec2(uTime * 0.02, 0.0), 3.0));
     float a = smoothstep(0.35, 0.85, n) * (0.6 + 0.4 * m);
     a *= smoothstep(0.0, 0.25, vUv.y) * smoothstep(1.0, 0.6, vUv.y) * smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.85, vUv.x);
     gl_FragColor = vec4(mix(uColA, uColB, m) * a * uAlpha, 1.0);
   }`;
-
-// shafts of light: tall soft planes, additive, with slow noise drifting through them
-const SHAFT_FS = GLSL_NOISE + /* glsl */ `
-  uniform float uTime, uAlpha; uniform vec3 uColor; varying vec2 vUv;
-  void main() {
-    vec3 q = vec3(vUv.x * 2.0, vUv.y * 0.7 - uTime * 0.05, uTime * 0.03);
-    float n = 0.5 * vnoise(q) + 0.25 * vnoise(q * 2.03 + 1.7) + 0.125 * vnoise(q * 4.1 + 3.4);
-    vec2 uv = clamp(vUv, 0.0, 1.0); // pow() of a hair below zero is NaN on some GPUs, and NaN paints the whole plane black
-    float a = smoothstep(0.0, 0.25, uv.x) * smoothstep(1.0, 0.75, uv.x);
-    float g = 0.25 + 1.1 * n;
-    a *= pow(max(1.0 - uv.y, 0.0), 0.8) * smoothstep(0.0, 0.08, uv.y) * g * g;
-    gl_FragColor = vec4(uColor * a * uAlpha, 1.0);
-  }`;
-const shaftGroups = [];
-const shafts = (w, o) => {
-  const g = new T.Group();
-  shaftGroups.push(g);
-  const mat = new T.ShaderMaterial({
-    uniforms: { uTime: { value: rand(0, 50) }, uAlpha: { value: o.alpha ?? 0.3 }, uColor: { value: new T.Color(...o.color) } },
-    vertexShader: QUAD_VS, fragmentShader: SHAFT_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false,
-  });
-  for (let k = 0; k < (o.n ?? 6); k++) {
-    const m = new T.Mesh(new T.PlaneGeometry(rand(0.3, 1) * (o.width ?? 1.2), o.length ?? 9), mat);
-    m.geometry.translate(0, -(o.length ?? 9) / 2, 0); // hangs from its top
-    m.position.set(rand(-1, 1) * (o.spread ?? 2), 0, rand(-1, 1) * (o.spread ?? 2) * 0.3);
-    m.rotation.set(rand(-0.06, 0.06), rand(0, Math.PI), rand(-0.06, 0.06));
-    m.userData.sway = rand(0.5, 1);
-    g.add(m);
-  }
-  g.position.set(...o.from);
-  g.rotation.z = o.tilt ?? 0;
-  g.rotation.x = o.lean ?? 0;
-  w.scene.add(g);
-  return (dt, t) => { mat.uniforms.uTime.value += dt; g.children.forEach((m, k) => { m.rotation.z = Math.sin(t * 0.17 * m.userData.sway + k) * 0.03; }); };
-};
-
-// a pool of light on the ground (the photographed ground takes no light: this paints it)
-const POOL_FS = /* glsl */ `
-  uniform float uA; uniform vec3 uColor; varying vec2 vUv;
-  void main() { float r = length(vUv - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - r), 2.2); gl_FragColor = vec4(uColor * a * uA, 1.0); }`;
-const pool = (w, color, size) => {
-  const m = new T.Mesh(new T.PlaneGeometry(size, size), new T.ShaderMaterial({
-    uniforms: { uA: { value: 0 }, uColor: { value: new T.Color(...color) } },
-    vertexShader: QUAD_VS, fragmentShader: POOL_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
-  }));
-  m.rotation.x = -Math.PI / 2;
-  m.position.y = 0.012;
-  w.scene.add(m);
-  return m;
-};
-// a soft dark disc under a creature: the contact shadow its feet need to stand on the ground
-const CONTACT_FS = /* glsl */ `
-  uniform float uA; varying vec2 vUv;
-  void main() { float r = length(vUv - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - r), 1.6) * uA; gl_FragColor = vec4(0.0, 0.0, 0.0, a); }`;
-const contact = (w, size, a = 0.55) => {
-  const m = new T.Mesh(new T.PlaneGeometry(size, size), new T.ShaderMaterial({
-    uniforms: { uA: { value: a } }, vertexShader: QUAD_VS, fragmentShader: CONTACT_FS, transparent: true, depthWrite: false, fog: false,
-  }));
-  m.rotation.x = -Math.PI / 2;
-  m.position.y = 0.008;
-  w.scene.add(m);
-  return m;
-};
-const shadows = (o) => o.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
 
 // dust drifting in the light, fireflies everywhere
 const motes = (n, area, opts) => {
@@ -452,125 +357,10 @@ const place = (w, name, pos, rotY = 0, scale = 1, then) => track(w, model(name).
   o.position.set(...pos);
   o.rotation.y = rotY;
   o.scale.setScalar(scale);
-  shadows(o);
   w.scene.add(o);
   then?.(o);
   return o;
 }).catch((e) => console.warn("vivarium: model", name, e)));
-
-// a prop fitted to a size: its largest side = size (m), standing on the ground at pos, turned by ry
-const prop = (w, name, pos, o = {}, then) => track(w, model(name).then((s) => {
-  const obj = s.clone();
-  obj.updateMatrixWorld(true);
-  let box = new T.Box3().setFromObject(obj);
-  const sz = box.getSize(new T.Vector3());
-  obj.scale.setScalar((o.size ?? 1) / Math.max(sz.x, sz.y, sz.z));
-  obj.updateMatrixWorld(true);
-  box = new T.Box3().setFromObject(obj);
-  obj.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
-  const g = new T.Group();
-  g.add(obj);
-  g.position.set(...pos);
-  g.rotation.set(o.rx ?? 0, o.ry ?? 0, o.rz ?? 0);
-  shadows(obj);
-  if (o.env !== undefined) obj.traverse((m) => { if (m.isMesh && m.material) m.material.envMapIntensity = o.env; });
-  w.scene.add(g);
-  g.updateMatrixWorld(true);
-  then?.(g, obj, box.getSize(new T.Vector3()));
-  return g;
-}).catch((e) => console.warn("vivarium: prop", name, e)));
-
-// a flame: a sprite of fire that flickers, a light that flickers with it, a spark now and then
-let FLAME_TEX = null;
-const flameTexture = () => {
-  if (FLAME_TEX) return FLAME_TEX;
-  const c = document.createElement("canvas");
-  c.width = 64; c.height = 128;
-  const g = c.getContext("2d");
-  const grd = (x, y, r, stops) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); stops.forEach(([k, col]) => gr.addColorStop(k, col)); g.fillStyle = gr; g.fillRect(0, 0, 64, 128); };
-  g.globalCompositeOperation = "lighter";
-  grd(32, 92, 30, [[0, "rgba(255,120,30,0.9)"], [0.5, "rgba(255,80,10,0.35)"], [1, "rgba(255,60,0,0)"]]);
-  grd(32, 70, 34, [[0, "rgba(255,170,60,0.7)"], [0.6, "rgba(255,110,20,0.15)"], [1, "rgba(255,80,0,0)"]]);
-  grd(32, 100, 16, [[0, "rgba(255,255,220,1)"], [0.4, "rgba(255,230,140,0.8)"], [1, "rgba(255,180,60,0)"]]);
-  grd(32, 40, 22, [[0, "rgba(255,120,30,0.35)"], [1, "rgba(255,60,0,0)"]]);
-  FLAME_TEX = new T.CanvasTexture(c);
-  return FLAME_TEX;
-};
-const flame = (w, pos, size = 0.25, o = {}) => {
-  const sp = new T.Sprite(new T.SpriteMaterial({ map: flameTexture(), color: new T.Color(...(o.color || [2.6, 2.0, 1.3])), transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false }));
-  sp.center.set(0.5, 0.12);
-  sp.position.set(pos[0], pos[1], pos[2]);
-  w.scene.add(sp);
-  const light = new T.PointLight(o.light ?? 0xffa040, o.power ?? 3, o.reach ?? 5, 1.8);
-  light.position.set(pos[0], pos[1] + size * 0.6, pos[2]);
-  if ((o.power ?? 3) > 0) w.scene.add(light);
-  const seed = rand(0, 100), power = o.power ?? 3;
-  const tick = (dt, t) => {
-    const n = fbm3(seed, t * 2.2, 0, 3), m = noise3(seed * 3, t * 7, 1);
-    sp.scale.set(size * 0.7 * (1 + 0.18 * m), size * 1.3 * (1 + 0.3 * n + 0.1 * m), 1);
-    sp.material.opacity = 0.85 + 0.15 * n;
-    light.intensity = power * (0.8 + 0.25 * n + 0.1 * m);
-    if (Math.random() < dt * (o.sparks ?? 0.8)) w.sparks.emit(sp.position, { dir: { x: 0, y: 1, z: 0 }, spread: 0.25, speed: 0.5, life: 1.1, size: 0.025, gravity: 0.15, color: [3, 1.4, 0.4] });
-  };
-  (w.fx ||= []).push(tick);
-  return { sprite: sp, light, tick };
-};
-// the floating candles of the Great Hall: wax sticks hanging in the air, each with its flame, drifting
-// slowly up and down; only a few of them carry a real light, the rest glow through the bloom
-const floatingCandles = (w, n, box, o = {}) => {
-  const wax = new T.MeshStandardMaterial({ color: 0xf2e6c8, roughness: 0.7 });
-  const geo = new T.CylinderGeometry(0.022, 0.026, 1, 10);
-  const items = [];
-  for (let i = 0; i < n; i++) {
-    const len = rand(0.18, 0.42);
-    const m = new T.Mesh(geo, wax);
-    m.scale.y = len;
-    m.castShadow = true;
-    const x = rand(box[0], box[1]), y = rand(box[2], box[3]), z = rand(box[4], box[5]);
-    m.position.set(x, y, z);
-    w.scene.add(m);
-    const f = flame(w, [x, y + len / 2, z], rand(0.16, 0.22), { power: i < (o.lights ?? 3) ? 2.2 : 0, reach: 5, sparks: 0 });
-    items.push({ m, f, x, y, z, len, ph: rand(0, TAU), sp: rand(0.25, 0.5) });
-  }
-  (w.fx ||= []).push((dt, t) => {
-    for (const c of items) {
-      const dy = Math.sin(t * c.sp + c.ph) * 0.12, dx = Math.sin(t * c.sp * 0.6 + c.ph * 2) * 0.05;
-      c.m.position.set(c.x + dx, c.y + dy, c.z);
-      c.f.sprite.position.set(c.x + dx, c.y + dy + c.len / 2, c.z);
-      c.f.light.position.set(c.x + dx, c.y + dy + c.len / 2 + 0.08, c.z);
-    }
-  });
-};
-// smoke rising from a point: a pool of faint growing motes
-const smoke = (w, pos, o = {}) => {
-  const pool = new Sparks(o.n ?? 90);
-  w.scene.add(pool.points);
-  const rate = o.rate ?? 10, color = o.color || [0.5, 0.5, 0.55];
-  let acc = 0;
-  (w.fx ||= []).push((dt) => {
-    acc += dt * rate;
-    while (acc > 1) { acc--; pool.emit(new T.Vector3(pos[0] + rand(-0.1, 0.1) * (o.spread ?? 1), pos[1], pos[2] + rand(-0.1, 0.1) * (o.spread ?? 1)), { dir: { x: o.wind ?? 0.15, y: 1, z: 0 }, spread: 0.3, speed: o.speed ?? 0.35, life: o.life ?? 4, size: o.size ?? 0.12, gravity: o.rise ?? 0.08, grow: o.grow ?? 4, color: color.map((c) => c * (0.7 + Math.random() * 0.5)) }); }
-    pool.update(dt);
-  });
-  return pool;
-};
-// the windows of a far building, lit: warm points on its walls, picked among its vertices
-const windowLights = (w, obj, n, minY, o = {}) => {
-  const pts = [], v = new T.Vector3();
-  obj.updateMatrixWorld(true);
-  obj.traverse((m) => {
-    if (!m.isMesh || !m.geometry.attributes.position) return;
-    const a = m.geometry.attributes.position, step = Math.max(1, Math.floor(a.count / 4000));
-    for (let i = 0; i < a.count; i += step) { v.fromBufferAttribute(a, i).applyMatrix4(m.matrixWorld); if (v.y > minY) pts.push(v.x, v.y, v.z); }
-  });
-  const c = new Cloud();
-  for (let i = 0; i < n && pts.length; i++) { const k = Math.floor(Math.random() * (pts.length / 3)) * 3; c.add(pts[k], pts[k + 1], pts[k + 2], Math.random() < 0.8 ? [3.0, 2.0, 0.9] : [2.4, 2.4, 2.0], rand(0.2, 0.42) * (o.size ?? 1), rand(0.5, 1)); }
-  const points = new T.Points(c.geometry(), pointMaterial());
-  points.frustumCulled = false;
-  w.scene.add(points);
-  (w.fx ||= []).push((dt, t) => { points.material.uniforms.uGain.value = 0.9 + 0.1 * Math.sin(t * 1.3) + 0.05 * Math.sin(t * 7.1); });
-  return points;
-};
 
 const makeWorld = (name, def) => {
   const scene = new T.Scene();
@@ -578,25 +368,6 @@ const makeWorld = (name, def) => {
   const camera = new T.PerspectiveCamera(FOV, 1, 0.05, 500);
   const w = { name, def, scene, camera, grade: new T.Vector3(...def.grade), flash: 0, ready: 0, loaded: false, loading: false, excite: 0, target: 0, t: rand(0, 40), p: 0, sparks: new Sparks(500) };
   scene.add(w.sparks.points);
-  // the light of the photo, as a sun that casts the shadows of what stands in it, onto a ground that only shows shadows
-  const sun = new T.DirectionalLight(def.sunColor ?? 0xfff1dc, def.sun ?? 1.2);
-  sun.position.set(...(def.sunPos ?? [3, 9, 2]));
-  sun.target.position.set(0, 0, -4);
-  sun.castShadow = true;
-  sun.shadow.mapSize.setScalar(small() ? 1024 : Q().shadow || 1024);
-  Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 0.5, far: 40 });
-  sun.shadow.camera.updateProjectionMatrix();
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.03;
-  sun.shadow.radius = 5;
-  scene.add(sun, sun.target);
-  w.sun = sun;
-  const ground = new T.Mesh(new T.CircleGeometry(45, 48), new T.ShadowMaterial({ color: new T.Color(...(def.shadowColor ?? [0, 0, 0])), opacity: def.shadow ?? 0.45, transparent: true }));
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = 0.004;
-  ground.receiveShadow = true;
-  scene.add(ground);
-  if (def.fog) scene.fog = new T.FogExp2(new T.Color(...def.fog[0]), def.fog[1]);
   def.build?.(w);
   return w;
 };
@@ -624,7 +395,6 @@ const setSky = (w, tex) => {
     w.sky.material.needsUpdate = true;
   } else {
     w.sky = new T.GroundedSkybox(tex, w.def.height ?? 2, w.def.radius ?? 80);
-    w.sky.material.fog = false;
     w.sky.position.y = (w.def.height ?? 2) - 0.01;
     w.sky.rotation.y = w.def.turn ?? 0;
     w.scene.add(w.sky);
@@ -672,13 +442,10 @@ const ribbons = (w, n, box) => {
         const cx = (box[0] + box[1]) / 2, cy = (box[2] + box[3]) / 2;
         if (s.p.x < box[0] || s.p.x > box[1] || s.p.y < box[2] || s.p.y > box[3]) s.a = Math.atan2(cy - s.p.y, cx - s.p.x);
       }
-      const sub = Math.min(4, Math.ceil(dt / 0.017)), ds = dt / sub; // a smooth trail even on a slow frame
-      for (let i = 0; i < sub; i++) {
-        s.p.x += Math.cos(s.a) * Math.cos(s.b) * s.sp * ds;
-        s.p.y += Math.sin(s.a) * Math.cos(s.b) * s.sp * ds;
-        s.p.z = clamp(s.p.z + Math.sin(s.b) * s.sp * ds, box[4], box[5]);
-        s.hist.unshift(s.p.clone());
-      }
+      s.p.x += Math.cos(s.a) * Math.cos(s.b) * s.sp * dt;
+      s.p.y += Math.sin(s.a) * Math.cos(s.b) * s.sp * dt;
+      s.p.z = clamp(s.p.z + Math.sin(s.b) * s.sp * dt, box[4], box[5]);
+      s.hist.unshift(s.p.clone());
       if (s.hist.length > TRAIL) s.hist.length = TRAIL;
       for (let i = 0; i < TRAIL; i++) { const h = s.hist[Math.min(i, s.hist.length - 1)]; pos.set([h.x, h.y, h.z], (k * TRAIL + i) * 3); }
       if (Math.random() < dt * 5) w.sparks.emit(s.p, { speed: 0.25, life: 1.2, size: 0.05, gravity: -0.12, color: k % 3 ? [0.7, 2.2, 2.8] : [2.6, 1.8, 0.8] });
@@ -697,7 +464,7 @@ const air = (w, n, center, size, opts) => {
 
 // a glowing mushroom cluster
 const mushrooms = (w, x, z, n, hue) => {
-  const cap = new T.MeshStandardMaterial({ color: hue, emissive: hue, emissiveIntensity: 1.6, roughness: 0.5 });
+  const cap = new T.MeshStandardMaterial({ color: hue, emissive: hue, emissiveIntensity: 3, roughness: 0.5 });
   const stem = new T.MeshStandardMaterial({ color: 0xb8c4c8, roughness: 0.8 });
   for (let k = 0; k < n; k++) {
     const h = rand(0.05, 0.22), r = rand(0.03, 0.09), px = x + rand(-0.4, 0.4), pz = z + rand(-0.4, 0.4);
@@ -708,7 +475,7 @@ const mushrooms = (w, x, z, n, hue) => {
     c.scale.y = 0.55;
     w.scene.add(s, c);
   }
-  const l = new T.PointLight(hue, 1.6, 3.5, 1.8);
+  const l = new T.PointLight(hue, 4, 4, 1.8);
   l.position.set(x, 0.35, z);
   w.scene.add(l);
 };
@@ -748,7 +515,6 @@ const creatureModel = (c) => gltfLoader.loadAsync(`/assets/creatures/${c.dir}.gl
   o.traverse((m) => {
     if (!m.isMesh) return;
     m.frustumCulled = false;
-    m.castShadow = true;
     if (m.material) { if (tint) { m.material = m.material.clone(); m.material.color?.multiply(tint); } m.material.envMapIntensity = c.env ?? 1; }
   });
   const it = { holder, mixer: null, actions: {}, current: null };
@@ -782,118 +548,39 @@ const halo = (w, color, power) => { w.glow = new T.PointLight(color, 0, 6, 1.6);
 const circleUnder = (w, size) => { w.circle = groundCircle([[0, size, 0.05], [2, size * 0.55, -0.12]], [0.6, 1.6, 2.0]); w.circle.visible = false; w.scene.add(w.circle); };
 
 const DEFS = {
-  // the media world: Hogwarts by night. The castle on its rock at the far end of the field, its windows
-  // lit; the Milky Way above; Fawkes about, shooting stars, a low mist on the grass
+  // the media world: the starry night (Jellyfin and the other apps); Fawkes is often about
   night: {
     hdri: "rogland_clear_night", height: 2, radius: 90, grade: [1.0, 1.0, 1.12], env: 0.6, turn: 0.3, free: 1,
     cam: [0, 1.5, 5.5], look: [0, 2.6, -6],
-    sunPos: [-4, 10, -6], sun: 0.5, sunColor: 0xbcd0ff, shadow: 0.3, fog: [[0.03, 0.045, 0.08], 0.0105],
     build(w) {
       w.ribbons = ribbons(w, 4, [-7, 7, 0.6, 6, -9, -2]);
       w.air = air(w, 220, [0, 3, -4], [12, 4, 6], { color: () => (Math.random() < 0.4 ? [0.8, 2.6, 3.2] : [3.0, 2.2, 0.9]), size: [0.04, 0.09], alpha: [0.5, 1], speed: 0.35, blink: true });
-      // a low mist lying on the field, lit faintly blue by the sky
-      w.veils = [];
-      for (const [z, a, wd] of [[-7, 0.16, 40], [-14, 0.22, 70], [-26, 0.26, 120]]) {
-        const v = new T.Mesh(new T.PlaneGeometry(wd, 2.2), new T.ShaderMaterial({
-          uniforms: { uTime: { value: rand(0, 50) }, uAlpha: { value: a }, uColA: { value: new T.Color(0.3, 0.42, 0.6) }, uColB: { value: new T.Color(0.5, 0.6, 0.78) } },
-          vertexShader: QUAD_VS, fragmentShader: MIST_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
-        }));
-        v.position.set(0, 0.7, z);
-        w.scene.add(v);
-        w.veils.push(v);
-      }
-      w.pool = pool(w, [1.0, 0.45, 0.12], 5); // Fawkes' light on the ground when he comes low
-      w.nextStar = rand(3, 8);
     },
-    load(w) {
-      // Hogwarts, far off on the right, every window lit; the warmth of its windows on the mist under it
-      prop(w, "places/castle", [26, -0.5, -80], { size: 34, ry: -0.5, env: 0.3 }, (g, obj, sz) => {
-        windowLights(w, obj, 190, sz.y * 0.4, { size: 1.6 });
-        const glow = pool(w, [1.0, 0.7, 0.35], 46);
-        glow.position.set(20, 0.05, -70);
-        glow.material.uniforms.uA.value = 0.3;
-      });
-    },
-    tick(w, dt, t) {
-      w.ribbons(dt, t); w.air(t);
-      for (const v of w.veils) v.material.uniforms.uTime.value += dt;
-      const f = pals.fawkes;
-      if (f?.holder.parent === w.scene) { const p = f.holder.position; w.pool.position.set(p.x, 0.012, p.z); w.pool.material.uniforms.uA.value = 0.9 / (1 + p.y * p.y * 0.35); }
-      // a shooting star now and then, far away over the field
-      w.nextStar -= dt;
-      if (w.nextStar < 0) {
-        w.nextStar = rand(5, 14);
-        const x0 = rand(-40, 40), y0 = rand(22, 40), z0 = -70, dx = rand(-1, 1), dy = rand(-0.5, -0.15);
-        for (let i = 0; i < 26; i++) w.sparks.emit(new T.Vector3(x0 + dx * i * 0.9, y0 + dy * i * 0.9, z0 + rand(-2, 2)), { dir: { x: dx, y: dy, z: 0 }, spread: 0.05, speed: 12, life: 0.6 - i * 0.012, size: 0.6 - i * 0.015, gravity: 0, color: [2.4, 2.5, 2.8] });
-      }
-    },
+    tick(w, dt, t) { w.ribbons(dt, t); w.air(t); },
   },
-  // Gringotts (the trading bot): a vault deep under the rock. The great round door, torches, a chandelier,
-  // the hoard, a dragon chained in the dark on the left; the Niffler on its gold
+  // the Niffler's den (the trading bot): a cave, the Niffler on its pile of gold
   cave: {
-    hdri: "hikers_cave", height: 1.8, radius: 40, grade: [0.36, 0.38, 0.48], env: 0.45, turn: 3.67, free: 1,
+    hdri: "hikers_cave", height: 1.8, radius: 40, grade: [0.42, 0.48, 0.64], env: 0.5, turn: 3.67, free: 1,
     cam: [0, 1.3, 3.5], look: [0, 1.0, -6],
-    sunPos: [6, 5, -9], sun: 0.6, sunColor: 0xc8dcff, shadow: 0.5, fog: [[0.04, 0.045, 0.06], 0.035],
     creature: { dir: "niffler", size: 0.75, yaw: 0, env: 2.5 },
     build(w) {
+      mushrooms(w, -1.8, -2.8, 9, 0x4fe0ff);
+      mushrooms(w, -2.6, -5.5, 6, 0x9a6cff);
       halo(w, 0xffc060, 16);
       circleUnder(w, 1.6);
-      w.shafts = shafts(w, { from: [5.5, 7, -9], n: 5, width: 2.2, length: 9, spread: 2.6, tilt: 0.55, color: [0.5, 0.7, 1.0], alpha: 0.08 });
-      w.goldPool = pool(w, [1.0, 0.72, 0.25], 4.5);
-      w.goldPool.position.set(1.95, 0.012, -2.5);
-      w.goldLight = new T.PointLight(0xffb850, 10, 4.5, 1.8);
-      w.goldLight.position.set(1.95, 0.6, -2.5);
-      w.scene.add(w.goldLight);
-      w.shadowBlob = contact(w, 1.1, 0.5);
-      w.shadowBlob.position.set(1.3, 0.008, -2.4);
-      // a cold light from behind, to draw its black fur out of the dark; a cold shaft on the dragon
+      // a cold light from behind, to draw its black fur out of the dark
       const rim = new T.SpotLight(0x9fd8ff, 30, 8, 0.5, 0.6, 1.5);
       rim.position.set(2.6, 2, -5);
       rim.target.position.set(1.3, 0.3, -2.4);
       w.scene.add(rim, rim.target);
-      const onDragon = new T.SpotLight(0x8fb8ff, 60, 30, 0.45, 0.6, 1.2);
-      onDragon.position.set(4, 9, -10);
-      onDragon.target.position.set(1.5, 1.5, -17);
-      w.scene.add(onDragon, onDragon.target);
       w.air = air(w, 200, [0, 1.2, -4], [6, 2, 3], { color: () => (Math.random() < 0.6 ? [0.6, 2.0, 3.0] : [2.6, 2.0, 0.8]), size: [0.02, 0.05], alpha: [0.3, 0.8], speed: 0.25, blink: true });
     },
     load(w) {
-      const goldMat = (o) => o.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); m.material.envMapIntensity = 3; m.material.metalness = 1; m.material.roughness = Math.min(m.material.roughness, 0.35); } });
-      // the vault door in its wall (its round opening in the middle), torches on the wall on each side,
-      // and through the opening, the dragon that guards the deepest vaults, lit cold
-      prop(w, "places/vault_door", [0.8, 0, -8.4], { size: 7.5, ry: 0, env: 0.9 }, (g, obj) => {
-        obj.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); m.material.envMapIntensity = 1.2; } });
-        const wash = new T.SpotLight(0xffc890, 50, 16, 0.75, 0.8, 1.2); // warm light on the wall from the torches' side
-        wash.position.set(0.8, 4.5, -2.5);
-        wash.target.position.set(0.8, 1.5, -5.2);
-        w.scene.add(wash, wash.target);
-      });
-      for (const x of [-2.6, 4.2]) {
-        prop(w, "places/torch", [x, 1.1, -4.9], { size: 0.9, ry: Math.PI });
-        flame(w, [x, 1.78, -4.75], 0.7, { power: 14, reach: 10, sparks: 2 });
-      }
-      prop(w, "places/dragon", [1.8, 0.6, -17], { size: 12, ry: 0.6, env: 0.7 }, (g) => { (w.fx ||= []).push((dt, t) => { g.position.y = 0.6 + Math.sin(t * 0.6) * 0.12; g.rotation.y = 0.6 + Math.sin(t * 0.25) * 0.1; }); });
-      // the floating candles of the vault, over the hoard
-      floatingCandles(w, 16, [-2.4, 4.4, 2.3, 3.4, -6.4, -2.6], { lights: 4 });
-      // the hoard: coins in piles, chests, candlesticks, the gate of the next vault; the dragon beyond
-      prop(w, "creatures/coins", [1.95, 0, -2.5], { size: 1.3, ry: 0.4 }, (g, obj) => goldMat(obj));
-      prop(w, "creatures/coins", [2.9, 0, -3.3], { size: 1.1, ry: 2.6 }, (g, obj) => goldMat(obj));
-      prop(w, "creatures/coins", [0.3, 0, -5.6], { size: 1.2, ry: 1.4 }, (g, obj) => goldMat(obj));
-      prop(w, "creatures/coins", [-0.9, 0, -3.4], { size: 0.8, ry: 2.1 }, (g, obj) => goldMat(obj));
-      prop(w, "creatures/coins", [0.9, 0, -4.6], { size: 0.7, ry: 1.0 }, (g, obj) => goldMat(obj));
-      prop(w, "creatures/coins", [3.4, 0, -4.2], { size: 0.9, ry: 3.4 }, (g, obj) => goldMat(obj));
-      prop(w, "treasure_chest", [-1.9, 0, -4.6], { size: 1.0, ry: 0.5, env: 1.2 });
-      prop(w, "treasure_chest", [3.6, 0, -5.8], { size: 0.9, ry: -0.6, env: 1.2 });
-      prop(w, "brass_candleholders", [-2.6, 0, -3.3], { size: 0.5, ry: 0.3, env: 2 }, (g, obj, sz) => { for (const dx of [-0.12, 0, 0.12]) flame(w, [-2.6 + dx, sz.y * 0.95, -3.3], 0.1, { power: 1.2, reach: 3, sparks: 0 }); });
-      prop(w, "gothic_statue", [-4.4, 0, -4.6], { size: 2.2, ry: 0.5, env: 0.8 });
-      prop(w, "large_iron_gate", [5.9, 0, -4.0], { size: 3.2, ry: 1.25, env: 0.8 });
-      prop(w, "places/dragon", [-7, 0, -12], { size: 11, ry: 0.95, env: 0.6 });
+      place(w, "moon_rock_03", [-3, 0, -4.5], 0.3, 2.4);
+      place(w, "creatures/coins", [1.75, 0, -2.3], 0.4, 1, (o) => { const b = new T.Box3().setFromObject(o), k = 0.5 / Math.max(...b.getSize(new T.Vector3()).toArray()); o.scale.setScalar(k); });
     },
     tick(w, dt, t) {
       w.air(t);
-      w.shafts(dt, t);
-      w.goldPool.material.uniforms.uA.value = 0.55 + 0.1 * Math.sin(t * 5.3) + w.excite * 0.5;
-      w.goldLight.intensity = 10 + Math.sin(t * 5.3) * 1.2 + w.excite * 6;
       if (!w.beast) return;
       const e = w.excite;
       // it sniffs about, and hops up when you come to see the gold
@@ -904,25 +591,18 @@ const DEFS = {
       turnCircle(w.circle, dt, 0.1 + e * 0.9, e);
       w.glow.position.set(0.8, 1.3, -1.4);
       w.glow.intensity = w.glowPower * (0.6 + e);
-      if (Math.random() < dt * (6 + e * 14)) w.sparks.emit(new T.Vector3(1.95 + rand(-0.45, 0.45), 0.2, -2.5 + rand(-0.4, 0.4)), { dir: { x: 0, y: 1, z: 0 }, spread: 0.3, speed: 0.5, life: 1, size: 0.05, gravity: -0.2, color: [3, 2.2, 0.8] });
+      if (Math.random() < dt * (3 + e * 12)) w.sparks.emit(new T.Vector3(1.9 + rand(-0.3, 0.3), 0.15, -3.1 + rand(-0.2, 0.2)), { dir: { x: 0, y: 1, z: 0 }, spread: 0.3, speed: 0.5, life: 1, size: 0.05, gravity: -0.2, color: [3, 2.2, 0.8] });
     },
     wake(w) { burst(w, new T.Vector3(1.8, 0.4, -3.1), 50, { speed: 2, size: 0.08, color: [3, 2.2, 0.8] }); },
   },
-  // the Bowtruckle's tree (Sapling Sunrise): a mossy forest, Pickett on his stump; a cauldron simmering
-  // beside it, lanterns, glowing mushrooms, fireflies
+  // the Bowtruckle's tree (Sapling Sunrise): a mossy forest, Pickett on his stump
   forest: {
-    hdri: "mossy_forest", height: 2, radius: 70, grade: [0.7, 0.82, 0.74], env: 0.85, turn: 0.7, free: -1,
+    hdri: "mossy_forest", height: 2, radius: 70, grade: [0.75, 0.88, 0.8], env: 0.9, turn: 0.7, free: -1,
     cam: [0, 1.4, 3.6], look: [0, 1.2, -6],
-    sunPos: [-6, 6, -6], sun: 1.3, sunColor: 0xe8ffd0, shadow: 0.5, fog: [[0.2, 0.3, 0.22], 0.028], aura: 0.4,
     creature: { dir: "bowtruckle", size: 0.95, yaw: 0, env: 1.4 },
     build(w) {
       halo(w, 0xd8ffb0, 8);
-      // sunlight through the canopy, in long shafts, and pollen in them
-      w.shafts = shafts(w, { from: [-3, 7.5, -7], n: 8, width: 2.0, length: 9, spread: 3.5, tilt: -0.38, lean: 0.15, color: [0.85, 1.0, 0.65], alpha: 0.11 });
-      w.shadowBlob = contact(w, 0.8, 0.4);
-      w.air = air(w, 220, [0, 1.4, -4], [8, 2, 3], { color: () => (Math.random() < 0.5 ? [1.6, 2.6, 0.8] : [3.0, 2.2, 0.9]), size: [0.03, 0.07], alpha: [0.5, 1], speed: 0.3, blink: true });
-      mushrooms(w, 2.3, -2.1, 6, 0x4fe0ff);
-      mushrooms(w, -2.9, -3.9, 5, 0x9a6cff);
+      w.air = air(w, 160, [0, 1.6, -4], [8, 2, 3], { color: () => (Math.random() < 0.5 ? [1.6, 2.6, 0.8] : [3.0, 2.2, 0.9]), size: [0.03, 0.07], alpha: [0.5, 1], speed: 0.3, blink: true });
     },
     load(w) {
       place(w, "rock_moss_set_01", [2.6, 0, -7], 0.4, 1);
@@ -930,28 +610,10 @@ const DEFS = {
       place(w, "fern_02", [-2.6, 0, -4.6], 4.0, 1.4);
       place(w, "moss_01", [-1.6, 0, -3.6], 0, 2);
       place(w, "tree_stump_01", [-1.2, 0, -2.6], 1.1, 0.9, (o) => { w.stumpTop = new T.Box3().setFromObject(o).max.y; w.def.placed?.(w); });
-      // the cauldron, simmering green (its sculpted smoke hidden: ours rises from it)
-      prop(w, "places/cauldron", [-3.5, 0, -2.4], { size: 1.7, ry: 0.4, env: 1.2 }, (g, obj, sz) => {
-        obj.traverse((m) => { if (m.isMesh) { const b = new T.Box3().setFromObject(m); if ((b.min.y + b.max.y) / 2 > g.position.y + sz.y * 0.5) m.visible = false; } });
-        const top = sz.y * 0.46;
-        smoke(w, [-3.5, top, -2.4], { rate: 6, color: [0.12, 0.4, 0.18], size: 0.07, grow: 4, life: 3.5, speed: 0.25, rise: 0.12, spread: 1.5 });
-        const l = new T.PointLight(0x7fff9a, 4, 4, 1.8);
-        l.position.set(-3.5, top + 0.3, -2.4);
-        w.scene.add(l);
-        (w.fx ||= []).push((dt, t) => { l.intensity = 4 + Math.sin(t * 5) * 0.8 + Math.sin(t * 13.7) * 0.4; if (Math.random() < dt * 6) w.sparks.emit(new T.Vector3(-3.5 + rand(-0.25, 0.25), top, -2.4 + rand(-0.25, 0.25)), { dir: { x: 0, y: 1, z: 0 }, spread: 0.2, speed: 0.4, life: 1.2, size: 0.03, gravity: 0.1, color: [0.8, 3, 1.2] }); });
-      });
-      // lanterns: one on a post by the stump, one set down on the moss
-      const post = new T.Mesh(new T.CylinderGeometry(0.03, 0.04, 1.7, 8), new T.MeshStandardMaterial({ color: 0x4a3a28, roughness: 0.9 }));
-      post.position.set(-2.4, 0.85, -3.1);
-      post.castShadow = true;
-      w.scene.add(post);
-      prop(w, "wooden_lantern_01", [-2.4, 1.7, -3.1], { size: 0.42, ry: 0.6, env: 1.5 }, (g, obj, sz) => flame(w, [-2.4, 1.7 + sz.y * 0.3, -3.1], 0.12, { power: 5, reach: 6, light: 0xffb860, sparks: 0 }));
-      prop(w, "Lantern_01", [0.1, 0, -1.9], { size: 0.4, ry: -0.5, env: 1.5 }, (g, obj, sz) => flame(w, [0.1, sz.y * 0.35, -1.9], 0.12, { power: 3, reach: 4, light: 0xffb860, sparks: 0 }));
     },
-    placed(w) { if (w.beast && w.stumpTop) { w.beast.position.set(-1.2, w.stumpTop - 0.02, -2.6); w.shadowBlob.position.set(-1.2, w.stumpTop - 0.01, -2.6); } },
+    placed(w) { if (w.beast && w.stumpTop) w.beast.position.set(-1.2, w.stumpTop - 0.02, -2.6); },
     tick(w, dt, t) {
       w.air(t);
-      w.shafts(dt, t);
       if (!w.beast) return;
       const e = w.excite;
       w.beast.rotation.set(Math.sin(t * 2.2) * 0.04 * (1 + e * 3), 0.5 + mouse.sx * 0.5, Math.sin(t * 1.7) * 0.05 * (1 + e * 3));
@@ -960,21 +622,18 @@ const DEFS = {
     },
     wake(w) { if (w.beast) burst(w, w.beast.position.clone().add(new T.Vector3(0, 0.3, 0)), 30, { speed: 1.2, size: 0.05, color: [1.6, 2.6, 0.8] }); },
   },
-  // Hagrid's hut (Bifrost): at the edge of the forest in the mist, its windows warm, smoke from the chimney,
-  // the pumpkin patch; Buckbeak standing there, who rears up when you come near
+  // the Hippogriff's forest (Bifrost): pines in the mist, a hippogriff standing there; come near and it
+  // rears up, as Buckbeak does before he lets you close
   mist: {
-    hdri: "misty_pines", flat: true, grade: [0.62, 0.66, 0.72], env: 0.8, turn: 3.9, free: 1,
+    hdri: "misty_pines", flat: true, grade: [0.66, 0.7, 0.76], env: 0.8, turn: 3.9, free: 1,
     cam: [0, 1.4, 4], look: [0, 1.1, -6],
-    sunPos: [-3, 6, -10], sun: 0.9, sunColor: 0xe4ecff, shadow: 0.4, fog: [[0.58, 0.62, 0.66], 0.036], aura: 0.55,
     creature: { dir: "hippogriff", size: 5.2, clip: "idle", env: 1.9 },
     build(w) {
-      w.shadowBlob = contact(w, 3.4, 0.45);
-      w.shadowBlob.position.set(2.2, 0.008, -3.6);
       w.veils = [];
-      for (const [z, a] of [[-2.5, 0.04], [-6, 0.06], [-11, 0.09]]) {
+      for (const [z, a] of [[-2.5, 0.04], [-6, 0.06]]) {
         const v = new T.Mesh(new T.PlaneGeometry(26, 4), new T.ShaderMaterial({
           uniforms: { uTime: { value: rand(0, 50) }, uAlpha: { value: a }, uColA: { value: new T.Color(0.5, 0.56, 0.62) }, uColB: { value: new T.Color(0.7, 0.75, 0.8) } },
-          vertexShader: QUAD_VS, fragmentShader: MIST_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
+          vertexShader: QUAD_VS, fragmentShader: MIST_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
         }));
         v.position.set(0, 1.3, z);
         w.scene.add(v);
@@ -982,22 +641,6 @@ const DEFS = {
       }
       halo(w, 0xdfe8ff, 10);
       w.air = air(w, 200, [0, 1.6, -4], [8, 2, 3], { color: () => [1.4, 1.5, 1.8], size: [0.02, 0.05], alpha: [0.2, 0.6], speed: 0.2 });
-    },
-    load(w) {
-      prop(w, "places/hut", [5.5, 0, -17], { size: 10, ry: -0.35, env: 0.9 }, (g, obj, sz) => {
-        // warm light from inside at the windows, and the chimney going
-        const l = new T.PointLight(0xffb060, 40, 16, 1.4);
-        l.position.set(3.8, 1.8, -13.8);
-        w.scene.add(l);
-        const win = pool(w, [1.0, 0.65, 0.3], 8);
-        win.position.set(3.8, 0.012, -13.4);
-        win.material.uniforms.uA.value = 0.5;
-        (w.fx ||= []).push((dt, t) => { l.intensity = 40 + Math.sin(t * 6.1) * 3; });
-        smoke(w, [5.5, sz.y * 0.98, -17], { rate: 4, color: [0.25, 0.25, 0.28], size: 0.2, grow: 5, life: 7, speed: 0.4, rise: 0.1, wind: 0.3, spread: 2 });
-      });
-      prop(w, "places/pumpkins", [8.2, 0, -9.8], { size: 4.2, ry: 0.3, env: 0.9 });
-      prop(w, "Lantern_01", [2.4, 0, -12.2], { size: 0.55, ry: 0.2, env: 1.4 }, (g, obj, sz) => flame(w, [2.4, sz.y * 0.35, -12.2], 0.12, { power: 7, reach: 8, light: 0xffb860, sparks: 0 }));
-      prop(w, "wooden_crate_01", [1.4, 0, -12.6], { size: 0.9, ry: 0.4, env: 0.9 });
     },
     placed(w) { w.beast.position.set(2.2, 0, -3.6); },
     tick(w, dt, t) {
@@ -1012,61 +655,28 @@ const DEFS = {
     },
     wake(w) { if (w.beast) burst(w, w.beast.position.clone().add(new T.Vector3(0, 1.2, 0)), 30, { speed: 1.5, size: 0.08, color: [1.6, 1.7, 2.2] }); },
   },
-  // Newt's shed (Errol): his table under the lamp with the books, a chocolate frog, candles, potions
-  // on a crate, a broom and a Nimbus against the shelf, a lantern under the rafters; an owl flying
+  // Newt's shed (Errol): his table and lamp, and an owl flying under the rafters
   shed: {
-    hdri: "hayloft", height: 1.7, radius: 30, grade: [0.3, 0.26, 0.23], env: 0.5, turn: 1.57, free: -1,
+    hdri: "hayloft", height: 1.7, radius: 30, grade: [0.55, 0.5, 0.45], env: 0.7, turn: 1.57, free: -1,
     cam: [0, 1.5, 2.4], look: [0, 1.3, -3],
-    sunPos: [-4, 5, -6], sun: 0.9, sunColor: 0xffe6c0, shadow: 0.55, fog: [[0.1, 0.08, 0.06], 0.035], aura: 0.5,
-    creature: { dir: "owl", size: 1.1, tint: 0xc8b89c, env: 1.6 }, // Errol: an old grey-brown owl
+    creature: { dir: "owl", size: 1.1, tint: 0xa08c78 }, // Errol: an old grey-brown owl
     build(w) {
       w.lamp = new T.PointLight(0xffc070, 0, 6, 1.5);
       w.scene.add(w.lamp);
-      // evening light through the roof lights, dust turning in it; the lamp's glow on the table
-      w.shafts = shafts(w, { from: [-3.2, 4.2, -2.2], n: 7, width: 1.6, length: 7.5, spread: 1.6, tilt: -0.62, lean: 0.1, color: [1.0, 0.78, 0.45], alpha: 0.3 });
-      w.lampPool = pool(w, [1.0, 0.7, 0.35], 3.2);
       w.air = air(w, 260, [0, 1.4, -3], [4, 1.5, 2], { color: () => [1.8, 1.4, 0.8], size: [0.012, 0.03], alpha: [0.2, 0.6], speed: 0.15 });
     },
     load(w) {
       place(w, "WoodenTable_03", [-0.9, 0, -2.6], 0.1, 1, (table) => {
         const top = new T.Box3().setFromObject(table).max.y;
-        place(w, "desk_lamp_arm_01", [-0.3, top, -2.8], -2.2, 1, () => { w.lamp.position.set(-0.5, top + 0.45, -2.5); w.lamp.intensity = 12; w.lampPool.position.set(-0.5, top + 0.012, -2.5); w.lampPool.material.uniforms.uA.value = 1.1; });
-        prop(w, "places/books", [-1.35, top, -2.45], { size: 0.34, ry: 0.35, env: 1.2 });
-        prop(w, "places/frog", [-0.72, top, -2.2], { size: 0.3, ry: -0.4, env: 1.2 });
-        prop(w, "wooden_candlestick", [-1.55, top, -2.85], { size: 0.26, env: 1.4 }, (g, obj, sz) => flame(w, [-1.55, top + sz.y, -2.85], 0.09, { power: 2, reach: 3, sparks: 0 }));
+        place(w, "desk_lamp_arm_01", [-0.3, top, -2.8], -2.2, 1, () => { w.lamp.position.set(-0.5, top + 0.45, -2.5); w.lamp.intensity = 5; });
+        place(w, "seeding_tray_01", [-1.3, top, -2.5], 0.3, 1);
       });
       place(w, "watering_can_metal_01", [-2.2, 0, -2.2], 1.2, 1);
       place(w, "wooden_bookshelf_worn", [-3.2, 0, -4.2], 0.5, 1);
-      // against the shelf: the Nimbus and a broom
-      prop(w, "places/nimbus", [-2.55, 0.02, -3.6], { size: 1.6, ry: 1.3, rz: 1.25, env: 1.3 });
-      prop(w, "wooden_broom", [-3.9, 0, -3.5], { size: 1.4, ry: 0.4, rz: -0.18, env: 1 });
-      // a crate with the oil lamp and the potions on it; a barrel and a basket
-      prop(w, "wooden_crate_01", [1.5, 0, -3.3], { size: 0.62, ry: 0.25, env: 1 }, (g, obj, sz) => {
-        const top = sz.y;
-        prop(w, "vintage_oil_lamp", [1.65, top, -3.4], { size: 0.34, ry: 0.5, env: 1.5 }, (g2, o2, s2) => flame(w, [1.65, top + s2.y * 0.5, -3.4], 0.11, { power: 6, reach: 6, light: 0xffb050, sparks: 0 }));
-        prop(w, "wine_bottles_01", [1.25, top, -3.1], { size: 0.26, ry: -0.3, env: 1.6 }, (g2, o2) => {
-          // potions: each bottle glows its own colour
-          const tints = [[0.2, 1.0, 0.4], [0.7, 0.3, 1.0], [0.2, 0.6, 1.0], [1.0, 0.5, 0.2]];
-          let i = 0;
-          o2.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); const c = tints[i++ % tints.length]; Object.assign(m.material, { emissive: new T.Color(...c), emissiveIntensity: 0.9, color: new T.Color(...c).multiplyScalar(0.6), roughness: 0.2 }); } });
-          const l = new T.PointLight(0x80ff90, 2.5, 2.5, 1.8);
-          l.position.set(1.25, top + 0.2, -3.1);
-          w.scene.add(l);
-          (w.fx ||= []).push((dt, t) => { l.color.setRGB(0.5 + 0.5 * Math.sin(t * 0.7), 0.6 + 0.4 * Math.sin(t * 0.9 + 2), 0.6 + 0.4 * Math.sin(t * 1.1 + 4)); });
-        });
-      });
-      prop(w, "wooden_crate_01", [2.5, 0, -4.4], { size: 0.75, ry: 0.9, env: 0.9 });
-      prop(w, "wicker_basket_01", [2.2, 0, -2.6], { size: 0.5, ry: 0.8, env: 1 });
-      // a lantern hanging from the beam
-      prop(w, "wooden_lantern_01", [0.7, 2.35, -3.4], { size: 0.4, ry: 0.3, env: 1.4 }, (g, obj, sz) => flame(w, [0.7, 2.35 + sz.y * 0.3, -3.4], 0.12, { power: 5, reach: 6, light: 0xffb860, sparks: 0 }));
-    },
-    placed(w) { // his feathers keep a little of the lamp's light, so that he is not a black shape against the roof
-      w.beast.traverse((m) => { if (m.isMesh && m.material) Object.assign(m.material, { emissive: new T.Color(0.28, 0.22, 0.16), emissiveMap: m.material.map, emissiveIntensity: 0.6 }); });
     },
     tick(w, dt, t) {
       w.air(t);
-      w.shafts(dt, t);
-      w.lamp.intensity = w.lamp.intensity ? 12 + Math.sin(t * 7) * 0.4 : 0;
+      w.lamp.intensity = w.lamp.intensity ? 5 + Math.sin(t * 7) * 0.15 : 0;
       if (!w.beast) return;
       const e = w.excite, a = w.t * (0.5 + e * 0.2);
       const at = (k, out) => out.set(-1.2 + Math.cos(k) * (2.2 - e * 0.6), 2.4 + Math.sin(k * 2) * 0.3 - e * 0.4, -4.5 + Math.sin(k) * 1.6 + e * 1.5);
@@ -1244,14 +854,15 @@ const buildCase = () => {
   inner.position.set(0, Hb + 0.6, 0);
   g.add(inner);
   const rayMat = new T.ShaderMaterial({
-    uniforms: { uTime: { value: 0 }, uAlpha: { value: 0 }, uColor: { value: new T.Color(1.0, 0.85, 0.6) } },
-    vertexShader: QUAD_VS, fragmentShader: SHAFT_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false,
+    uniforms: { uA: { value: 0 } },
+    vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform float uA; varying vec2 vUv; void main() { float a = pow(1.0 - vUv.y, 1.6) * smoothstep(0.5, 0.0, abs(vUv.x - 0.5)); gl_FragColor = vec4(vec3(1.0, 0.85, 0.6) * a * uA * 1.6, 1.0); }`,
+    transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false,
   });
   const rays = new T.Group();
   for (let k = 0; k < 9; k++) {
-    const r = new T.Mesh(new T.PlaneGeometry(rand(0.5, 1.4), 9), rayMat);
+    const r = new T.Mesh(new T.PlaneGeometry(rand(0.4, 1.1), 9), rayMat);
     r.geometry.translate(0, 4.5, 0);
-    r.geometry.attributes.uv.array.forEach((v, i, a) => { if (i % 2) a[i] = 1 - v; }); // bright at the opening, fading up
     r.position.set(rand(-1.6, 1.6), Hb, rand(-0.8, 0.8));
     r.rotation.set(rand(-0.15, 0.15), rand(0, Math.PI), rand(-0.25, 0.25));
     rays.add(r);
@@ -1269,28 +880,14 @@ const buildCase = () => {
 // calls him close. Hedwig flies across the screen now and then, and with every piece of news
 // (window.Vivarium.hedwig()). Both live in camera space and move into the scene of the world shown.
 const pals = { fawkes: null, hedwig: null };
-const glowTexture = () => {
-  const c = document.createElement("canvas");
-  c.width = c.height = 128;
-  const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-  for (let i = 0; i <= 10; i++) gr.addColorStop(i / 10, `rgba(255,255,255,${Math.exp(-i * 0.55).toFixed(3)})`); // a soft, exponential glow, no edge
-  gr.addColorStop(1, "rgba(255,255,255,0)");
-  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-  return new T.CanvasTexture(c);
-};
 const fetchFawkes = () => creatureModel({ dir: "phoenix", size: 2.4 }).then((it) => {
   const light = new T.PointLight(0xff8a30, 14, 7, 1.6);
   light.position.y = 0.6;
   it.holder.add(light);
-  const aura = new T.Sprite(new T.SpriteMaterial({ map: glowTexture(), color: new T.Color(1.6, 0.55, 0.12), transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0.5, fog: false }));
-  aura.scale.setScalar(2.6);
-  aura.position.y = 0.3;
-  it.holder.add(aura);
-  it.aura = aura;
   pals.fawkes = { ...it, light, p: new T.Vector3(4, 1, -10), v: new T.Vector3(), target: new T.Vector3(4, 1, -10), next: 0 };
 }).catch((e) => console.warn("vivarium: Fawkes", e.message || e));
 let hedwigAsked = false;
-const fetchHedwig = () => creatureModel({ dir: "owl", size: 1.15, env: 2.2 }).then((it) => {
+const fetchHedwig = () => creatureModel({ dir: "owl", size: 1, env: 2.2 }).then((it) => {
   // white feathers, matt, with a little light of their own so that she stays white even at night
   it.holder.traverse((m) => {
     if (!m.isMesh) return;
@@ -1305,10 +902,10 @@ const hedwig = () => {
   if (!pals.hedwig && !hedwigAsked) { hedwigAsked = true; later(fetchHedwig); return true; } // she comes once loaded
   const h = pals.hedwig;
   if (!h || h.t >= 0 || (intro && !intro.done)) return false;
-  Object.assign(h, { t: 0, dir: Math.random() < 0.5 ? 1 : -1, y: rand(0.0, 0.3), depth: rand(3.4, 5) });
+  Object.assign(h, { t: 0, dir: Math.random() < 0.5 ? 1 : -1, y: rand(0.35, 0.6), depth: rand(4.5, 6) });
   return true;
 };
-window.Vivarium = { hedwig, stats: () => { const n = stats.frames || 1; const r = { frames: stats.frames, wallMs: +(stats.wall / n).toFixed(1), jsMs: +(stats.js / n).toFixed(1), glCallMs: +(stats.gl / n).toFixed(1) }; stats.frames = stats.js = stats.gl = stats.wall = 0; return r; } };
+window.Vivarium = { hedwig };
 let nextHedwig = rand(40, 70);
 const into = (o, scene) => { if (o.parent !== scene) scene.add(o); };
 const tmpV = new T.Vector3(), tmpD = new T.Vector3();
@@ -1335,10 +932,7 @@ const stepPals = (w, dt) => {
     f.holder.lookAt(ahead);
     f.mixer?.update(dt * (called ? 1.4 : 1));
     f.light.intensity = 14 * (0.85 + 0.15 * Math.sin(time * 9));
-    f.aura.material.opacity = (0.42 + 0.1 * Math.sin(time * 7.3) + (called ? 0.2 : 0)) * (w.def.aura ?? 1); // fainter in daylight
-    // embers fall from his tail feathers and drift up as they fade
-    const nE = dt * 55;
-    for (let i = Math.floor(nE) + (Math.random() < nE % 1 ? 1 : 0); i > 0; i--) w.sparks.emit(tmpV.copy(f.holder.position).addScaledVector(tmpD.copy(f.v).transformDirection(cam.matrixWorld).normalize(), -rand(0.2, 1.1)).add(new T.Vector3(rand(-0.25, 0.25), rand(-0.3, 0.1), rand(-0.25, 0.25))), { speed: 0.35, life: rand(0.8, 2), size: rand(0.025, 0.06), gravity: 0.12, color: Math.random() < 0.6 ? [3.0, 1.0, 0.25] : Math.random() < 0.5 ? [3.0, 2.0, 0.6] : [2.4, 0.5, 0.15] });
+    if (Math.random() < dt * 16) w.sparks.emit(f.holder.position, { speed: 0.5, life: 1.3, size: 0.08, gravity: -0.3, color: Math.random() < 0.7 ? [3.0, 1.3, 0.35] : [3.0, 2.4, 1.0] });
   }
   const h = pals.hedwig;
   if (h) {
@@ -1352,7 +946,6 @@ const stepPals = (w, dt) => {
       cam.updateMatrixWorld();
       h.holder.position.copy(cam.localToWorld(at(k, tmpV)));
       h.holder.lookAt(cam.localToWorld(at(k + 0.02, tmpD)));
-      h.holder.rotateZ(-h.dir * Math.cos(k * Math.PI) * 0.35);
       h.mixer?.update(dt);
       if (Math.random() < dt * 5) w.sparks.emit(h.holder.position, { speed: 0.3, life: 1.2, size: 0.05, gravity: -0.1, color: [2.2, 2.3, 2.6] });
       if (k > 1) { h.t = -1; h.holder.removeFromParent(); }
@@ -1372,17 +965,13 @@ const layout = () => {
 const resize = () => {
   W = innerWidth;
   H = innerHeight;
-  pr = Math.min(devicePixelRatio || 1, small() ? Math.min(1.25, Q().px) : Q().px);
+  pr = Math.min(devicePixelRatio || 1, small() ? 1.25 : 1.5);
   FOV = W / H < 0.8 ? 68 : 50;
   renderer.setPixelRatio(pr);
   renderer.setSize(W, H, false);
   composer.setPixelRatio(pr);
   composer.setSize(W, H);
-  bloom.resolution.set(W, H).multiplyScalar(0.5); // the bloom is a blur: half the pixels look the same
-  bloom.enabled = Q().bloom;
-  renderer.shadowMap.enabled = Q().shadow > 0;
-  for (const w of Object.values(worlds)) if (w.sun && Q().shadow && w.sun.shadow.mapSize.x !== Q().shadow) { w.sun.shadow.mapSize.setScalar(Q().shadow); w.sun.shadow.map?.dispose(); w.sun.shadow.map = null; }
-  for (const g of shaftGroups) g.visible = Q().shafts;
+  bloom.resolution.set(W, H);
   for (const w of [...Object.values(worlds), caseWorld]) {
     if (!w) continue;
     w.camera.fov = w === caseWorld ? 40 : FOV;
@@ -1414,10 +1003,8 @@ let last = 0, time = 0, raf = 0, drop = 0;
 const aim = (w, p) => {
   const d = w.def, c = w.camera;
   // scrolling through a section walks a little further into its world
-  // the camera is held, not fixed: it breathes a little
-  const bx = Math.sin(time * 0.21) * 0.05 + Math.sin(time * 0.53) * 0.02, by = Math.sin(time * 0.29) * 0.03;
-  c.position.set(d.cam[0] - mouse.sx * 0.35 + bx, d.cam[1] - mouse.sy * 0.15 + p * 0.25 + drop + by, d.cam[2] - p * 1.6);
-  c.lookAt(d.look[0] + mouse.sx * 0.8 + bx * 1.5, d.look[1] - mouse.sy * 0.4 - p * 0.5 + drop * 0.6 + by, d.look[2]);
+  c.position.set(d.cam[0] - mouse.sx * 0.35, d.cam[1] - mouse.sy * 0.15 + p * 0.25 + drop, d.cam[2] - p * 1.6);
+  c.lookAt(d.look[0] + mouse.sx * 0.8, d.look[1] - mouse.sy * 0.4 - p * 0.5 + drop * 0.6, d.look[2]);
   c.updateMatrixWorld();
 };
 const step = (w, dt, t) => {
@@ -1425,16 +1012,11 @@ const step = (w, dt, t) => {
   w.excite += (w.target - w.excite) * Math.min(1, dt * 3);
   w.mixer?.update(dt * (1 + w.excite * 0.6));
   w.def.tick?.(w, dt, t);
-  if (w.fx) for (const f of w.fx) f(dt, t);
   w.sparks.update(dt);
 };
 
-const stats = { frames: 0, js: 0, gl: 0, wall: 0, last: 0 }; // where the time goes (window.Vivarium.stats)
 const render = (now) => {
   raf = still ? 0 : requestAnimationFrame(render);
-  const t0 = performance.now();
-  if (stats.last) { stats.wall += t0 - stats.last; stats.frames++; }
-  stats.last = t0;
   const tt = now / 1000;
   const dt = still ? 0 : Math.min(0.05, last ? tt - last : 0.016);
   last = tt;
@@ -1480,23 +1062,7 @@ const render = (now) => {
   if (drop > 0) drop = Math.max(0, drop - dt * (drop * 1.8 + 0.3));
   if (grade.uniforms.uFlash.value > 0) grade.uniforms.uFlash.value = Math.max(0, grade.uniforms.uFlash.value - dt * 1.1);
   if (grade.uniforms.uFade.value < 1) grade.uniforms.uFade.value = Math.min(1, grade.uniforms.uFade.value + dt * 1.5);
-  const t1 = performance.now();
   composer.render(dt);
-  stats.js += t1 - t0; stats.gl += performance.now() - t1;
-  adapt(t0);
-};
-// every 2 s: frames over 28 ms on average step the quality down; under 12 ms for 8 s step it back up
-let judgeAt = 0, judgeFrames = 0, judgeWall = 0, easySince = 0;
-const adapt = (now) => {
-  judgeFrames++;
-  if (!judgeAt) { judgeAt = now; return; }
-  judgeWall = now - judgeAt;
-  if (judgeWall < 2000 || judgeFrames < 10 || pinned !== null || document.hidden) return;
-  const ms = judgeWall / judgeFrames;
-  judgeAt = now; judgeFrames = 0;
-  if (ms > 28 && tier < TIERS.length - 1) { tier++; easySince = 0; resize(); console.info("vivarium: quality down to", tier, `(${ms.toFixed(0)} ms/frame)`); }
-  else if (ms < 12 && tier > 0) { easySince += 2000; if (easySince >= 8000) { tier--; easySince = 0; resize(); console.info("vivarium: quality up to", tier); } }
-  else easySince = 0;
 };
 
 // ---- the intro, step by step
@@ -1535,8 +1101,7 @@ const stepIntro = (dt) => {
   c.ladder.visible = o > 0.3;
   c.inner.intensity = 22 * L;
   c.rays.scale.y = 0.001 + L;
-  c.rayMat.uniforms.uAlpha.value = L * 0.9 * (0.85 + 0.15 * Math.sin(t * 9));
-  c.rayMat.uniforms.uTime.value = t;
+  c.rayMat.uniforms.uA.value = L * 0.45 * (0.8 + 0.2 * Math.sin(t * 9));
   if (L > 0) for (let j = 0; j < 3; j++) caseSparks.emit(new T.Vector3(rand(-1.9, 1.9), c.Hb, rand(-1, 1)), { dir: { x: 0, y: 1, z: 0 }, spread: 0.25, speed: 6, life: 1.6, size: 0.09, gravity: 0.5, color: Math.random() < 0.5 ? [0.8, 2.4, 3] : [3, 2.2, 1] });
   grade.uniforms.uFlash.value = smooth(IN.dive[1] - 0.5, IN.dive[1], t);
   caseSparks.update(dt);
@@ -1545,6 +1110,7 @@ const stepIntro = (dt) => {
 const endIntro = () => {
   if (!intro || intro.done) return;
   intro.done = true;
+  renderer.shadowMap.enabled = false;
   drop = 6; // we come down into the first world from the opening above
   grade.uniforms.uFlash.value = 1;
   grade.uniforms.uFade.value = 1;
@@ -1558,6 +1124,8 @@ new ResizeObserver(() => { clearTimeout(resize.t); resize.t = setTimeout(resize,
 document.fonts?.ready.then(() => layout());
 load(worlds.night, true);
 if (root.classList.contains("intro") && !still) {
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = T.PCFShadowMap;
   intro = buildCase();
   grade.uniforms.uFade.value = 0;
   document.querySelector(".intro-skip")?.addEventListener("click", () => { if (intro && !intro.done) intro.t = Math.max(intro.t, IN.dive[1] - 0.4); });
