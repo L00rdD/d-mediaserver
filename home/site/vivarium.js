@@ -346,8 +346,10 @@ const SHAFT_FS = GLSL_NOISE + /* glsl */ `
   void main() {
     vec3 q = vec3(vUv.x * 2.0, vUv.y * 0.7 - uTime * 0.05, uTime * 0.03);
     float n = 0.5 * vnoise(q) + 0.25 * vnoise(q * 2.03 + 1.7) + 0.125 * vnoise(q * 4.1 + 3.4);
-    float a = smoothstep(0.0, 0.25, vUv.x) * smoothstep(1.0, 0.75, vUv.x);
-    a *= pow(1.0 - vUv.y, 0.8) * smoothstep(0.0, 0.08, vUv.y) * pow(0.25 + 1.1 * n, 2.0);
+    vec2 uv = clamp(vUv, 0.0, 1.0); // pow() of a hair below zero is NaN on some GPUs, and NaN paints the whole plane black
+    float a = smoothstep(0.0, 0.25, uv.x) * smoothstep(1.0, 0.75, uv.x);
+    float g = 0.25 + 1.1 * n;
+    a *= pow(max(1.0 - uv.y, 0.0), 0.8) * smoothstep(0.0, 0.08, uv.y) * g * g;
     gl_FragColor = vec4(uColor * a * uAlpha, 1.0);
   }`;
 const shafts = (w, o) => {
