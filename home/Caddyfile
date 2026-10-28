@@ -45,10 +45,20 @@
 	# service (404 when it is off, and the card stays hidden). /services.json lists
 	# the containers and their ports, written by the services service. /screen.json
 	# feeds the living-room screen, written by the screen service
-	# /screen/settings is the living-room screen's remote control (the Errol card),
+	# /screen/settings is the screens' remote control (the Errol card, Pensieve),
+	# /screen/events pushes screen.json as it changes (Server-Sent Events: the
+	# connection stays open, so it is passed through as it comes); both are
 	# answered by the screen service
 	handle /screen/settings {
 		reverse_proxy screen:8584
+	}
+	handle /screen/events {
+		reverse_proxy screen:8584 {
+			flush_interval -1
+			transport http {
+				response_header_timeout 0
+			}
+		}
 	}
 
 	@status path /disk.json /kpiece.json /services.json /screen.json

@@ -8,6 +8,7 @@ The hub serves it at `http://<host>/theme/`:
 - `theme.js`: picks the look and adds the hub bar.
 - `magic.js`: the vivarium behind a Hogwarts page and its moving magic. `theme.js` loads it by itself (see below).
 - `fonts/`: Michroma, Rajdhani, Cinzel and Cormorant Garamond, all under the SIL Open Font License (`OFL-*.txt`).
+- `looks.json`: the reference of the three looks for every screen of the house: their id (the name the feed and its `/screen/settings` use), their name on the hub, their colours and fonts. Errol and Pensieve embed a copy of it and take their palettes from it; refresh the copies from here when a look changes.
 
 ## How a page knows the look
 

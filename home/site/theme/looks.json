@@ -1,0 +1,50 @@
+{
+  "source": "The reference of the house's looks, served by the hub at /theme/looks.json. errol/assets/looks.json and pensieve/app/src/main/assets/looks.json are copies: refresh them from here when this changes.",
+  "looks": [
+    {
+      "id": "friday",
+      "title": "F.R.I.D.A.Y.",
+      "hub": "reactor",
+      "colors": {
+        "bg": "#02070d",
+        "accent": "#6fe3ff",
+        "accent2": "#ffc857",
+        "text": "#d9f6ff",
+        "muted": "#7fa9b8",
+        "hot": "#ff4b3e",
+        "ok": "#7dffb3"
+      },
+      "fonts": { "display": "Michroma", "body": "Rajdhani" }
+    },
+    {
+      "id": "cyberpunk",
+      "title": "Cyberpunk",
+      "hub": "cyberpunk",
+      "colors": {
+        "bg": "#07080d",
+        "accent": "#ff6158",
+        "accent2": "#5ef6ff",
+        "text": "#f1e9e4",
+        "muted": "#a2726d",
+        "hot": "#f3e600",
+        "ok": "#39ff88"
+      },
+      "fonts": { "display": "Rajdhani", "body": "Rajdhani" }
+    },
+    {
+      "id": "hogwarts",
+      "title": "La Carte du Maraudeur",
+      "hub": "hogwarts",
+      "colors": {
+        "bg": "#f6dda6",
+        "accent": "#3f210b",
+        "accent2": "#9c1f12",
+        "text": "#2a1608",
+        "muted": "#74471f",
+        "hot": "#9c1f12",
+        "ok": "#2d6a36"
+      },
+      "fonts": { "display": "IM Fell English", "body": "IM Fell English" }
+    }
+  ]
+}

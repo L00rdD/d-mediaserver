@@ -1,7 +1,8 @@
-// Fills the Errol card: what the living-room screen shows now, and its remote
-// control (its look, or "follow this page"). The settings live in the screen
-// service (/screen/settings, through Caddy) and Errol applies them within a few
-// seconds; when the service does not answer, the card stays hidden.
+// Fills the Errol card: what the living-room screen shows now, and the remote
+// control of the screens (their look, or "follow this page"). The settings live
+// in the screen service (/screen/settings, through Caddy); Errol and Pensieve,
+// the projector's home screen, apply them within a few seconds. When the
+// service does not answer, the card stays hidden.
 (async () => {
   const card = document.getElementById("errol");
   if (!card) return;
@@ -63,9 +64,10 @@
 
   // what the screen shows now, from the feed it reads
   const now = card.querySelector('[data-errol="now"]');
-  const show = async () => {
+  const show = async (pushed) => {
     try {
-      const d = await get("/screen.json");
+      const d = pushed || (await get("/screen.json"));
+      if (pushed && pushed.settings) { settings = pushed.settings; paint(); }
       const playing = (d.playing || [])[0];
       const last = (d.events || []).filter((e) => e.kind !== "play").at(-1);
       const fresh = last && Date.now() - new Date(last.at) < 120000;
@@ -76,7 +78,19 @@
       now.textContent = "–";
     }
   };
-  show();
-  setInterval(show, 10000);
+  // the feed pushes the document as it changes (/screen/events); without the
+  // stream, ask every 10 s
+  let poll = null;
+  const stream = () => {
+    const source = new EventSource("/screen/events");
+    source.onmessage = (message) => {
+      if (poll) { clearInterval(poll); poll = null; }
+      show(JSON.parse(message.data));
+    };
+    source.onerror = () => {
+      if (!poll) poll = setInterval(show, 10000);
+    };
+  };
+  if ("EventSource" in window) stream(); else poll = setInterval(show, 10000);
   card.hidden = false;
 })();
