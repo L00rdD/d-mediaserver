@@ -23,6 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 OUT = os.environ.get("OUT", "/status/screen.json")
 JELLYFIN = os.environ.get("JELLYFIN_URL", "http://jellyfin:8096")
 JELLYFIN_KEY = os.environ.get("JELLYFIN_API_KEY", "")
+JELLYFIN_USER = os.environ.get("JELLYFIN_USER", "")   # whose items to resume; the first user when empty
 BIFROST = os.environ.get("BIFROST_URL", "http://host.docker.internal:8582/api/status.json")
 DRAUPNIR = os.environ.get("DRAUPNIR_URL", "http://host.docker.internal:8080/api/status.json")
 TRANSMISSION = os.environ.get("TRANSMISSION_URL", "http://gluetun:9091/transmission/rpc")
@@ -66,6 +67,27 @@ def read_status(name):
 
 # ---------- sources ----------
 
+def video(it, position_ticks):
+    """A Jellyfin video as the screens show it."""
+    episode = it.get("Type") == "Episode"
+    backdrop = it["Id"] if it.get("BackdropImageTags") else it.get("ParentBackdropItemId") or it.get("SeriesId")
+    return {
+        "id": it["Id"],
+        "type": "episode" if episode else "movie",
+        "title": it.get("Name"),
+        "series": it.get("SeriesName") if episode else None,
+        "season": it.get("ParentIndexNumber") if episode else None,
+        "episode": it.get("IndexNumber") if episode else None,
+        "year": it.get("ProductionYear"),
+        "overview": (it.get("Overview") or "")[:400],
+        "genres": it.get("Genres", [])[:3],
+        "runtime": round((it.get("RunTimeTicks") or 0) / 1e7),
+        "position": round((position_ticks or 0) / 1e7),
+        "poster": f"/Items/{it.get('SeriesId') if episode and it.get('SeriesId') else it['Id']}/Images/Primary",
+        "backdrop": f"/Items/{backdrop}/Images/Backdrop" if backdrop else None,
+    }
+
+
 def jellyfin():
     """Videos playing now, one entry per session."""
     if not JELLYFIN_KEY:
@@ -76,28 +98,27 @@ def jellyfin():
         if not it or it.get("MediaType") != "Video":
             continue
         ps = s.get("PlayState") or {}
-        episode = it.get("Type") == "Episode"
-        backdrop = it["Id"] if it.get("BackdropImageTags") else it.get("ParentBackdropItemId") or it.get("SeriesId")
         out.append({
-            "id": it["Id"],
-            "type": "episode" if episode else "movie",
-            "title": it.get("Name"),
-            "series": it.get("SeriesName") if episode else None,
-            "season": it.get("ParentIndexNumber") if episode else None,
-            "episode": it.get("IndexNumber") if episode else None,
-            "year": it.get("ProductionYear"),
-            "overview": (it.get("Overview") or "")[:400],
-            "genres": it.get("Genres", [])[:3],
-            "runtime": round((it.get("RunTimeTicks") or 0) / 1e7),
-            "position": round((ps.get("PositionTicks") or 0) / 1e7),
+            **video(it, ps.get("PositionTicks")),
             "paused": bool(ps.get("IsPaused")),
             "device": s.get("DeviceName"),
             "client": s.get("Client"),
             "user": s.get("UserName"),
-            "poster": f"/Items/{it.get('SeriesId') if episode and it.get('SeriesId') else it['Id']}/Images/Primary",
-            "backdrop": f"/Items/{backdrop}/Images/Backdrop" if backdrop else None,
         })
     return out
+
+
+def jellyfin_resume():
+    """Videos left halfway, the most recent first: the projector's home screen offers to resume them."""
+    if not JELLYFIN_KEY:
+        return []
+    headers = {"X-Emby-Token": JELLYFIN_KEY}
+    users = get(f"{JELLYFIN}/Users", headers)
+    user = next((u for u in users if u.get("Name") == JELLYFIN_USER), users[0] if users else None)
+    if not user:
+        return []
+    items = get(f"{JELLYFIN}/Users/{user['Id']}/Items/Resume?Limit=5&MediaTypes=Video&Fields=Overview,Genres", headers)
+    return [video(it, (it.get("UserData") or {}).get("PlaybackPositionTicks")) for it in items.get("Items", [])]
 
 
 _tr_session = ""
@@ -279,6 +300,7 @@ class Feed:
                 "radarr": self.safe("radarr", lambda: imports("radarr", self.radarr_key, RADARR), self.slow.get("radarr", [])),
                 "sonarr": self.safe("sonarr", lambda: imports("sonarr", self.sonarr_key, SONARR), self.slow.get("sonarr", [])),
                 "draupnir": self.safe("draupnir", draupnir, self.slow.get("draupnir")),
+                "resume": self.safe("resume", jellyfin_resume, self.slow.get("resume", [])),
             }
         playing = self.safe("jellyfin", jellyfin, [])
         house = self.safe("bifrost", lambda: get(BIFROST), None)
@@ -336,6 +358,7 @@ class Feed:
         return {
             "updated_at": now().isoformat(timespec="seconds"),
             "playing": playing,
+            "resume": self.slow.get("resume", []),
             "events": self.events,
             "house": house and tidy_house(house),
             "downloads": [{"name": x["name"], "percent": round(x["percentDone"] * 100, 1), "rate": x.get("rateDownload"), "eta": x.get("eta")}
