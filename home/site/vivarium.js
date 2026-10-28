@@ -229,7 +229,7 @@ class Sparks {
   constructor(n) {
     this.n = n;
     this.pos = new Float32Array(n * 3); this.col = new Float32Array(n * 3); this.size = new Float32Array(n); this.alpha = new Float32Array(n);
-    this.vel = new Float32Array(n * 3); this.life = new Float32Array(n); this.max = new Float32Array(n); this.g = new Float32Array(n); this.s0 = new Float32Array(n);
+    this.vel = new Float32Array(n * 3); this.life = new Float32Array(n); this.max = new Float32Array(n); this.g = new Float32Array(n); this.s0 = new Float32Array(n); this.grow = new Float32Array(n);
     this.i = 0;
     const g = new T.BufferGeometry();
     g.setAttribute("position", new T.BufferAttribute(this.pos, 3).setUsage(T.DynamicDrawUsage));
@@ -252,6 +252,7 @@ class Sparks {
     this.life[k] = this.max[k] = (o.life ?? 1) * rand(0.6, 1);
     this.s0[k] = (o.size ?? 0.08) * rand(0.6, 1.2);
     this.g[k] = o.gravity ?? -0.5;
+    this.grow[k] = o.grow ?? 0.4; // size at the end of its life, relative
   }
   update(dt) {
     for (let k = 0; k < this.n; k++) {
@@ -262,7 +263,7 @@ class Sparks {
       this.pos[j] += this.vel[j] * dt; this.pos[j + 1] += this.vel[j + 1] * dt; this.pos[j + 2] += this.vel[j + 2] * dt;
       const t = Math.max(0, this.life[k] / this.max[k]);
       this.alpha[k] = Math.min(1, t * 1.5);
-      this.size[k] = this.s0[k] * (0.4 + 0.6 * t);
+      this.size[k] = this.s0[k] * lerp(this.grow[k], 1, t);
     }
     const a = this.points.geometry.attributes;
     a.position.needsUpdate = a.aColor.needsUpdate = a.aSize.needsUpdate = a.aAlpha.needsUpdate = true;
@@ -457,6 +458,120 @@ const place = (w, name, pos, rotY = 0, scale = 1, then) => track(w, model(name).
   return o;
 }).catch((e) => console.warn("vivarium: model", name, e)));
 
+// a prop fitted to a size: its largest side = size (m), standing on the ground at pos, turned by ry
+const prop = (w, name, pos, o = {}, then) => track(w, model(name).then((s) => {
+  const obj = s.clone();
+  obj.updateMatrixWorld(true);
+  let box = new T.Box3().setFromObject(obj);
+  const sz = box.getSize(new T.Vector3());
+  obj.scale.setScalar((o.size ?? 1) / Math.max(sz.x, sz.y, sz.z));
+  obj.updateMatrixWorld(true);
+  box = new T.Box3().setFromObject(obj);
+  obj.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+  const g = new T.Group();
+  g.add(obj);
+  g.position.set(...pos);
+  g.rotation.set(o.rx ?? 0, o.ry ?? 0, o.rz ?? 0);
+  shadows(obj);
+  if (o.env !== undefined) obj.traverse((m) => { if (m.isMesh && m.material) m.material.envMapIntensity = o.env; });
+  w.scene.add(g);
+  g.updateMatrixWorld(true);
+  then?.(g, obj, box.getSize(new T.Vector3()));
+  return g;
+}).catch((e) => console.warn("vivarium: prop", name, e)));
+
+// a flame: a sprite of fire that flickers, a light that flickers with it, a spark now and then
+let FLAME_TEX = null;
+const flameTexture = () => {
+  if (FLAME_TEX) return FLAME_TEX;
+  const c = document.createElement("canvas");
+  c.width = 64; c.height = 128;
+  const g = c.getContext("2d");
+  const grd = (x, y, r, stops) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); stops.forEach(([k, col]) => gr.addColorStop(k, col)); g.fillStyle = gr; g.fillRect(0, 0, 64, 128); };
+  g.globalCompositeOperation = "lighter";
+  grd(32, 92, 30, [[0, "rgba(255,120,30,0.9)"], [0.5, "rgba(255,80,10,0.35)"], [1, "rgba(255,60,0,0)"]]);
+  grd(32, 70, 34, [[0, "rgba(255,170,60,0.7)"], [0.6, "rgba(255,110,20,0.15)"], [1, "rgba(255,80,0,0)"]]);
+  grd(32, 100, 16, [[0, "rgba(255,255,220,1)"], [0.4, "rgba(255,230,140,0.8)"], [1, "rgba(255,180,60,0)"]]);
+  grd(32, 40, 22, [[0, "rgba(255,120,30,0.35)"], [1, "rgba(255,60,0,0)"]]);
+  FLAME_TEX = new T.CanvasTexture(c);
+  return FLAME_TEX;
+};
+const flame = (w, pos, size = 0.25, o = {}) => {
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: flameTexture(), color: new T.Color(...(o.color || [2.6, 2.0, 1.3])), transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false }));
+  sp.center.set(0.5, 0.12);
+  sp.position.set(pos[0], pos[1], pos[2]);
+  w.scene.add(sp);
+  const light = new T.PointLight(o.light ?? 0xffa040, o.power ?? 3, o.reach ?? 5, 1.8);
+  light.position.set(pos[0], pos[1] + size * 0.6, pos[2]);
+  if ((o.power ?? 3) > 0) w.scene.add(light);
+  const seed = rand(0, 100), power = o.power ?? 3;
+  const tick = (dt, t) => {
+    const n = fbm3(seed, t * 2.2, 0, 3), m = noise3(seed * 3, t * 7, 1);
+    sp.scale.set(size * 0.7 * (1 + 0.18 * m), size * 1.3 * (1 + 0.3 * n + 0.1 * m), 1);
+    sp.material.opacity = 0.85 + 0.15 * n;
+    light.intensity = power * (0.8 + 0.25 * n + 0.1 * m);
+    if (Math.random() < dt * (o.sparks ?? 0.8)) w.sparks.emit(sp.position, { dir: { x: 0, y: 1, z: 0 }, spread: 0.25, speed: 0.5, life: 1.1, size: 0.025, gravity: 0.15, color: [3, 1.4, 0.4] });
+  };
+  (w.fx ||= []).push(tick);
+  return { sprite: sp, light, tick };
+};
+// the floating candles of the Great Hall: wax sticks hanging in the air, each with its flame, drifting
+// slowly up and down; only a few of them carry a real light, the rest glow through the bloom
+const floatingCandles = (w, n, box, o = {}) => {
+  const wax = new T.MeshStandardMaterial({ color: 0xf2e6c8, roughness: 0.7 });
+  const geo = new T.CylinderGeometry(0.022, 0.026, 1, 10);
+  const items = [];
+  for (let i = 0; i < n; i++) {
+    const len = rand(0.18, 0.42);
+    const m = new T.Mesh(geo, wax);
+    m.scale.y = len;
+    m.castShadow = true;
+    const x = rand(box[0], box[1]), y = rand(box[2], box[3]), z = rand(box[4], box[5]);
+    m.position.set(x, y, z);
+    w.scene.add(m);
+    const f = flame(w, [x, y + len / 2, z], rand(0.16, 0.22), { power: i < (o.lights ?? 3) ? 2.2 : 0, reach: 5, sparks: 0 });
+    items.push({ m, f, x, y, z, len, ph: rand(0, TAU), sp: rand(0.25, 0.5) });
+  }
+  (w.fx ||= []).push((dt, t) => {
+    for (const c of items) {
+      const dy = Math.sin(t * c.sp + c.ph) * 0.12, dx = Math.sin(t * c.sp * 0.6 + c.ph * 2) * 0.05;
+      c.m.position.set(c.x + dx, c.y + dy, c.z);
+      c.f.sprite.position.set(c.x + dx, c.y + dy + c.len / 2, c.z);
+      c.f.light.position.set(c.x + dx, c.y + dy + c.len / 2 + 0.08, c.z);
+    }
+  });
+};
+// smoke rising from a point: a pool of faint growing motes
+const smoke = (w, pos, o = {}) => {
+  const pool = new Sparks(o.n ?? 90);
+  w.scene.add(pool.points);
+  const rate = o.rate ?? 10, color = o.color || [0.5, 0.5, 0.55];
+  let acc = 0;
+  (w.fx ||= []).push((dt) => {
+    acc += dt * rate;
+    while (acc > 1) { acc--; pool.emit(new T.Vector3(pos[0] + rand(-0.1, 0.1) * (o.spread ?? 1), pos[1], pos[2] + rand(-0.1, 0.1) * (o.spread ?? 1)), { dir: { x: o.wind ?? 0.15, y: 1, z: 0 }, spread: 0.3, speed: o.speed ?? 0.35, life: o.life ?? 4, size: o.size ?? 0.12, gravity: o.rise ?? 0.08, grow: o.grow ?? 4, color: color.map((c) => c * (0.7 + Math.random() * 0.5)) }); }
+    pool.update(dt);
+  });
+  return pool;
+};
+// the windows of a far building, lit: warm points on its walls, picked among its vertices
+const windowLights = (w, obj, n, minY, o = {}) => {
+  const pts = [], v = new T.Vector3();
+  obj.updateMatrixWorld(true);
+  obj.traverse((m) => {
+    if (!m.isMesh || !m.geometry.attributes.position) return;
+    const a = m.geometry.attributes.position, step = Math.max(1, Math.floor(a.count / 4000));
+    for (let i = 0; i < a.count; i += step) { v.fromBufferAttribute(a, i).applyMatrix4(m.matrixWorld); if (v.y > minY) pts.push(v.x, v.y, v.z); }
+  });
+  const c = new Cloud();
+  for (let i = 0; i < n && pts.length; i++) { const k = Math.floor(Math.random() * (pts.length / 3)) * 3; c.add(pts[k], pts[k + 1], pts[k + 2], Math.random() < 0.8 ? [3.0, 2.0, 0.9] : [2.4, 2.4, 2.0], rand(0.2, 0.42) * (o.size ?? 1), rand(0.5, 1)); }
+  const points = new T.Points(c.geometry(), pointMaterial());
+  points.frustumCulled = false;
+  w.scene.add(points);
+  (w.fx ||= []).push((dt, t) => { points.material.uniforms.uGain.value = 0.9 + 0.1 * Math.sin(t * 1.3) + 0.05 * Math.sin(t * 7.1); });
+  return points;
+};
+
 const makeWorld = (name, def) => {
   const scene = new T.Scene();
   scene.background = new T.Color(0x05080f);
@@ -582,7 +697,7 @@ const air = (w, n, center, size, opts) => {
 
 // a glowing mushroom cluster
 const mushrooms = (w, x, z, n, hue) => {
-  const cap = new T.MeshStandardMaterial({ color: hue, emissive: hue, emissiveIntensity: 3, roughness: 0.5 });
+  const cap = new T.MeshStandardMaterial({ color: hue, emissive: hue, emissiveIntensity: 1.6, roughness: 0.5 });
   const stem = new T.MeshStandardMaterial({ color: 0xb8c4c8, roughness: 0.8 });
   for (let k = 0; k < n; k++) {
     const h = rand(0.05, 0.22), r = rand(0.03, 0.09), px = x + rand(-0.4, 0.4), pz = z + rand(-0.4, 0.4);
@@ -593,7 +708,7 @@ const mushrooms = (w, x, z, n, hue) => {
     c.scale.y = 0.55;
     w.scene.add(s, c);
   }
-  const l = new T.PointLight(hue, 4, 4, 1.8);
+  const l = new T.PointLight(hue, 1.6, 3.5, 1.8);
   l.position.set(x, 0.35, z);
   w.scene.add(l);
 };
@@ -667,11 +782,12 @@ const halo = (w, color, power) => { w.glow = new T.PointLight(color, 0, 6, 1.6);
 const circleUnder = (w, size) => { w.circle = groundCircle([[0, size, 0.05], [2, size * 0.55, -0.12]], [0.6, 1.6, 2.0]); w.circle.visible = false; w.scene.add(w.circle); };
 
 const DEFS = {
-  // the media world: the starry night (Jellyfin and the other apps); Fawkes is often about
+  // the media world: Hogwarts by night. The castle on its rock at the far end of the field, its windows
+  // lit; the Milky Way above; Fawkes about, shooting stars, a low mist on the grass
   night: {
     hdri: "rogland_clear_night", height: 2, radius: 90, grade: [1.0, 1.0, 1.12], env: 0.6, turn: 0.3, free: 1,
     cam: [0, 1.5, 5.5], look: [0, 2.6, -6],
-    sunPos: [-4, 10, -6], sun: 0.5, sunColor: 0xbcd0ff, shadow: 0.3, fog: [[0.03, 0.045, 0.08], 0.018],
+    sunPos: [-4, 10, -6], sun: 0.5, sunColor: 0xbcd0ff, shadow: 0.3, fog: [[0.03, 0.045, 0.08], 0.0105],
     build(w) {
       w.ribbons = ribbons(w, 4, [-7, 7, 0.6, 6, -9, -2]);
       w.air = air(w, 220, [0, 3, -4], [12, 4, 6], { color: () => (Math.random() < 0.4 ? [0.8, 2.6, 3.2] : [3.0, 2.2, 0.9]), size: [0.04, 0.09], alpha: [0.5, 1], speed: 0.35, blink: true });
@@ -689,6 +805,15 @@ const DEFS = {
       w.pool = pool(w, [1.0, 0.45, 0.12], 5); // Fawkes' light on the ground when he comes low
       w.nextStar = rand(3, 8);
     },
+    load(w) {
+      // Hogwarts, far off on the right, every window lit; the warmth of its windows on the mist under it
+      prop(w, "places/castle", [26, -0.5, -80], { size: 34, ry: -0.5, env: 0.3 }, (g, obj, sz) => {
+        windowLights(w, obj, 190, sz.y * 0.4, { size: 1.6 });
+        const glow = pool(w, [1.0, 0.7, 0.35], 46);
+        glow.position.set(20, 0.05, -70);
+        glow.material.uniforms.uA.value = 0.3;
+      });
+    },
     tick(w, dt, t) {
       w.ribbons(dt, t); w.air(t);
       for (const v of w.veils) v.material.uniforms.uTime.value += dt;
@@ -703,39 +828,66 @@ const DEFS = {
       }
     },
   },
-  // the Niffler's den (the trading bot): a cave, the Niffler on its pile of gold
+  // Gringotts (the trading bot): a vault deep under the rock. The great round door, torches, a chandelier,
+  // the hoard, a dragon chained in the dark on the left; the Niffler on its gold
   cave: {
-    hdri: "hikers_cave", height: 1.8, radius: 40, grade: [0.38, 0.44, 0.6], env: 0.5, turn: 3.67, free: 1,
+    hdri: "hikers_cave", height: 1.8, radius: 40, grade: [0.36, 0.38, 0.48], env: 0.45, turn: 3.67, free: 1,
     cam: [0, 1.3, 3.5], look: [0, 1.0, -6],
-    sunPos: [6, 5, -9], sun: 1.0, sunColor: 0xc8dcff, shadow: 0.5, fog: [[0.05, 0.07, 0.1], 0.03],
+    sunPos: [6, 5, -9], sun: 0.6, sunColor: 0xc8dcff, shadow: 0.5, fog: [[0.04, 0.045, 0.06], 0.035],
     creature: { dir: "niffler", size: 0.75, yaw: 0, env: 2.5 },
     build(w) {
-      mushrooms(w, -1.8, -2.8, 9, 0x4fe0ff);
-      mushrooms(w, -2.6, -5.5, 6, 0x9a6cff);
       halo(w, 0xffc060, 16);
       circleUnder(w, 1.6);
-      // cold daylight falling from the mouth of the cave, far up on the right; gold light off the hoard
-      w.shafts = shafts(w, { from: [5.5, 7, -9], n: 7, width: 2.2, length: 9, spread: 2.6, tilt: 0.55, color: [0.5, 0.7, 1.0], alpha: 0.14 });
-      w.goldPool = pool(w, [1.0, 0.72, 0.25], 4);
+      w.shafts = shafts(w, { from: [5.5, 7, -9], n: 5, width: 2.2, length: 9, spread: 2.6, tilt: 0.55, color: [0.5, 0.7, 1.0], alpha: 0.08 });
+      w.goldPool = pool(w, [1.0, 0.72, 0.25], 4.5);
       w.goldPool.position.set(1.95, 0.012, -2.5);
       w.goldLight = new T.PointLight(0xffb850, 10, 4.5, 1.8);
       w.goldLight.position.set(1.95, 0.6, -2.5);
       w.scene.add(w.goldLight);
-      w.bluePool = pool(w, [0.3, 0.8, 1.0], 3);
-      w.bluePool.position.set(-1.8, 0.012, -2.8);
-      w.bluePool.material.uniforms.uA.value = 0.5;
       w.shadowBlob = contact(w, 1.1, 0.5);
       w.shadowBlob.position.set(1.3, 0.008, -2.4);
-      // a cold light from behind, to draw its black fur out of the dark
+      // a cold light from behind, to draw its black fur out of the dark; a cold shaft on the dragon
       const rim = new T.SpotLight(0x9fd8ff, 30, 8, 0.5, 0.6, 1.5);
       rim.position.set(2.6, 2, -5);
       rim.target.position.set(1.3, 0.3, -2.4);
       w.scene.add(rim, rim.target);
+      const onDragon = new T.SpotLight(0x8fb8ff, 60, 30, 0.45, 0.6, 1.2);
+      onDragon.position.set(4, 9, -10);
+      onDragon.target.position.set(1.5, 1.5, -17);
+      w.scene.add(onDragon, onDragon.target);
       w.air = air(w, 200, [0, 1.2, -4], [6, 2, 3], { color: () => (Math.random() < 0.6 ? [0.6, 2.0, 3.0] : [2.6, 2.0, 0.8]), size: [0.02, 0.05], alpha: [0.3, 0.8], speed: 0.25, blink: true });
     },
     load(w) {
-      place(w, "moon_rock_03", [-3, 0, -4.5], 0.3, 2.4);
-      place(w, "creatures/coins", [1.95, 0, -2.5], 0.4, 1, (o) => { const b = new T.Box3().setFromObject(o), k = 0.95 / Math.max(...b.getSize(new T.Vector3()).toArray()); o.scale.setScalar(k); o.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); m.material.envMapIntensity = 3; m.material.metalness = 1; m.material.roughness = Math.min(m.material.roughness, 0.35); } }); });
+      const goldMat = (o) => o.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); m.material.envMapIntensity = 3; m.material.metalness = 1; m.material.roughness = Math.min(m.material.roughness, 0.35); } });
+      // the vault door in its wall (its round opening in the middle), torches on the wall on each side,
+      // and through the opening, the dragon that guards the deepest vaults, lit cold
+      prop(w, "places/vault_door", [0.8, 0, -8.4], { size: 7.5, ry: 0, env: 0.9 }, (g, obj) => {
+        obj.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); m.material.envMapIntensity = 1.2; } });
+        const wash = new T.SpotLight(0xffc890, 50, 16, 0.75, 0.8, 1.2); // warm light on the wall from the torches' side
+        wash.position.set(0.8, 4.5, -2.5);
+        wash.target.position.set(0.8, 1.5, -5.2);
+        w.scene.add(wash, wash.target);
+      });
+      for (const x of [-2.6, 4.2]) {
+        prop(w, "places/torch", [x, 1.1, -4.9], { size: 0.9, ry: Math.PI });
+        flame(w, [x, 1.78, -4.75], 0.7, { power: 14, reach: 10, sparks: 2 });
+      }
+      prop(w, "places/dragon", [1.8, 0.6, -17], { size: 12, ry: 0.6, env: 0.7 }, (g) => { (w.fx ||= []).push((dt, t) => { g.position.y = 0.6 + Math.sin(t * 0.6) * 0.12; g.rotation.y = 0.6 + Math.sin(t * 0.25) * 0.1; }); });
+      // the floating candles of the vault, over the hoard
+      floatingCandles(w, 16, [-2.4, 4.4, 2.3, 3.4, -6.4, -2.6], { lights: 4 });
+      // the hoard: coins in piles, chests, candlesticks, the gate of the next vault; the dragon beyond
+      prop(w, "creatures/coins", [1.95, 0, -2.5], { size: 1.3, ry: 0.4 }, (g, obj) => goldMat(obj));
+      prop(w, "creatures/coins", [2.9, 0, -3.3], { size: 1.1, ry: 2.6 }, (g, obj) => goldMat(obj));
+      prop(w, "creatures/coins", [0.3, 0, -5.6], { size: 1.2, ry: 1.4 }, (g, obj) => goldMat(obj));
+      prop(w, "creatures/coins", [-0.9, 0, -3.4], { size: 0.8, ry: 2.1 }, (g, obj) => goldMat(obj));
+      prop(w, "creatures/coins", [0.9, 0, -4.6], { size: 0.7, ry: 1.0 }, (g, obj) => goldMat(obj));
+      prop(w, "creatures/coins", [3.4, 0, -4.2], { size: 0.9, ry: 3.4 }, (g, obj) => goldMat(obj));
+      prop(w, "treasure_chest", [-1.9, 0, -4.6], { size: 1.0, ry: 0.5, env: 1.2 });
+      prop(w, "treasure_chest", [3.6, 0, -5.8], { size: 0.9, ry: -0.6, env: 1.2 });
+      prop(w, "brass_candleholders", [-2.6, 0, -3.3], { size: 0.5, ry: 0.3, env: 2 }, (g, obj, sz) => { for (const dx of [-0.12, 0, 0.12]) flame(w, [-2.6 + dx, sz.y * 0.95, -3.3], 0.1, { power: 1.2, reach: 3, sparks: 0 }); });
+      prop(w, "gothic_statue", [-4.4, 0, -4.6], { size: 2.2, ry: 0.5, env: 0.8 });
+      prop(w, "large_iron_gate", [5.9, 0, -4.0], { size: 3.2, ry: 1.25, env: 0.8 });
+      prop(w, "places/dragon", [-7, 0, -12], { size: 11, ry: 0.95, env: 0.6 });
     },
     tick(w, dt, t) {
       w.air(t);
@@ -756,9 +908,10 @@ const DEFS = {
     },
     wake(w) { burst(w, new T.Vector3(1.8, 0.4, -3.1), 50, { speed: 2, size: 0.08, color: [3, 2.2, 0.8] }); },
   },
-  // the Bowtruckle's tree (Sapling Sunrise): a mossy forest, Pickett on his stump
+  // the Bowtruckle's tree (Sapling Sunrise): a mossy forest, Pickett on his stump; a cauldron simmering
+  // beside it, lanterns, glowing mushrooms, fireflies
   forest: {
-    hdri: "mossy_forest", height: 2, radius: 70, grade: [0.75, 0.88, 0.8], env: 0.9, turn: 0.7, free: -1,
+    hdri: "mossy_forest", height: 2, radius: 70, grade: [0.7, 0.82, 0.74], env: 0.85, turn: 0.7, free: -1,
     cam: [0, 1.4, 3.6], look: [0, 1.2, -6],
     sunPos: [-6, 6, -6], sun: 1.3, sunColor: 0xe8ffd0, shadow: 0.5, fog: [[0.2, 0.3, 0.22], 0.028], aura: 0.4,
     creature: { dir: "bowtruckle", size: 0.95, yaw: 0, env: 1.4 },
@@ -767,7 +920,9 @@ const DEFS = {
       // sunlight through the canopy, in long shafts, and pollen in them
       w.shafts = shafts(w, { from: [-3, 7.5, -7], n: 8, width: 2.0, length: 9, spread: 3.5, tilt: -0.38, lean: 0.15, color: [0.85, 1.0, 0.65], alpha: 0.11 });
       w.shadowBlob = contact(w, 0.8, 0.4);
-      w.air = air(w, 160, [0, 1.6, -4], [8, 2, 3], { color: () => (Math.random() < 0.5 ? [1.6, 2.6, 0.8] : [3.0, 2.2, 0.9]), size: [0.03, 0.07], alpha: [0.5, 1], speed: 0.3, blink: true });
+      w.air = air(w, 220, [0, 1.4, -4], [8, 2, 3], { color: () => (Math.random() < 0.5 ? [1.6, 2.6, 0.8] : [3.0, 2.2, 0.9]), size: [0.03, 0.07], alpha: [0.5, 1], speed: 0.3, blink: true });
+      mushrooms(w, 2.3, -2.1, 6, 0x4fe0ff);
+      mushrooms(w, -2.9, -3.9, 5, 0x9a6cff);
     },
     load(w) {
       place(w, "rock_moss_set_01", [2.6, 0, -7], 0.4, 1);
@@ -775,6 +930,23 @@ const DEFS = {
       place(w, "fern_02", [-2.6, 0, -4.6], 4.0, 1.4);
       place(w, "moss_01", [-1.6, 0, -3.6], 0, 2);
       place(w, "tree_stump_01", [-1.2, 0, -2.6], 1.1, 0.9, (o) => { w.stumpTop = new T.Box3().setFromObject(o).max.y; w.def.placed?.(w); });
+      // the cauldron, simmering green (its sculpted smoke hidden: ours rises from it)
+      prop(w, "places/cauldron", [-3.5, 0, -2.4], { size: 1.7, ry: 0.4, env: 1.2 }, (g, obj, sz) => {
+        obj.traverse((m) => { if (m.isMesh) { const b = new T.Box3().setFromObject(m); if ((b.min.y + b.max.y) / 2 > g.position.y + sz.y * 0.5) m.visible = false; } });
+        const top = sz.y * 0.46;
+        smoke(w, [-3.5, top, -2.4], { rate: 6, color: [0.12, 0.4, 0.18], size: 0.07, grow: 4, life: 3.5, speed: 0.25, rise: 0.12, spread: 1.5 });
+        const l = new T.PointLight(0x7fff9a, 4, 4, 1.8);
+        l.position.set(-3.5, top + 0.3, -2.4);
+        w.scene.add(l);
+        (w.fx ||= []).push((dt, t) => { l.intensity = 4 + Math.sin(t * 5) * 0.8 + Math.sin(t * 13.7) * 0.4; if (Math.random() < dt * 6) w.sparks.emit(new T.Vector3(-3.5 + rand(-0.25, 0.25), top, -2.4 + rand(-0.25, 0.25)), { dir: { x: 0, y: 1, z: 0 }, spread: 0.2, speed: 0.4, life: 1.2, size: 0.03, gravity: 0.1, color: [0.8, 3, 1.2] }); });
+      });
+      // lanterns: one on a post by the stump, one set down on the moss
+      const post = new T.Mesh(new T.CylinderGeometry(0.03, 0.04, 1.7, 8), new T.MeshStandardMaterial({ color: 0x4a3a28, roughness: 0.9 }));
+      post.position.set(-2.4, 0.85, -3.1);
+      post.castShadow = true;
+      w.scene.add(post);
+      prop(w, "wooden_lantern_01", [-2.4, 1.7, -3.1], { size: 0.42, ry: 0.6, env: 1.5 }, (g, obj, sz) => flame(w, [-2.4, 1.7 + sz.y * 0.3, -3.1], 0.12, { power: 5, reach: 6, light: 0xffb860, sparks: 0 }));
+      prop(w, "Lantern_01", [0.1, 0, -1.9], { size: 0.4, ry: -0.5, env: 1.5 }, (g, obj, sz) => flame(w, [0.1, sz.y * 0.35, -1.9], 0.12, { power: 3, reach: 4, light: 0xffb860, sparks: 0 }));
     },
     placed(w) { if (w.beast && w.stumpTop) { w.beast.position.set(-1.2, w.stumpTop - 0.02, -2.6); w.shadowBlob.position.set(-1.2, w.stumpTop - 0.01, -2.6); } },
     tick(w, dt, t) {
@@ -788,12 +960,12 @@ const DEFS = {
     },
     wake(w) { if (w.beast) burst(w, w.beast.position.clone().add(new T.Vector3(0, 0.3, 0)), 30, { speed: 1.2, size: 0.05, color: [1.6, 2.6, 0.8] }); },
   },
-  // the Hippogriff's forest (Bifrost): pines in the mist, a hippogriff standing there; come near and it
-  // rears up, as Buckbeak does before he lets you close
+  // Hagrid's hut (Bifrost): at the edge of the forest in the mist, its windows warm, smoke from the chimney,
+  // the pumpkin patch; Buckbeak standing there, who rears up when you come near
   mist: {
-    hdri: "misty_pines", flat: true, grade: [0.66, 0.7, 0.76], env: 0.8, turn: 3.9, free: 1,
+    hdri: "misty_pines", flat: true, grade: [0.62, 0.66, 0.72], env: 0.8, turn: 3.9, free: 1,
     cam: [0, 1.4, 4], look: [0, 1.1, -6],
-    sunPos: [-3, 6, -10], sun: 0.9, sunColor: 0xe4ecff, shadow: 0.4, fog: [[0.58, 0.62, 0.66], 0.05], aura: 0.55,
+    sunPos: [-3, 6, -10], sun: 0.9, sunColor: 0xe4ecff, shadow: 0.4, fog: [[0.58, 0.62, 0.66], 0.036], aura: 0.55,
     creature: { dir: "hippogriff", size: 5.2, clip: "idle", env: 1.9 },
     build(w) {
       w.shadowBlob = contact(w, 3.4, 0.45);
@@ -811,6 +983,22 @@ const DEFS = {
       halo(w, 0xdfe8ff, 10);
       w.air = air(w, 200, [0, 1.6, -4], [8, 2, 3], { color: () => [1.4, 1.5, 1.8], size: [0.02, 0.05], alpha: [0.2, 0.6], speed: 0.2 });
     },
+    load(w) {
+      prop(w, "places/hut", [5.5, 0, -17], { size: 10, ry: -0.35, env: 0.9 }, (g, obj, sz) => {
+        // warm light from inside at the windows, and the chimney going
+        const l = new T.PointLight(0xffb060, 40, 16, 1.4);
+        l.position.set(3.8, 1.8, -13.8);
+        w.scene.add(l);
+        const win = pool(w, [1.0, 0.65, 0.3], 8);
+        win.position.set(3.8, 0.012, -13.4);
+        win.material.uniforms.uA.value = 0.5;
+        (w.fx ||= []).push((dt, t) => { l.intensity = 40 + Math.sin(t * 6.1) * 3; });
+        smoke(w, [5.5, sz.y * 0.98, -17], { rate: 4, color: [0.25, 0.25, 0.28], size: 0.2, grow: 5, life: 7, speed: 0.4, rise: 0.1, wind: 0.3, spread: 2 });
+      });
+      prop(w, "places/pumpkins", [8.2, 0, -9.8], { size: 4.2, ry: 0.3, env: 0.9 });
+      prop(w, "Lantern_01", [2.4, 0, -12.2], { size: 0.55, ry: 0.2, env: 1.4 }, (g, obj, sz) => flame(w, [2.4, sz.y * 0.35, -12.2], 0.12, { power: 7, reach: 8, light: 0xffb860, sparks: 0 }));
+      prop(w, "wooden_crate_01", [1.4, 0, -12.6], { size: 0.9, ry: 0.4, env: 0.9 });
+    },
     placed(w) { w.beast.position.set(2.2, 0, -3.6); },
     tick(w, dt, t) {
       w.air(t);
@@ -824,11 +1012,12 @@ const DEFS = {
     },
     wake(w) { if (w.beast) burst(w, w.beast.position.clone().add(new T.Vector3(0, 1.2, 0)), 30, { speed: 1.5, size: 0.08, color: [1.6, 1.7, 2.2] }); },
   },
-  // Newt's shed (Errol): his table and lamp, and an owl flying under the rafters
+  // Newt's shed (Errol): his table under the lamp with the books, a chocolate frog, candles, potions
+  // on a crate, a broom and a Nimbus against the shelf, a lantern under the rafters; an owl flying
   shed: {
-    hdri: "hayloft", height: 1.7, radius: 30, grade: [0.33, 0.29, 0.26], env: 0.5, turn: 1.57, free: -1,
+    hdri: "hayloft", height: 1.7, radius: 30, grade: [0.3, 0.26, 0.23], env: 0.5, turn: 1.57, free: -1,
     cam: [0, 1.5, 2.4], look: [0, 1.3, -3],
-    sunPos: [-4, 5, -6], sun: 1.1, sunColor: 0xffe6c0, shadow: 0.55, fog: [[0.1, 0.08, 0.06], 0.035], aura: 0.5,
+    sunPos: [-4, 5, -6], sun: 0.9, sunColor: 0xffe6c0, shadow: 0.55, fog: [[0.1, 0.08, 0.06], 0.035], aura: 0.5,
     creature: { dir: "owl", size: 1.1, tint: 0xc8b89c, env: 1.6 }, // Errol: an old grey-brown owl
     build(w) {
       w.lamp = new T.PointLight(0xffc070, 0, 6, 1.5);
@@ -842,10 +1031,34 @@ const DEFS = {
       place(w, "WoodenTable_03", [-0.9, 0, -2.6], 0.1, 1, (table) => {
         const top = new T.Box3().setFromObject(table).max.y;
         place(w, "desk_lamp_arm_01", [-0.3, top, -2.8], -2.2, 1, () => { w.lamp.position.set(-0.5, top + 0.45, -2.5); w.lamp.intensity = 12; w.lampPool.position.set(-0.5, top + 0.012, -2.5); w.lampPool.material.uniforms.uA.value = 1.1; });
-        place(w, "seeding_tray_01", [-1.3, top, -2.5], 0.3, 1);
+        prop(w, "places/books", [-1.35, top, -2.45], { size: 0.34, ry: 0.35, env: 1.2 });
+        prop(w, "places/frog", [-0.72, top, -2.2], { size: 0.3, ry: -0.4, env: 1.2 });
+        prop(w, "wooden_candlestick", [-1.55, top, -2.85], { size: 0.26, env: 1.4 }, (g, obj, sz) => flame(w, [-1.55, top + sz.y, -2.85], 0.09, { power: 2, reach: 3, sparks: 0 }));
       });
       place(w, "watering_can_metal_01", [-2.2, 0, -2.2], 1.2, 1);
       place(w, "wooden_bookshelf_worn", [-3.2, 0, -4.2], 0.5, 1);
+      // against the shelf: the Nimbus and a broom
+      prop(w, "places/nimbus", [-2.55, 0.02, -3.6], { size: 1.6, ry: 1.3, rz: 1.25, env: 1.3 });
+      prop(w, "wooden_broom", [-3.9, 0, -3.5], { size: 1.4, ry: 0.4, rz: -0.18, env: 1 });
+      // a crate with the oil lamp and the potions on it; a barrel and a basket
+      prop(w, "wooden_crate_01", [1.5, 0, -3.3], { size: 0.62, ry: 0.25, env: 1 }, (g, obj, sz) => {
+        const top = sz.y;
+        prop(w, "vintage_oil_lamp", [1.65, top, -3.4], { size: 0.34, ry: 0.5, env: 1.5 }, (g2, o2, s2) => flame(w, [1.65, top + s2.y * 0.5, -3.4], 0.11, { power: 6, reach: 6, light: 0xffb050, sparks: 0 }));
+        prop(w, "wine_bottles_01", [1.25, top, -3.1], { size: 0.26, ry: -0.3, env: 1.6 }, (g2, o2) => {
+          // potions: each bottle glows its own colour
+          const tints = [[0.2, 1.0, 0.4], [0.7, 0.3, 1.0], [0.2, 0.6, 1.0], [1.0, 0.5, 0.2]];
+          let i = 0;
+          o2.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); const c = tints[i++ % tints.length]; Object.assign(m.material, { emissive: new T.Color(...c), emissiveIntensity: 0.9, color: new T.Color(...c).multiplyScalar(0.6), roughness: 0.2 }); } });
+          const l = new T.PointLight(0x80ff90, 2.5, 2.5, 1.8);
+          l.position.set(1.25, top + 0.2, -3.1);
+          w.scene.add(l);
+          (w.fx ||= []).push((dt, t) => { l.color.setRGB(0.5 + 0.5 * Math.sin(t * 0.7), 0.6 + 0.4 * Math.sin(t * 0.9 + 2), 0.6 + 0.4 * Math.sin(t * 1.1 + 4)); });
+        });
+      });
+      prop(w, "wooden_crate_01", [2.5, 0, -4.4], { size: 0.75, ry: 0.9, env: 0.9 });
+      prop(w, "wicker_basket_01", [2.2, 0, -2.6], { size: 0.5, ry: 0.8, env: 1 });
+      // a lantern hanging from the beam
+      prop(w, "wooden_lantern_01", [0.7, 2.35, -3.4], { size: 0.4, ry: 0.3, env: 1.4 }, (g, obj, sz) => flame(w, [0.7, 2.35 + sz.y * 0.3, -3.4], 0.12, { power: 5, reach: 6, light: 0xffb860, sparks: 0 }));
     },
     placed(w) { // his feathers keep a little of the lamp's light, so that he is not a black shape against the roof
       w.beast.traverse((m) => { if (m.isMesh && m.material) Object.assign(m.material, { emissive: new T.Color(0.28, 0.22, 0.16), emissiveMap: m.material.map, emissiveIntensity: 0.6 }); });
@@ -1212,6 +1425,7 @@ const step = (w, dt, t) => {
   w.excite += (w.target - w.excite) * Math.min(1, dt * 3);
   w.mixer?.update(dt * (1 + w.excite * 0.6));
   w.def.tick?.(w, dt, t);
+  if (w.fx) for (const f of w.fx) f(dt, t);
   w.sparks.update(dt);
 };
 
