@@ -64,9 +64,10 @@
 
   // what the screen shows now, from the feed it reads
   const now = card.querySelector('[data-errol="now"]');
-  const show = async () => {
+  const show = async (pushed) => {
     try {
-      const d = await get("/screen.json");
+      const d = pushed || (await get("/screen.json"));
+      if (pushed && pushed.settings) { settings = pushed.settings; paint(); }
       const playing = (d.playing || [])[0];
       const last = (d.events || []).filter((e) => e.kind !== "play").at(-1);
       const fresh = last && Date.now() - new Date(last.at) < 120000;
@@ -77,7 +78,19 @@
       now.textContent = "–";
     }
   };
-  show();
-  setInterval(show, 10000);
+  // the feed pushes the document as it changes (/screen/events); without the
+  // stream, ask every 10 s
+  let poll = null;
+  const stream = () => {
+    const source = new EventSource("/screen/events");
+    source.onmessage = (message) => {
+      if (poll) { clearInterval(poll); poll = null; }
+      show(JSON.parse(message.data));
+    };
+    source.onerror = () => {
+      if (!poll) poll = setInterval(show, 10000);
+    };
+  };
+  if ("EventSource" in window) stream(); else poll = setInterval(show, 10000);
   card.hidden = false;
 })();

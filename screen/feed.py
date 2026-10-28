@@ -2,8 +2,10 @@
 (Bifrost: lamps, projection screen, projector), what finished downloading, the
 latest One Piece scan, Draupnir, the disks. Written to /status/screen.json every
 few seconds; Errol (https://github.com/L00rdD/errol), the screen's renderer,
-reads it through the home page (/screen.json) and turns every change into a scene. Python standard
-library only.
+reads it through the home page (/screen.json) and turns every change into a scene.
+The same document is pushed as it changes on /screen/events (Server-Sent Events,
+through Caddy), so Errol, Pensieve and the home page see a change at the same
+instant instead of asking every few seconds. Python standard library only.
 
 Changes become events: a lamp switched, the projection screen moving, the
 projector turned on or switching app, a torrent finished, Radarr or Sonarr
@@ -12,6 +14,7 @@ state, so a restart does not replay the past.
 """
 import json
 import os
+import queue
 import re
 import threading
 import time
@@ -34,6 +37,8 @@ SETTINGS = os.path.join(STATUS, "screen-settings.json")
 SETTINGS_PORT = int(os.environ.get("SETTINGS_PORT", "8584"))
 LOOKS = {"friday", "cyberpunk", "hogwarts"}
 TICK = 3                 # seconds between two passes
+HEARTBEAT = 30           # seconds between two pushes of an unchanged document
+KEEPALIVE = 15           # seconds between two comments on a quiet event stream
 SLOW = 30                # seconds between two passes on the slow sources
 KEEP_EVENTS = 30
 
@@ -200,6 +205,58 @@ def recent(items, n=6):
     return out[:n]
 
 
+# ---------- the event stream ----------
+# Whoever asks /screen/events gets the document at once, then again each time
+# it changes (and every HEARTBEAT seconds anyway); a comment line every
+# KEEPALIVE seconds keeps a quiet connection open through the proxy.
+
+class Broadcast:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.listeners = set()
+        self.latest = None       # the document as last written, as text
+        self.doc = None          # ...and as a dict, for a settings change
+
+    def publish(self, doc):
+        text = json.dumps(doc, ensure_ascii=False)
+        with self.lock:
+            self.doc, self.latest = doc, text
+            listeners = list(self.listeners)
+        for q in listeners:
+            q.put(text)
+
+    def subscribe(self):
+        q = queue.Queue()
+        with self.lock:
+            self.listeners.add(q)
+            if self.latest is not None:
+                q.put(self.latest)
+        return q
+
+    def unsubscribe(self, q):
+        with self.lock:
+            self.listeners.discard(q)
+
+
+broadcast = Broadcast()
+
+
+def write_out(doc):
+    """Writes screen.json whole (a reader never sees half a file) and pushes it to the stream."""
+    tmp = OUT + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(doc, f, ensure_ascii=False)
+    os.replace(tmp, OUT)
+    broadcast.publish(doc)
+
+
+def changed(a, b):
+    """Whether two documents differ in anything but their time stamp."""
+    if a is None or b is None:
+        return True
+    return {k: v for k, v in a.items() if k != "updated_at"} != {k: v for k, v in b.items() if k != "updated_at"}
+
+
 # ---------- settings: the screens' remote control ----------
 # The home page's Errol card and the projector's home screen (Pensieve) read
 # and change them (GET/POST /screen/settings, through Caddy); they go into
@@ -230,6 +287,12 @@ def save_settings(changes):
     with open(tmp, "w") as f:
         json.dump(settings, f)
     os.replace(tmp, SETTINGS)
+    # the screens learn of it now, not at the next pass
+    with broadcast.lock:
+        doc = dict(broadcast.doc) if broadcast.doc else None
+    if doc is not None:
+        doc["settings"] = settings
+        write_out(doc)
     return settings
 
 
@@ -244,9 +307,33 @@ class SettingsHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        if self.path.rstrip("/") != "/screen/settings":
+        path = self.path.split("?")[0].rstrip("/")
+        if path == "/screen/events":
+            return self.stream()
+        if path != "/screen/settings":
             return self.reply(404, {"error": "not found"})
         self.reply(200, load_settings())
+
+    def stream(self):
+        """The document now, then each time it changes, as Server-Sent Events, until the client goes."""
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+        q = broadcast.subscribe()
+        try:
+            while True:
+                try:
+                    text = q.get(timeout=KEEPALIVE)
+                    self.wfile.write(f"data: {text}\n\n".encode())
+                except queue.Empty:
+                    self.wfile.write(b": keepalive\n\n")
+                self.wfile.flush()
+        except (OSError, ValueError):
+            pass             # the client went away
+        finally:
+            broadcast.unsubscribe(q)
 
     def do_POST(self):
         if self.path.rstrip("/") != "/screen/settings":
@@ -378,13 +465,19 @@ class Feed:
 def main():
     serve_settings()
     feed = Feed()
+    pushed_at = 0
     while True:
         started = time.time()
         data = feed.tick()
-        tmp = OUT + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump(data, f, ensure_ascii=False)
-        os.replace(tmp, OUT)
+        # the file is always written; the stream only hears of a change, or a heartbeat
+        if changed(broadcast.doc, data) or started - pushed_at >= HEARTBEAT:
+            write_out(data)
+            pushed_at = started
+        else:
+            tmp = OUT + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump(data, f, ensure_ascii=False)
+            os.replace(tmp, OUT)
         time.sleep(max(0.5, TICK - (time.time() - started)))
 
 
