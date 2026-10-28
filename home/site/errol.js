@@ -1,7 +1,8 @@
-// Fills the Errol card: what the living-room screen shows now, and its remote
-// control (its look, or "follow this page"). The settings live in the screen
-// service (/screen/settings, through Caddy) and Errol applies them within a few
-// seconds; when the service does not answer, the card stays hidden.
+// Fills the Errol card: what the living-room screen shows now, and the remote
+// control of the screens (their look, or "follow this page"). The settings live
+// in the screen service (/screen/settings, through Caddy); Errol and Pensieve,
+// the projector's home screen, apply them within a few seconds. When the
+// service does not answer, the card stays hidden.
 (async () => {
   const card = document.getElementById("errol");
   if (!card) return;

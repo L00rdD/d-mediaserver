@@ -200,11 +200,13 @@ def recent(items, n=6):
     return out[:n]
 
 
-# ---------- settings: the screen's remote control ----------
-# The home page's Errol card reads and changes them (GET/POST /screen/settings,
-# through Caddy); they go into screen.json, and Errol applies them live.
-# look: the screen's look, or None for its own default; follow_hub: the home
-# page sets the look to its own whenever it is opened.
+# ---------- settings: the screens' remote control ----------
+# The home page's Errol card and the projector's home screen (Pensieve) read
+# and change them (GET/POST /screen/settings, through Caddy); they go into
+# screen.json, and Errol and Pensieve apply them live. look: the look of every
+# screen, or None for each one's own default; follow_hub: the home page sets
+# the look to its own whenever it is opened. The looks are those of
+# home/site/theme/looks.json.
 
 def load_settings():
     try:
