@@ -19,6 +19,9 @@ services:
       - ./home/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./home/site:/srv:ro
       - disk-status:/status:ro
+    environment:
+      # where /cerebro/ fetches Cerebro's sprites (see home/Caddyfile)
+      - CEREBRO_URL=${CEREBRO_URL:-}
     ports:
       - ${HOME_PORT:-80}:80
     restart: unless-stopped

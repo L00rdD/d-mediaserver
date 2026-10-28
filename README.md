@@ -453,7 +453,7 @@ git clone https://github.com/L00rdD/errol ~/errol
 sh ~/errol/deploy/install.sh friday        # or cyberpunk
 ```
 
-**Claude Code sessions (optional).** With [Cerebro](https://github.com/L00rdD/cerebro) running on a Mac, the screen and the home page show its Claude Code sessions: a card with each session, its room of the X-Mansion and what it does, and on the screen a notice whenever a session waits for your answer. In Cerebro's panel, turn on the network the Pi can reach (ZeroTier if the Pi has joined it, its address does not change; otherwise the local network) and copy its link, `http://<address>:4243/?key=<key>`. Put both halves in `.env`, then run `docker compose up -d`:
+**Claude Code sessions (optional).** With [Cerebro](https://github.com/L00rdD/cerebro) running on a Mac, the screen and the home page show its Claude Code sessions as Cerebro draws them, each in its room of the X-Mansion with its X-Men, inside the card of the look, and on the screen a notice whenever a session waits for your answer. The home page draws them with Cerebro's own scene engine, built from its source into [`home/site/cerebro-scene.js`](home/site/cerebro-scene.js) by `sh home/cerebro/build.sh` (run it again when Cerebro's scenes change); its pictures come from the Mac through the home page (`/cerebro/`, never its API). In Cerebro's panel, turn on the network the Pi can reach (ZeroTier if the Pi has joined it, its address does not change; otherwise the local network) and copy its link, `http://<address>:4243/?key=<key>`. Put both halves in `.env`, then run `docker compose up -d`:
 
 ```text
 CEREBRO_URL=http://10.147.17.5:4243

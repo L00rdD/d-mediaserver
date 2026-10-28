@@ -61,6 +61,17 @@
 		}
 	}
 
+	# /cerebro/ is the Mac's X-Mansion: Cerebro's rooms, characters and emotes, drawn by
+	# the Cerebro cards (cerebro.js) and by Errol. Only its pictures and their manifests:
+	# its API (the sessions, behind the key) is never passed on. Without CEREBRO_URL, or
+	# while the Mac sleeps, they answer 502 and the cards stay hidden anyway
+	@cerebro path /cerebro/rooms/* /cerebro/characters/* /cerebro/ui/emotes.png
+	handle @cerebro {
+		uri strip_prefix /cerebro
+		header Cache-Control "public, max-age=86400"
+		reverse_proxy {$CEREBRO_URL:http://127.0.0.1:9}
+	}
+
 	@status path /disk.json /kpiece.json /services.json /screen.json
 	handle @status {
 		root * /status

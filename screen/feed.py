@@ -213,12 +213,16 @@ def recent(items, n=6):
     return out[:n]
 
 
-def cerebro_names():
-    """Cerebro's rooms and characters by id, with the names its panel shows."""
-    rooms = get(f"{CEREBRO}/rooms/rooms.json", timeout=2).get("rooms") or []
-    characters = get(f"{CEREBRO}/characters/characters.json", timeout=2).get("characters") or []
-    return ({r["id"]: r.get("name") for r in rooms if "id" in r},
-            {c["id"]: c.get("name") for c in characters if "id" in c})
+def cerebro_catalog():
+    """Cerebro's manifests: its rooms and characters by id, as its panel draws them."""
+    rooms = get(f"{CEREBRO}/rooms/rooms.json", timeout=2)
+    characters = get(f"{CEREBRO}/characters/characters.json", timeout=2)
+    return {
+        "room_size": [rooms.get("frameWidth", 192), rooms.get("frameHeight", 120)],
+        "character_size": [characters.get("frameWidth", 24), characters.get("frameHeight", 24)],
+        "rooms": {r["id"]: r for r in rooms.get("rooms") or [] if "id" in r},
+        "characters": {c["id"]: c for c in characters.get("characters") or [] if "id" in c},
+    }
 
 
 def cerebro_snapshot():
@@ -234,32 +238,67 @@ def cerebro_snapshot():
 
 
 ORDER = {"waiting": 0, "busy": 1}
+# How the lead of a session stands, by status, as in Cerebro's panel; subagents always walk
+LEAD_STATE = {"busy": "walking", "idle": "asleep"}
+# Cerebro's pictures, through the home page (home/Caddyfile): the screens never need the key
+SPRITES = "/cerebro/"
 
 
-def cerebro(snapshot, names):
-    """The sessions as the screens show them, those waiting for an answer first, then those working."""
-    rooms, characters = names
+def cerebro(snapshot, catalog):
+    """The sessions as the screens show them, those waiting for an answer first, then those
+    working; each with its scene, all Cerebro's panel needs to draw it: the room's sprite
+    sheet and its floor, and every actor with its sprite, its way of moving and its power."""
+    rooms, characters = catalog.get("rooms", {}), catalog.get("characters", {})
     home = re.compile(r"^/(Users|home)/[^/]+")
     sessions = []
     for s in snapshot.get("scenes") or []:
         actors = s.get("actors") or []
+        room = rooms.get(s.get("room")) or next(iter(rooms.values()), None)
+        status = s.get("status")
+        cast = []
+        for index, a in enumerate(actors):
+            c = characters.get(a.get("character"))
+            if not c:
+                continue
+            cast.append({
+                "id": a.get("id"),
+                "name": c.get("name"),
+                "sprite": SPRITES + c["sprite"],
+                "move": c.get("move") or "walk",
+                "power": c.get("power") or "glow",
+                "color": c.get("powerColor") or c.get("aura") or "#FFFFFF",
+                "aura": c.get("aura"),
+                "state": LEAD_STATE.get(status, "alert") if index == 0 else "walking",
+            })
         lead = actors[0].get("character") if actors else None
         since = s.get("statusSince")
         sessions.append({
             "id": s.get("id"),
             "name": s.get("name"),
             "project": home.sub("~", s.get("cwd") or "") or None,
-            "status": s.get("status"),
+            "status": status,
             "since": datetime.fromtimestamp(since / 1000, timezone.utc).astimezone().isoformat(timespec="seconds") if since else None,
-            "room": rooms.get(s.get("room")) or s.get("room"),
-            "lead": characters.get(lead) or lead,
+            "room": (room or {}).get("name") or s.get("room"),
+            "lead": (characters.get(lead) or {}).get("name") or lead,
             "agents": max(len(actors) - 1, 0),
+            "scene": room and {
+                "room": {
+                    "sprite": SPRITES + room["sprite"],
+                    "frames": room.get("frames", 1),
+                    "fps": room.get("fps", 8),
+                    "walk": room.get("walkArea"),
+                },
+                "actors": cast,
+            },
         })
     sessions.sort(key=lambda s: (ORDER.get(s["status"], 2), s["name"] or ""))
     return {
         "sessions": sessions,
         "busy": sum(1 for s in sessions if s["status"] == "busy"),
         "waiting": sum(1 for s in sessions if s["status"] == "waiting"),
+        "room_size": catalog.get("room_size", [192, 120]),
+        "character_size": catalog.get("character_size", [24, 24]),
+        "emotes": SPRITES + "ui/emotes.png",
         # the phone page, for the home page's card; the key only lets one read the sessions
         "link": f"{CEREBRO}/?key={urllib.parse.quote(CEREBRO_KEY)}",
     }
@@ -427,7 +466,7 @@ class Feed:
         self.radarr_key = api_key("radarr")
         self.sonarr_key = api_key("sonarr")
         self.cerebro_at = 0       # when to ask Cerebro again after the Mac did not answer
-        self.cerebro_names = None
+        self.cerebro_catalog = None
         self.n = 0
 
     def emit(self, kind, **data):
@@ -451,12 +490,12 @@ class Feed:
         if snapshot is None:
             self.cerebro_at = t + SLOW
             return None
-        if self.cerebro_names is None:
+        if self.cerebro_catalog is None:
             try:
-                self.cerebro_names = cerebro_names()
+                self.cerebro_catalog = cerebro_catalog()
             except (OSError, ValueError):
-                pass             # the ids stand in for the names until the next pass
-        return cerebro(snapshot, self.cerebro_names or ({}, {}))
+                pass             # no scenes, the ids for names, until the next pass
+        return cerebro(snapshot, self.cerebro_catalog or {})
 
     def tick(self):
         self.errors = {}
