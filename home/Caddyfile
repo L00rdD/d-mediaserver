@@ -45,7 +45,7 @@
 	# service (404 when it is off, and the card stays hidden). /services.json lists
 	# the containers and their ports, written by the services service. /screen.json
 	# feeds the living-room screen, written by the screen service
-	# /screen/settings is the screens' remote control (the Errol card, Pensieve),
+	# /screen/settings is Errol's remote control (the home page's Errol card),
 	# /screen/events pushes screen.json as it changes (Server-Sent Events: the
 	# connection stays open, so it is passed through as it comes); both are
 	# answered by the screen service
