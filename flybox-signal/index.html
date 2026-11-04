@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flybox — signal</title>
+<style>
+  :root { --bg:#111418; --card:#1b2027; --fg:#e8ecf1; --mut:#8a94a3; --good:#3fbf6f; --ok:#e3b341; --bad:#e5534b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.4 -apple-system, system-ui, sans-serif; background:var(--bg); color:var(--fg); padding:14px; }
+  h1 { font-size:18px; margin:0 0 10px; }
+  .card { background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:12px; }
+  .row { display:flex; gap:12px; }
+  .row > div { flex:1; }
+  .lbl { color:var(--mut); font-size:13px; }
+  .big { font-size:34px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .unit { font-size:14px; color:var(--mut); font-weight:400; }
+  .snr { font-size:15px; color:var(--mut); }
+  .score { font-size:46px; font-weight:800; text-align:center; }
+  canvas { width:100%; height:70px; display:block; }
+  input, button { font:inherit; border-radius:10px; border:0; padding:12px; }
+  input { width:100%; background:#0c0f12; color:var(--fg); margin-bottom:8px; }
+  button { width:100%; background:#2f6fde; color:#fff; font-weight:600; }
+  button.sec { background:#323a45; }
+  button:disabled { opacity:.5; }
+  .bar { height:8px; background:#0c0f12; border-radius:4px; overflow:hidden; margin-top:8px; }
+  .bar > i { display:block; height:100%; width:0; background:#2f6fde; transition:width .3s; }
+  table { width:100%; border-collapse:collapse; font-size:14px; font-variant-numeric:tabular-nums; }
+  td, th { padding:6px 4px; text-align:right; border-bottom:1px solid #262c35; }
+  td:first-child, th:first-child { text-align:left; }
+  th { color:var(--mut); font-weight:500; }
+  .ref { color:var(--ok); }
+  .status { font-size:13px; color:var(--mut); margin-bottom:8px; }
+  .x { background:none; color:var(--mut); width:auto; padding:0 4px; }
+  .help { font-size:13px; color:var(--mut); }
+</style>
+</head>
+<body>
+<h1>Flybox — où la poser ?</h1>
+<div class="status" id="status">Connexion…</div>
+
+<div class="card">
+  <div class="score" id="score">–</div>
+  <div class="lbl" style="text-align:center">score moyen des 20 dernières s (0–100)</div>
+</div>
+
+<div class="card row">
+  <div>
+    <div class="lbl">5G RSRP</div>
+    <div class="big" id="nr">–<span class="unit"> dBm</span></div>
+    <div class="snr" id="nrs">SNR –</div>
+  </div>
+  <div>
+    <div class="lbl">4G RSRP</div>
+    <div class="big" id="lte">–<span class="unit"> dBm</span></div>
+    <div class="snr" id="ltes">SNR –</div>
+  </div>
+</div>
+
+<div class="card"><canvas id="chart"></canvas><div class="lbl">score sur les 3 dernières minutes</div></div>
+
+<div class="card">
+  <input id="name" placeholder="Nom de l'endroit (ex. chambre fenêtre)">
+  <label class="help"><input type="checkbox" id="isref" style="width:auto;margin:0 6px 0 0">C'est l'emplacement de référence</label>
+  <div style="height:8px"></div>
+  <button id="go">Mesurer 60 s ici</button>
+  <div class="bar"><i id="prog"></i></div>
+  <p class="help">Pose la box, attends que le wifi revienne et que les chiffres apparaissent, puis lance la mesure sans toucher la box.
+  Repasse par l'emplacement de référence tous les 2–3 endroits : la colonne « vs réf » compare chaque endroit à la mesure de référence la plus proche dans le temps.</p>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Endroit</th><th>Score</th><th>vs réf</th><th>5G</th><th>4G</th><th></th></tr></thead>
+    <tbody id="spots"></tbody>
+  </table>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const hist = [];             // {t, score, nr, lte}
+let measuring = null;        // {start, samples: []}
+
+// 0..100 per technology: RSRP -125→-80 dBm and SNR -5→20 dB, weighted equally.
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const techScore = s => 50 * clamp((s.rsrp + 125) / 45, 0, 1) + 50 * clamp((s.snr + 5) / 25, 0, 1);
+// The box uses whichever link is better, so the spot's score is the best of the two.
+const score = d => Math.max(techScore(d.nr), techScore(d.lte));
+const color = v => v >= 60 ? 'var(--good)' : v >= 35 ? 'var(--ok)' : 'var(--bad)';
+const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+const f1 = x => x.toFixed(1);
+
+async function poll() {
+  try {
+    const r = await fetch('/api/signal');
+    if (!r.ok) throw new Error((await r.json()).error);
+    const d = await r.json();
+    const s = score(d);
+    hist.push({ t: d.t, score: s, nr: d.nr, lte: d.lte });
+    while (hist.length && hist[0].t < d.t - 180) hist.shift();
+    $('status').textContent = 'Box connectée — ' + new Date().toLocaleTimeString();
+    $('nr').firstChild.textContent = d.nr.rsrp;
+    $('lte').firstChild.textContent = d.lte.rsrp;
+    $('nr').style.color = color(techScore(d.nr));
+    $('lte').style.color = color(techScore(d.lte));
+    $('nrs').textContent = 'SNR ' + d.nr.snr + ' dB';
+    $('ltes').textContent = 'SNR ' + d.lte.snr + ' dB';
+    const recent = hist.filter(h => h.t > d.t - 20).map(h => h.score);
+    const m = avg(recent);
+    $('score').textContent = Math.round(m);
+    $('score').style.color = color(m);
+    if (measuring) measuring.samples.push(d);
+    draw();
+  } catch (e) {
+    $('status').textContent = 'Box injoignable (elle redémarre ?) — ' + e.message;
+  }
+}
+
+function draw() {
+  const c = $('chart'), dpr = devicePixelRatio || 1;
+  c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr;
+  const g = c.getContext('2d'), w = c.width, h = c.height;
+  g.clearRect(0, 0, w, h);
+  if (hist.length < 2) return;
+  const t1 = hist[hist.length - 1].t, t0 = t1 - 180;
+  g.strokeStyle = '#2f6fde'; g.lineWidth = 2 * dpr; g.beginPath();
+  hist.forEach((p, i) => {
+    const x = (p.t - t0) / 180 * w, y = h - p.score / 100 * h;
+    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  });
+  g.stroke();
+}
+
+$('go').onclick = () => {
+  const name = $('name').value.trim();
+  if (!name) { $('name').focus(); return; }
+  $('go').disabled = true;
+  measuring = { start: Date.now(), samples: [] };
+  const tick = setInterval(async () => {
+    const el = (Date.now() - measuring.start) / 1000;
+    $('prog').style.width = Math.min(100, el / 60 * 100) + '%';
+    $('go').textContent = 'Mesure… ' + Math.max(0, Math.ceil(60 - el)) + ' s';
+    if (el < 60) return;
+    clearInterval(tick);
+    const ss = measuring.samples; measuring = null;
+    $('go').disabled = false; $('go').textContent = 'Mesurer 60 s ici'; $('prog').style.width = '0';
+    if (ss.length < 10) { alert('Pas assez de mesures (box injoignable ?), recommence.'); return; }
+    const spot = {
+      name, ref: $('isref').checked, t: ss[0].t, n: ss.length,
+      score: avg(ss.map(score)),
+      nr_rsrp: avg(ss.map(s => s.nr.rsrp)), nr_snr: avg(ss.map(s => s.nr.snr)),
+      lte_rsrp: avg(ss.map(s => s.lte.rsrp)), lte_snr: avg(ss.map(s => s.lte.snr)),
+    };
+    const r = await fetch('/api/spots', { method: 'POST', body: JSON.stringify(spot) });
+    render(await r.json());
+    $('name').value = ''; $('isref').checked = false;
+  }, 500);
+};
+
+async function del(saved) {
+  if (!confirm('Supprimer cette mesure ?')) return;
+  const r = await fetch('/api/spots/delete', { method: 'POST', body: JSON.stringify({ saved }) });
+  render(await r.json());
+}
+
+function render(spots) {
+  const refs = spots.filter(s => s.ref);
+  const vsRef = s => {
+    if (s.ref || !refs.length) return '';
+    const r = refs.reduce((a, b) => Math.abs(b.t - s.t) < Math.abs(a.t - s.t) ? b : a);
+    const d = s.score - r.score;
+    return (d >= 0 ? '+' : '') + Math.round(d);
+  };
+  $('spots').innerHTML = [...spots].sort((a, b) => b.score - a.score).map(s => `
+    <tr>
+      <td class="${s.ref ? 'ref' : ''}">${s.name.replace(/</g, '&lt;')}${s.ref ? ' (réf)' : ''}</td>
+      <td style="color:${color(s.score)}"><b>${Math.round(s.score)}</b></td>
+      <td>${vsRef(s)}</td>
+      <td>${f1(s.nr_rsrp)}<br><span class="lbl">${f1(s.nr_snr)} dB</span></td>
+      <td>${f1(s.lte_rsrp)}<br><span class="lbl">${f1(s.lte_snr)} dB</span></td>
+      <td><button class="x" onclick="del('${s.saved}')">✕</button></td>
+    </tr>`).join('');
+}
+
+fetch('/api/spots').then(r => r.json()).then(render);
+poll(); setInterval(poll, 1500);
+</script>
+</body>
+</html>
