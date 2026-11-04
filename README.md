@@ -454,9 +454,9 @@ ANYCUBIC_TOKEN=...
 
 ## 📺 Living-room Screen
 
-The Pi's small HDMI screen shows what happens on the server and in the house, with [Errol](https://github.com/L00rdD/errol). It shows what plays on Jellyfin, a lamp that switches, the projection screen coming down, a download that finished, a film or an episode that entered the library, the next One Piece scan and Draupnir. When something happens, it takes the screen for a minute; while a film plays, it shows a cinema marquee.
+The Pi's small HDMI screen shows what happens on the server and in the house, with [Errol](https://github.com/L00rdD/errol). It shows what plays on Jellyfin, a lamp that switches, the projection screen coming down, a download that finished, a film or an episode that entered the library, the next One Piece scan, Draupnir and, while the resin printer is on, its print (progress, layers, time left, preview). When something happens, a print that starts, finishes or is cancelled included, it takes the screen for a minute; while a film plays, it shows a cinema marquee.
 
-The `screen` service of the stack does the reading: [`screen/feed.py`](screen/feed.py) reads Jellyfin, Bifrost and Transmission every 3 s, Radarr and Sonarr every 30 s, and the files of the other cards. It writes `screen.json`, which the home page serves at `/screen.json`. Errol itself is a separate project that runs on the Pi as a systemd service. It draws straight on the screen with the GPU, without a browser.
+The `screen` service of the stack does the reading: [`screen/feed.py`](screen/feed.py) reads Jellyfin, Bifrost and Transmission every 3 s, Radarr and Sonarr every 30 s, and the files of the other cards (`printer.json` too, when the optional `printer` service runs). It writes `screen.json`, which the home page serves at `/screen.json`. Errol itself is a separate project that runs on the Pi as a systemd service. It draws straight on the screen with the GPU, without a browser.
 
 The cinema mode needs a Jellyfin API key (Jellyfin: *Dashboard → API Keys*), in `.env`:
 

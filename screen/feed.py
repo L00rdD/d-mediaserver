@@ -1,8 +1,8 @@
 """Feed of the living-room screen: what plays on Jellyfin, what the house does
 (Bifrost: lamps, projection screen, projector), what finished downloading, the
-latest One Piece scan, Draupnir, the disks, and the Claude Code sessions of
-the Mac when Cerebro answers. Written to /status/screen.json every
-few seconds; Errol (https://github.com/L00rdD/errol), the screen's renderer,
+latest One Piece scan, Draupnir, the disks, the Claude Code sessions of
+the Mac when Cerebro answers, and the resin printer's print while it is on.
+Written to /status/screen.json every few seconds; Errol (https://github.com/L00rdD/errol), the screen's renderer,
 reads it through the home page (/screen.json) and turns every change into a scene.
 The same document is pushed as it changes on /screen/events (Server-Sent Events,
 through Caddy), so Errol, Pensieve and the home page see a change at the same
@@ -11,8 +11,8 @@ instant instead of asking every few seconds. Python standard library only.
 Changes become events: a lamp switched, the projection screen moving, the
 projector turned on or switching app, a torrent finished, Radarr or Sonarr
 importing a film or an episode, a new scan, a Claude Code session waiting
-for an answer (Cerebro). The first pass only records the
-state, so a restart does not replay the past.
+for an answer (Cerebro), a print that starts, finishes or is cancelled. The
+first pass only records the state, so a restart does not replay the past.
 """
 import json
 import os
@@ -23,7 +23,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 OUT = os.environ.get("OUT", "/status/screen.json")
@@ -49,6 +49,8 @@ HEARTBEAT = 30           # seconds between two pushes of an unchanged document
 KEEPALIVE = 15           # seconds between two comments on a quiet event stream
 SLOW = 30                # seconds between two passes on the slow sources
 KEEP_EVENTS = 30
+PRINTER_FRESH = 180      # seconds: an older printer.json means the printer service stopped
+PREVIEW_KEEP = 3 * 3600  # seconds a print's preview link is kept: Anycubic's last 4 h, and change at each read
 
 
 def now():
@@ -304,6 +306,81 @@ def cerebro(snapshot, catalog):
     }
 
 
+def as_int(value):
+    return int(value) if isinstance(value, (int, float)) else None
+
+
+def printer(status, at):
+    """The resin printer and its print as the screens show it, from printer.json (the
+    printer service); None while it is off, or when the service has not written for
+    PRINTER_FRESH seconds: the home page's card hides then too. Without a cloud token
+    the printer shows as on, with no print."""
+    if not status or not status.get("online"):
+        return None
+    try:
+        checked = datetime.fromisoformat(status["checked_at"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if (at - checked).total_seconds() > PRINTER_FRESH:
+        return None
+    job = status.get("job") or {}
+    layer, layers = as_int(job.get("layer")), as_int(job.get("layers"))
+    # the cloud's progress, else the share of layers done
+    progress = job.get("progress")
+    if progress is None and layers:
+        progress = 100 * (layer or 0) / layers
+    left = job.get("remaining_min") if job.get("active") else None
+    return {
+        "name": status.get("name") or "Anycubic",
+        "cloud": status.get("cloud"),
+        "state": job.get("state"),
+        "active": bool(job.get("active")),
+        "file": job.get("name") or None,
+        "progress": None if progress is None else round(progress, 1),
+        "layer": layer,
+        "layers": layers,
+        "remaining": None if left is None else round(left * 60),       # seconds, as a download's eta
+        "ends_at": None if left is None else (checked + timedelta(minutes=left)).astimezone().isoformat(timespec="seconds"),
+        "started_at": job.get("started_at"),
+        "height_mm": job.get("height_mm"),
+        "resin_ml": job.get("resin_ml"),
+        "image": preview(job),
+    }
+
+
+def preview(job):
+    """The print's preview: the copy the printer service keeps next to printer.json
+    (a path on the home page) once it is there, else Anycubic's own link."""
+    if job.get("preview") and os.path.exists(os.path.join(STATUS, "printer.jpg")):
+        return job["preview"]
+    return job.get("image")
+
+
+# states of a print before its first layer: going from one of them to printing starts it
+PRINT_COMING = {"downloading", "checking", "preheating", "levelling", "slicing"}
+
+
+def print_job(p):
+    """What the events compare of the print: which job, and its state; None when not
+    known (printer off, no cloud, a state the cloud does not name)."""
+    if not p or p.get("state") in (None, "unknown"):
+        return None
+    return {"job": [p.get("file"), p.get("started_at")], "state": p["state"]}
+
+
+def print_phase(before, now):
+    """The step of the print worth an event, from one pass to the next: "started" when
+    its first layers begin, "done" or "cancelled" when it ends; else None."""
+    if not now:
+        return None
+    same = bool(before) and before["job"] == now["job"]
+    if now["state"] == "printing":
+        return None if same and before["state"] not in PRINT_COMING else "started"
+    if now["state"] in ("done", "cancelled") and same and before["state"] != now["state"]:
+        return now["state"]
+    return None
+
+
 # ---------- the event stream ----------
 # Whoever asks /screen/events gets the document at once, then again each time
 # it changes (and every HEARTBEAT seconds anyway); a comment line every
@@ -467,6 +544,7 @@ class Feed:
         self.sonarr_key = api_key("sonarr")
         self.cerebro_at = 0       # when to ask Cerebro again after the Mac did not answer
         self.cerebro_catalog = None
+        self.preview = None       # (the print and its picture, the link kept, since when)
         self.n = 0
 
     def emit(self, kind, **data):
@@ -497,9 +575,22 @@ class Feed:
                 pass             # no scenes, the ids for names, until the next pass
         return cerebro(snapshot, self.cerebro_catalog or {})
 
-    def tick(self):
-        self.errors = {}
-        t = time.time()
+    def printer(self, t):
+        """The printer while it is on. Anycubic signs its preview link anew at each read:
+        the first link of a print's picture is kept for PREVIEW_KEEP seconds, so the
+        screens do not fetch the same picture again every 20 s."""
+        p = printer(read_status("printer.json"), now())
+        if p and p["image"]:
+            # the same picture of the same print, whatever the signature in the query
+            same = (p["file"], p["started_at"], p["image"].split("?")[0])
+            if self.preview and self.preview[0] == same and t - self.preview[2] < PREVIEW_KEEP:
+                p["image"] = self.preview[1]
+            else:
+                self.preview = (same, p["image"], t)
+        return p
+
+    def read(self, t):
+        """Every source, once; one that does not answer is None (the slow ones keep their last word)."""
         if t - self.slow_at >= SLOW:
             self.slow_at = t
             self.slow = {
@@ -508,81 +599,129 @@ class Feed:
                 "draupnir": self.safe("draupnir", draupnir, self.slow.get("draupnir")),
                 "resume": self.safe("resume", jellyfin_resume, self.slow.get("resume", [])),
             }
-        playing = self.safe("jellyfin", jellyfin, [])
-        house = self.safe("bifrost", lambda: get(BIFROST), None)
-        torrents = self.safe("transmission", transmission, None)
-        claude = self.safe("cerebro", lambda: self.cerebro(t), None)
-        kpiece = read_status("kpiece.json")
-        disk = read_status("disk.json")
-        services = read_status("services.json") or []
-
-        state = {
-            "outlets": {o["id"]: o for o in (house or {}).get("outlets", [])},
-            "covers": {c["id"]: c for c in (house or {}).get("covers", [])},
-            "projectors": {p["id"]: p for p in (house or {}).get("projectors", [])},
-            "done": {x["id"]: x for x in (torrents or []) if x.get("percentDone") == 1},
-            "imports": {x["id"] for x in self.slow.get("radarr", []) + self.slow.get("sonarr", [])},
-            "scan": ((kpiece or {}).get("latest") or {}).get("scan"),
-            "playing": {p["id"] for p in playing},
-            "sessions": {x["id"]: x["status"] for x in (claude or {}).get("sessions", [])},
+        return {
+            "playing": self.safe("jellyfin", jellyfin, []),
+            "house": self.safe("bifrost", lambda: get(BIFROST), None),
+            "torrents": self.safe("transmission", transmission, None),
+            "claude": self.safe("cerebro", lambda: self.cerebro(t), None),
+            "kpiece": read_status("kpiece.json"),
+            "disk": read_status("disk.json"),
+            "services": read_status("services.json") or [],
+            "printer": self.safe("printer", lambda: self.printer(t), None),
         }
+
+    def imported(self):
+        return self.slow.get("radarr", []) + self.slow.get("sonarr", [])
+
+    def state(self, src):
+        """What the next pass compares to find what changed."""
+        house, claude = src["house"] or {}, src["claude"] or {}
+        return {
+            "outlets": {o["id"]: o for o in house.get("outlets", [])},
+            "covers": {c["id"]: c for c in house.get("covers", [])},
+            "projectors": {p["id"]: p for p in house.get("projectors", [])},
+            "done": {x["id"]: x for x in (src["torrents"] or []) if x.get("percentDone") == 1},
+            "imports": {x["id"] for x in self.imported()},
+            "scan": ((src["kpiece"] or {}).get("latest") or {}).get("scan"),
+            "playing": {p["id"] for p in src["playing"]},
+            "sessions": {x["id"]: x["status"] for x in claude.get("sessions", [])},
+            "print": print_job(src["printer"]),
+        }
+
+    def notice_house(self, prev, state):
+        for k, o in state["outlets"].items():
+            if k in prev["outlets"] and o.get("on") != prev["outlets"][k].get("on"):
+                self.emit("light", name=o.get("name"), on=o.get("on"))
+        for k, c in state["covers"].items():
+            p = prev["covers"].get(k)
+            if p and c.get("moving") and not p.get("moving"):
+                self.emit("cover", name=c.get("name"), cover=k, target=c.get("target"), moving=c.get("moving"))
+        for k, pr in state["projectors"].items():
+            p = prev["projectors"].get(k)
+            if p and pr.get("on") != p.get("on"):
+                self.emit("projector", name=pr.get("name"), on=pr.get("on"), app=pr.get("app"))
+            elif p and pr.get("on") and pr.get("app") != p.get("app") and pr.get("app"):
+                self.emit("projector", name=pr.get("name"), on=True, app=pr.get("app"))
+
+    def notice_print(self, prev, state, p):
+        """A print that starts, finishes or is cancelled; once each, not at every pass."""
+        phase = print_phase(prev["print"], state["print"])
+        if phase:
+            self.emit("print", phase=phase, printer=p["name"], file=p["file"], image=p["image"],
+                      layers=p["layers"], remaining=p["remaining"], started_at=p["started_at"])
+
+    def notice_media(self, prev, state, src):
+        """Downloads finished, films and episodes imported, videos started."""
+        if src["torrents"] is not None:
+            for k, x in state["done"].items():
+                if k not in prev["done"]:
+                    self.emit("download", name=x.get("name"), size=x.get("totalSize"))
+        for x in self.imported():
+            if x["id"] not in prev["imports"]:
+                self.emit("import", **{k: v for k, v in x.items() if k != "id"})
+        for p in src["playing"]:
+            if p["id"] not in prev["playing"]:
+                self.emit("play", title=p["title"], series=p["series"], season=p["season"], episode=p["episode"], device=p["device"])
+
+    def notice_news(self, prev, state, src):
+        """A new scan, a Claude Code session that starts waiting for an answer."""
+        if state["scan"] and prev["scan"] and state["scan"] != prev["scan"]:
+            self.emit("scan", **(src["kpiece"].get("latest") or {}))
+        for x in (src["claude"] or {}).get("sessions", []):
+            if x["status"] == "waiting" and prev["sessions"].get(x["id"], "waiting") != "waiting":
+                self.emit("cerebro", **{k: x[k] for k in ("name", "project", "status", "room", "lead")})
+
+    def notice(self, prev, state, src):
+        """Turns what changed since the previous pass into events."""
+        if src["house"] is not None:
+            self.notice_house(prev, state)
+        self.notice_media(prev, state, src)
+        self.notice_news(prev, state, src)
+        self.notice_print(prev, state, src["printer"])
+
+    @staticmethod
+    def keep(prev, state, src):
+        """Keeps what a dead source last said, so it does not fire again when it comes back.
+        A printer switched off keeps its last print: switched on again, it is no news."""
+        dead = {
+            ("outlets", "covers", "projectors"): src["house"] is None,
+            ("done",): src["torrents"] is None,
+            ("sessions",): src["claude"] is None,
+            ("print",): state["print"] is None,
+        }
+        for keys, gone in dead.items():
+            for k in keys if gone else ():
+                state[k] = prev[k]
+
+    def tick(self):
+        self.errors = {}
+        src = self.read(time.time())
+        state = self.state(src)
         prev = self.seen
         if prev is not None:
-            if house is not None:
-                for k, o in state["outlets"].items():
-                    if k in prev["outlets"] and o.get("on") != prev["outlets"][k].get("on"):
-                        self.emit("light", name=o.get("name"), on=o.get("on"))
-                for k, c in state["covers"].items():
-                    p = prev["covers"].get(k)
-                    if p and c.get("moving") and not p.get("moving"):
-                        self.emit("cover", name=c.get("name"), cover=k, target=c.get("target"), moving=c.get("moving"))
-                for k, pr in state["projectors"].items():
-                    p = prev["projectors"].get(k)
-                    if p and pr.get("on") != p.get("on"):
-                        self.emit("projector", name=pr.get("name"), on=pr.get("on"), app=pr.get("app"))
-                    elif p and pr.get("on") and pr.get("app") != p.get("app") and pr.get("app"):
-                        self.emit("projector", name=pr.get("name"), on=True, app=pr.get("app"))
-            if torrents is not None:
-                for k, x in state["done"].items():
-                    if k not in prev["done"]:
-                        self.emit("download", name=x.get("name"), size=x.get("totalSize"))
-            for x in self.slow.get("radarr", []) + self.slow.get("sonarr", []):
-                if x["id"] not in prev["imports"]:
-                    self.emit("import", **{k: v for k, v in x.items() if k != "id"})
-            if state["scan"] and prev["scan"] and state["scan"] != prev["scan"]:
-                self.emit("scan", **(kpiece.get("latest") or {}))
-            if claude is not None:
-                for x in claude["sessions"]:
-                    if x["status"] == "waiting" and prev["sessions"].get(x["id"], "waiting") != "waiting":
-                        self.emit("cerebro", **{k: x[k] for k in ("name", "project", "status", "room", "lead")})
-            for p in playing:
-                if p["id"] not in prev["playing"]:
-                    self.emit("play", title=p["title"], series=p["series"], season=p["season"], episode=p["episode"], device=p["device"])
-        # keep what a dead source last said, so it does not fire again when it comes back
-        if prev is not None:
-            if house is None:
-                for k in ("outlets", "covers", "projectors"):
-                    state[k] = prev[k]
-            if torrents is None:
-                state["done"] = prev["done"]
-            if claude is None:
-                state["sessions"] = prev["sessions"]
+            self.notice(prev, state, src)
+            self.keep(prev, state, src)
         self.seen = state
+        return self.document(src)
 
+    def document(self, src):
+        """screen.json."""
+        torrents, services = src["torrents"] or [], src["services"]
         return {
             "updated_at": now().isoformat(timespec="seconds"),
-            "playing": playing,
+            "playing": src["playing"],
             "resume": self.slow.get("resume", []),
             "events": self.events,
-            "house": house and tidy_house(house),
+            "house": src["house"] and tidy_house(src["house"]),
             "downloads": [{"name": x["name"], "percent": round(x["percentDone"] * 100, 1), "rate": x.get("rateDownload"), "eta": x.get("eta")}
-                          for x in (torrents or []) if x.get("percentDone", 1) < 1][:6],
-            "recent": recent(self.slow.get("radarr", []) + self.slow.get("sonarr", [])),
-            "one_piece": kpiece,
+                          for x in torrents if x.get("percentDone", 1) < 1][:6],
+            "recent": recent(self.imported()),
+            "one_piece": src["kpiece"],
             "portfolio": self.slow.get("draupnir"),
-            "cerebro": claude,
-            "disk": disk,
+            "cerebro": src["claude"],
+            "disk": src["disk"],
             "services": {"up": sum(1 for s in services if s.get("state") == "running"), "total": len(services)},
+            "printer": src["printer"],
             "settings": load_settings(),
             "errors": self.errors,
         }
