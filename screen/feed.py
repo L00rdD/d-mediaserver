@@ -20,6 +20,7 @@ import queue
 import re
 import threading
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -335,7 +336,8 @@ def printer(status, at):
         "cloud": status.get("cloud"),
         "state": job.get("state"),
         "active": bool(job.get("active")),
-        "file": job.get("name") or None,
+        # the slicer's names come decomposed (e + a combining accent): composed, the screens draw them whole
+        "file": unicodedata.normalize("NFC", job.get("name") or "") or None,
         "progress": None if progress is None else round(progress, 1),
         "layer": layer,
         "layers": layers,

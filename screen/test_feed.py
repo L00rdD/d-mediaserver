@@ -40,6 +40,9 @@ class Printer(unittest.TestCase):
         self.assertEqual(datetime.fromisoformat(p["ends_at"]), CHECKED + timedelta(minutes=312))
         self.assertEqual(p["image"], S3)
 
+    def test_the_file_name_is_composed(self):
+        self.assertEqual(shown(name="01_Cafetie\u0300re")["file"], "01_Cafetière")
+
     def test_off_or_absent_is_none(self):
         self.assertIsNone(feed.printer(None, CHECKED))
         self.assertIsNone(feed.printer({**status(), "online": False}, CHECKED))
