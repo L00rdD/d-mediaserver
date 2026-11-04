@@ -1,0 +1,24 @@
+# Optional: follows the Anycubic resin printer (Photon Mono M7) for the home page.
+# printer/watch.py checks every 20 s whether the printer is on the home network;
+# while it is, it reads the current print from the Anycubic cloud (file, progress,
+# layers, time left, preview) and writes printer.json. The home page card only
+# shows while the printer is on. Switch it on in .env:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.printer.yml
+#   ANYCUBIC_TOKEN=...        (optional: without it the card only says "on")
+#   PRINTER_HOST=M7.lan       (optional: the printer's name or IP on the network)
+services:
+  printer:
+    image: python:3-alpine
+    container_name: printer
+    init: true
+    command: ["python", "-u", "/app/watch.py"]
+    environment:
+      - ANYCUBIC_TOKEN=${ANYCUBIC_TOKEN:-}
+      - PRINTER_HOST=${PRINTER_HOST:-M7.lan}
+      - PRINTER_NAME=${PRINTER_NAME:-}
+      - TZ=${TZ:-Europe/Paris}
+    volumes:
+      - ./printer:/app:ro
+      # printer.json, served by the home page next to disk.json
+      - disk-status:/status
+    restart: unless-stopped

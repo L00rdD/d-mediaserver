@@ -624,6 +624,13 @@
     @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
     .kpiece { animation-delay: 0.5s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
+    /* Anycubic printer card: shown while the printer is on (see printer.js) */
+    .printer { animation-delay: 0.6s; }
+    .pr-row { display: flex; gap: 18px; align-items: center; }
+    .pr-row .bot-stats { flex: 1; }
+    .pr-image { width: 84px; height: 84px; object-fit: contain; border: 1px solid var(--red-dim); }
+    .printer dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .printer .st-bar i { transition: width 1s; }
     .bifrost { animation-delay: 0.55s; }
     /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
     .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
@@ -865,6 +872,19 @@
       <div class="cb-cards" data-cb="list"></div>
       <div class="bot-head bot-foot"><span data-cb="counts"></span><span class="bot-more">X-Mansion :4243 →</span></div>
     </a>
+    <a class="bot printer" id="printer" href="https://cloud-universe.anycubic.com/" target="_blank" rel="noopener" hidden aria-label="Anycubic printer, open the Anycubic cloud">
+      <div class="bot-head"><span>11</span><span class="name" data-pr="name">Anycubic</span><span data-pr="state"></span></div>
+      <div class="pr-row">
+        <img class="pr-image" data-pr="image" alt="" hidden>
+        <dl class="bot-stats">
+          <div><dt>File</dt><dd data-pr="file">–</dd></div>
+          <div><dt>Progress</dt><dd><span data-pr="pct">–</span> <small data-pr="layers"></small></dd></div>
+          <div><dt>Time left</dt><dd><span data-pr="left">–</span> <small data-pr="end"></small></dd></div>
+        </dl>
+      </div>
+      <span class="st-bar"><i data-pr="fill"></i></span>
+      <div class="bot-head bot-foot"><span data-pr="note"></span><span class="bot-more">Anycubic cloud →</span></div>
+    </a>
   </main>
 
   <footer class="ticker" aria-hidden="true">
@@ -903,5 +923,6 @@
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
   <script src="/cerebro.js" defer></script>
+  <script src="/printer.js" defer></script>
 </body>
 </html>

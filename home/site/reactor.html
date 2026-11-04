@@ -259,7 +259,8 @@
         "kp kp kp"
         "bf bf bf"
         "er er er"
-        "cb cb cb";
+        "cb cb cb"
+        "pr pr pr";
       gap: 28px 56px;
       width: 100%;
       max-width: 1080px;
@@ -561,6 +562,13 @@
     .bifrost { grid-area: bf; animation-delay: 0.75s; }
     /* Cerebro card: hidden while the feed has no "cerebro", the Mac asleep (see cerebro.js) */
     .cerebro { grid-area: cb; animation-delay: 0.85s; }
+    /* Anycubic printer card: shown while the printer is on (see printer.js) */
+    .printer { grid-area: pr; animation-delay: 0.9s; }
+    .pr-row { display: flex; gap: 18px; align-items: center; }
+    .pr-row .bot-stats { flex: 1; }
+    .pr-image { width: 84px; height: 84px; object-fit: contain; border: 1px solid var(--cyan-faint); }
+    .printer dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .printer .st-bar i { transition: width 1s; }
     /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
     .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
     .bifrost .bf-hb { position: relative; z-index: 2; margin-left: 0; }
@@ -618,7 +626,8 @@
           "kp kp"
           "bf bf"
           "er er"
-          "cb cb";
+          "cb cb"
+          "pr pr";
         gap: 16px;
         padding: 20px 16px 36px;
       }
@@ -632,7 +641,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf" "er" "cb";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf" "er" "cb" "pr";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -808,6 +817,19 @@
       <div class="cb-cards" data-cb="list"></div>
       <span class="tag bot-foot"><span data-cb="counts"></span><span class="bot-more">X-Mansion :4243 →</span></span>
     </a>
+    <a class="panel bot printer" id="printer" href="https://cloud-universe.anycubic.com/" target="_blank" rel="noopener" hidden aria-label="Anycubic printer, open the Anycubic cloud">
+      <span class="tag"><i>11</i> // <span data-pr="name">Anycubic</span> <span data-pr="state"></span></span>
+      <div class="pr-row">
+        <img class="pr-image" data-pr="image" alt="" hidden>
+        <dl class="bot-stats">
+          <div><dt>File</dt><dd data-pr="file">–</dd></div>
+          <div><dt>Progress</dt><dd><span data-pr="pct">–</span> <small data-pr="layers"></small></dd></div>
+          <div><dt>Time left</dt><dd><span data-pr="left">–</span> <small data-pr="end"></small></dd></div>
+        </dl>
+      </div>
+      <span class="st-bar"><i data-pr="fill"></i></span>
+      <span class="tag bot-foot"><span data-pr="note"></span><span class="bot-more">Anycubic cloud →</span></span>
+    </a>
   </main>
 
   <footer class="jarvis" id="jarvis" aria-live="polite">
@@ -837,6 +859,7 @@
         if (shown("storage")) l.push(`Storage at ${text('[data-st="pct"]')}, ${text('[data-st="free"]')} left.`);
         if (shown("trading-bot")) l.push(`The trading bot reports ${text('[data-tb="pnl"]')} so far.`);
         if (shown("bifrost")) l.push(`Bifrost reports ${text('[data-bf="state"]')}.`);
+        if (shown("printer")) l.push(`The printer reports ${text('[data-pr="state"]')}, ${text('[data-pr="pct"]')} done.`);
         if (shown("kpiece")) l.push(`One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
         l.push("Type a title above and I will find it.", "Transmission stays behind the VPN, as instructed.", "Uplink {{$host}} is stable.");
         return l;
@@ -866,5 +889,6 @@
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
   <script src="/cerebro.js" defer></script>
+  <script src="/printer.js" defer></script>
 </body>
 </html>

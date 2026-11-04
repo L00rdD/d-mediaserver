@@ -26,6 +26,7 @@ Options, each one off until you turn it on:
 | [Watchdog](#watchdog) | Brings the apps back after a USB drive drop and alerts you on Discord. | `sudo ./watchdog/install.sh` |
 | [Wifi fallback hotspot](#wifi-fallback-hotspot) | The Pi opens its own wifi when the home network is gone, so the films stay watchable. | `sudo ./hotspot/install.sh` |
 | [One Piece scans](#%EF%B8%8F-one-piece-scans-optional) | A home page card and a Discord post for each new chapter. | 2 lines in `.env` |
+| [Resin printer](#%EF%B8%8F-resin-printer-optional) | A home page card that shows while the Anycubic printer is on, with the print going on. | 2 lines in `.env` |
 | [No login at home](#-passwords) | Radarr, Sonarr and Prowlarr open without a password on the home network. | 1 line in `.env` |
 
 Every setting goes in one `.env` file next to `docker-compose.yml`: copy [`.env.example`](.env.example), which lists them all.
@@ -433,6 +434,23 @@ KPIECE_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ```
 
 `KPIECE_WEBHOOK_URL` is optional: it is the webhook URL Discord gives you, as is (no `/slack` here). Without it the card still works. `docker compose logs kpiece` shows each scan it found.
+
+## 🖨️ Resin Printer (optional)
+
+A small `printer` container follows an Anycubic resin printer (made for the Photon Mono M7). While the printer is on, the home page shows a card with the print going on: the file, the progress and the layer, the time left and when it will be done, and the preview of the model. The card hides again when the printer is switched off.
+
+The M7 has no local API: on the home network it only answers a few ports that say it is there. So the container checks every 20 s that the printer answers on the network (every minute while it is off), and only while it does, reads the print from the Anycubic cloud, as the Anycubic web app does. Nothing is sent to the printer: it cannot start, pause or stop a print.
+
+Add these lines to your `.env`, then run `docker compose up -d` (list every option file you use, e.g. `docker-compose.yml:docker-compose.vpn.yml:docker-compose.kpiece.yml:docker-compose.printer.yml`):
+
+```text
+COMPOSE_FILE=docker-compose.yml:docker-compose.printer.yml
+ANYCUBIC_TOKEN=...
+```
+
+`ANYCUBIC_TOKEN` is the token of the Anycubic web app. To get it, sign in at [cloud-universe.anycubic.com](https://cloud-universe.anycubic.com/file), open the browser console (F12) and type `localStorage["XX-Token"]`, then copy the value without its quotes. It lasts about 90 days; when it has expired, the card says so: set the new one and run `docker compose up -d printer` again. Without a token the card only says that the printer is on.
+
+`PRINTER_HOST` is the printer's name or IP on the home network, `M7.lan` by default. With several printers on the account, `PRINTER_NAME` picks the one whose name or model contains it (the first M7 by default). `docker compose logs printer` shows when the printer goes on and off, and any cloud error.
 
 ## 📺 Living-room Screen
 

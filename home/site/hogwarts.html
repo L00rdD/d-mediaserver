@@ -273,6 +273,12 @@
     .st-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; font: 600 1.2rem var(--num); font-variant-numeric: lining-nums tabular-nums; }
     .st-row small { font: italic 500 0.95rem var(--serif); color: var(--muted); }
     .st-bar { display: block; height: 8px; margin-top: 8px; }
+    /* Anycubic printer card: shown while the printer is on (see printer.js) */
+    .pr-row { display: flex; gap: 16px; align-items: center; }
+    .pr-row .bot-stats { flex: 1; }
+    .pr-image { width: 76px; height: 76px; object-fit: contain; border-radius: 6px; }
+    .printer dd { overflow-wrap: anywhere; }
+    .printer .st-bar i { transition: width 1s; }
     .st-bar i.full { background: linear-gradient(90deg, #a3213a, var(--t-down)); box-shadow: 0 0 10px var(--t-down); }
     .st-scale { display: flex; justify-content: space-between; margin-top: 4px; font: 500 0.8rem var(--num); color: var(--muted); font-variant-numeric: lining-nums; }
     .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
@@ -459,6 +465,21 @@
           </dl>
           <span class="nfoot"><span data-kp="date"></span><span data-kp="pages"></span><span class="nmore">Read on KPIECE →</span></span>
         </a>
+        <a class="note t-panel printer" id="printer" href="https://cloud-universe.anycubic.com/" target="_blank" rel="noopener" hidden aria-label="Anycubic printer, open the Anycubic cloud">
+          <div class="nh">
+            <b>The Philosopher's vat</b><small><span data-pr="name">Anycubic</span> · <span data-pr="state"></span></small>
+          </div>
+          <div class="pr-row">
+            <img class="pr-image" data-pr="image" alt="" hidden>
+            <dl class="bot-stats t-stats">
+              <div><dt>File</dt><dd data-pr="file">–</dd></div>
+              <div><dt>Progress</dt><dd><span data-pr="pct">–</span> <small data-pr="layers"></small></dd></div>
+              <div><dt>Time left</dt><dd><span data-pr="left">–</span> <small data-pr="end"></small></dd></div>
+            </dl>
+          </div>
+          <span class="st-bar t-bar"><i data-pr="fill"></i></span>
+          <span class="nfoot"><span data-pr="note"></span><span class="nmore">Anycubic cloud →</span></span>
+        </a>
       </div>
       <span class="deeper" aria-hidden="true">Deeper into the case</span>
     </section>
@@ -591,6 +612,7 @@
         if (shown("storage")) l.push(`The case is ${text('[data-st="pct"]')} full; ${text('[data-st="free"]')} of room left inside.`);
         if (shown("trading-bot")) l.push(`The Niffler's hoard stands at ${text('[data-tb="pnl"]')} so far.`);
         if (shown("bifrost")) l.push(`The meadow: ${text('[data-bf="state"]')}.`);
+        if (shown("printer")) l.push(`The Philosopher’s vat: ${text('[data-pr="state"]')}, ${text('[data-pr="pct"]')} brewed.`);
         if (shown("kpiece")) l.push(`An owl is due: One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
         if (shown("sapling-sunrise")) l.push(`The Bowtruckle's tree: ${text('[data-ss="state"]')}.`);
         l.push("Write a title above and say Accio; it will come to you.", "Transmission's Swooping Evil only flies behind the VPN, as agreed.", "The Demiguise saw this coming. It always does.", "Say Revelio, or touch the title, and the case shows what it hides.");
@@ -668,6 +690,7 @@
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
   <script src="/cerebro.js" defer></script>
+  <script src="/printer.js" defer></script>
   <!-- the 3D vivarium; after magic.js, whose runes it uses -->
   <script type="module" src="/vivarium.js"></script>
 </body>
