@@ -15,28 +15,34 @@
     return;
   }
 
-  const positions = s.positions || {};
-  const prices = { ...(s.prices || {}) };
-  const symbols = [...new Set([...Object.keys(positions), ...(s.symbols || [])])];
-  try {
-    const ids = symbols.map((x) => x.replace("/", ""));
-    const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbols=" + encodeURIComponent(JSON.stringify(ids)));
-    if (r.ok) {
-      for (const t of await r.json()) {
-        const sym = symbols[ids.indexOf(t.symbol)];
-        if (sym) prices[sym] = parseFloat(t.price);
+  // Live prices from Binance, over the ones the bot saved
+  const livePrices = async (symbols) => {
+    const prices = { ...(s.prices || {}) };
+    try {
+      const ids = symbols.map((x) => x.replace("/", ""));
+      const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbols=" + encodeURIComponent(JSON.stringify(ids)));
+      if (r.ok) {
+        for (const t of await r.json()) {
+          const sym = symbols[ids.indexOf(t.symbol)];
+          if (sym) prices[sym] = parseFloat(t.price);
+        }
       }
-    }
-  } catch { /* keep the saved prices */ }
+    } catch { /* keep the saved prices */ }
+    return prices;
+  };
 
+  const positions = s.positions || {};
+  const prices = await livePrices([...new Set([...Object.keys(positions), ...(s.symbols || [])])]);
   const held = Object.entries(positions).filter(([, p]) => p.amount > 0);
-  const equity = s.cash + held.reduce((sum, [sym, p]) => sum + p.amount * (prices[sym] ?? p.avg_price), 0);
+  const priceOf = (sym, p) => prices[sym] ?? p.avg_price;
+  const equity = s.cash + held.reduce((sum, [sym, p]) => sum + p.amount * priceOf(sym, p), 0);
   const pnl = equity - s.initial_cash;
   const pct = (pnl / s.initial_cash) * 100;
-  const unrealized = held.reduce((sum, [sym, p]) => sum + p.amount * ((prices[sym] ?? p.avg_price) - p.avg_price), 0);
+  const unrealized = held.reduce((sum, [sym, p]) => sum + p.amount * (priceOf(sym, p) - p.avg_price), 0);
 
   const money = (v) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const signed = (v) => (v >= 0 ? "+" : "") + money(v);
+  const sign = (v) => (v >= 0 ? "+" : "");
+  const signed = (v) => sign(v) + money(v);
   const trend = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
   const ago = (iso) => {
     const min = Math.round((Date.now() - new Date(iso)) / 60000);
@@ -59,35 +65,45 @@
   };
 
   // Stale = no update for more than two candles: the bot is probably stopped.
-  const ageSec = (Date.now() - new Date(s.updated_at)) / 1000;
-  const stale = ageSec > 2 * (s.timeframe_sec || 86400) + 600;
-  set("mode", s.mode.toUpperCase());
-  set("state", stale ? "Stale" : "Running", stale ? "down" : "up");
-  set("equity", money(equity) + " USDT");
-  set("pnl", signed(pnl) + " USDT", trend(pnl));
-  set("pct", (pct >= 0 ? "+" : "") + pct.toFixed(2) + " %", trend(pnl));
-  set("positions", String(held.length));
-  set("unrealized", signed(unrealized), trend(unrealized));
-  set("realized", signed(s.realized_pnl || 0), trend(s.realized_pnl || 0));
-  set("trades", String(s.trades || 0));
-  set("fees", money(s.fees_paid || 0));
-  set("strategy", `${s.strategy} @ ${s.timeframe}`);
-  set("updated", "updated " + ago(s.updated_at) + (s.next_check_at ? ", next check " + until(s.next_check_at) : ""));
+  const stale = () => {
+    const ageSec = (Date.now() - new Date(s.updated_at)) / 1000;
+    return ageSec > 2 * (s.timeframe_sec || 86400) + 600;
+  };
+  const fill = () => {
+    const realized = s.realized_pnl || 0;
+    const old = stale();
+    set("mode", s.mode.toUpperCase());
+    set("state", old ? "Stale" : "Running", old ? "down" : "up");
+    set("equity", money(equity) + " USDT");
+    set("pnl", signed(pnl) + " USDT", trend(pnl));
+    set("pct", sign(pct) + pct.toFixed(2) + " %", trend(pnl));
+    set("positions", String(held.length));
+    set("unrealized", signed(unrealized), trend(unrealized));
+    set("realized", signed(realized), trend(realized));
+    set("trades", String(s.trades || 0));
+    set("fees", money(s.fees_paid || 0));
+    set("strategy", `${s.strategy} @ ${s.timeframe}`);
+    set("updated", "updated " + ago(s.updated_at) + (s.next_check_at ? ", next check " + until(s.next_check_at) : ""));
+  };
 
-  const list = card.querySelector('[data-tb="list"]');
-  if (list) {
+  const row = (sym, p) => {
+    const price = priceOf(sym, p);
+    const diff = ((price - p.avg_price) / p.avg_price) * 100;
+    const li = document.createElement("li");
+    li.innerHTML =
+      `<span>${sym}</span><span>${p.amount.toFixed(6)}</span>` +
+      `<span>${money(p.amount * price)} USDT</span>` +
+      `<span class="${trend(diff)}">${sign(diff) + diff.toFixed(2)} %</span>`;
+    return li;
+  };
+  const fillList = (list) => {
     list.textContent = "";
-    for (const [sym, p] of held) {
-      const price = prices[sym] ?? p.avg_price;
-      const diff = ((price - p.avg_price) / p.avg_price) * 100;
-      const row = document.createElement("li");
-      row.innerHTML =
-        `<span>${sym}</span><span>${p.amount.toFixed(6)}</span>` +
-        `<span>${money(p.amount * price)} USDT</span>` +
-        `<span class="${trend(diff)}">${(diff >= 0 ? "+" : "") + diff.toFixed(2)} %</span>`;
-      list.appendChild(row);
-    }
+    for (const [sym, p] of held) list.appendChild(row(sym, p));
     if (!held.length) list.innerHTML = "<li><span>In cash, waiting for a signal</span></li>";
-  }
+  };
+
+  fill();
+  const list = card.querySelector('[data-tb="list"]');
+  if (list) fillList(list);
   card.hidden = false;
 })();
