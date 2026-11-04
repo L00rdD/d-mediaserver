@@ -160,26 +160,32 @@ def imports(app, key, url):
         return []
     extra = "includeMovie=true" if app == "radarr" else "includeSeries=true&includeEpisode=true"
     recs = get(f"{url}/api/v3/history?pageSize=10&sortKey=date&sortDirection=descending&eventType=3&{extra}", {"X-Api-Key": key})["records"]
-    out = []
-    for r in recs:
-        media = r.get("movie") or r.get("series") or {}
-        poster = next((i.get("remoteUrl") for i in media.get("images", []) if i.get("coverType") == "poster"), None)
-        fanart = next((i.get("remoteUrl") for i in media.get("images", []) if i.get("coverType") == "fanart"), None)
-        e = r.get("episode") or {}
-        out.append({
-            "id": f"{app}-{r['id']}",
-            "media": "movie" if app == "radarr" else "episode",
-            "title": media.get("title"),
-            "year": media.get("year"),
-            "season": e.get("seasonNumber"),
-            "episode": e.get("episodeNumber"),
-            "episode_title": e.get("title"),
-            "quality": ((r.get("quality") or {}).get("quality") or {}).get("name"),
-            "poster": poster.replace("/original/", "/w342/") if poster else None,
-            "fanart": fanart.replace("/original/", "/w780/") if fanart else None,
-            "at": r.get("date"),
-        })
-    return out
+    return [history_entry(app, r) for r in recs]
+
+
+def artwork(media, kind, size):
+    """A picture of the film or series ("poster", "fanart"), at a smaller size; None when it has none."""
+    url = next((i.get("remoteUrl") for i in media.get("images", []) if i.get("coverType") == kind), None)
+    return url.replace("/original/", f"/{size}/") if url else None
+
+
+def history_entry(app, r):
+    """One import of Radarr's or Sonarr's history as the screens show it."""
+    media = r.get("movie") or r.get("series") or {}
+    e = r.get("episode") or {}
+    return {
+        "id": f"{app}-{r['id']}",
+        "media": "movie" if app == "radarr" else "episode",
+        "title": media.get("title"),
+        "year": media.get("year"),
+        "season": e.get("seasonNumber"),
+        "episode": e.get("episodeNumber"),
+        "episode_title": e.get("title"),
+        "quality": ((r.get("quality") or {}).get("quality") or {}).get("name"),
+        "poster": artwork(media, "poster", "w342"),
+        "fanart": artwork(media, "fanart", "w780"),
+        "at": r.get("date"),
+    }
 
 
 def draupnir():
@@ -241,10 +247,74 @@ def cerebro_snapshot():
 
 
 ORDER = {"waiting": 0, "busy": 1}
+# a session's folder, with the home folder shortened to ~
+HOME = re.compile(r"^/(Users|home)/[^/]+")
 # How the lead of a session stands, by status, as in Cerebro's panel; subagents always walk
 LEAD_STATE = {"busy": "walking", "idle": "asleep"}
 # Cerebro's pictures, through the home page (home/Caddyfile): the screens never need the key
 SPRITES = "/cerebro/"
+
+
+def cerebro_actor(a, c, lead, status):
+    """One actor of a scene: its character's sprite, way of moving and power; the lead
+    stands as its session does, the subagents walk."""
+    return {
+        "id": a.get("id"),
+        "name": c.get("name"),
+        "sprite": SPRITES + c["sprite"],
+        "move": c.get("move") or "walk",
+        "power": c.get("power") or "glow",
+        "color": c.get("powerColor") or c.get("aura") or "#FFFFFF",
+        "aura": c.get("aura"),
+        "state": LEAD_STATE.get(status, "alert") if lead else "walking",
+    }
+
+
+def cerebro_cast(actors, characters, status):
+    """The actors of a scene whose character Cerebro knows; the first is the session's lead."""
+    cast = []
+    for index, a in enumerate(actors):
+        c = characters.get(a.get("character"))
+        if c:
+            cast.append(cerebro_actor(a, c, index == 0, status))
+    return cast
+
+
+def cerebro_scene(room, cast):
+    """The room's sprite sheet and floor, and its actors; nothing without a room."""
+    return room and {
+        "room": {
+            "sprite": SPRITES + room["sprite"],
+            "frames": room.get("frames", 1),
+            "fps": room.get("fps", 8),
+            "walk": room.get("walkArea"),
+        },
+        "actors": cast,
+    }
+
+
+def local_time(ms):
+    """A time in milliseconds since the epoch, as local ISO text; None without one."""
+    return datetime.fromtimestamp(ms / 1000, timezone.utc).astimezone().isoformat(timespec="seconds") if ms else None
+
+
+def cerebro_session(s, rooms, characters):
+    """One Cerebro session as the screens show it, in its room (the first one when its own is unknown)."""
+    actors = s.get("actors") or []
+    room = rooms.get(s.get("room")) or next(iter(rooms.values()), None)
+    status = s.get("status")
+    lead = actors[0].get("character") if actors else None
+    return {
+        "id": s.get("id"),
+        "name": s.get("name"),
+        "project": HOME.sub("~", s.get("cwd") or "") or None,
+        "status": status,
+        "since": local_time(s.get("statusSince")),
+        "room": (room or {}).get("name") or s.get("room"),
+        "lead": (characters.get(lead) or {}).get("name") or lead,
+        "agents": max(len(actors) - 1, 0),
+        "scene": cerebro_scene(room, cerebro_cast(actors, characters, status)),
+    }
 
 
 def cerebro(snapshot, catalog):
@@ -252,48 +322,7 @@ def cerebro(snapshot, catalog):
     working; each with its scene, all Cerebro's panel needs to draw it: the room's sprite
     sheet and its floor, and every actor with its sprite, its way of moving and its power."""
     rooms, characters = catalog.get("rooms", {}), catalog.get("characters", {})
-    home = re.compile(r"^/(Users|home)/[^/]+")
-    sessions = []
-    for s in snapshot.get("scenes") or []:
-        actors = s.get("actors") or []
-        room = rooms.get(s.get("room")) or next(iter(rooms.values()), None)
-        status = s.get("status")
-        cast = []
-        for index, a in enumerate(actors):
-            c = characters.get(a.get("character"))
-            if not c:
-                continue
-            cast.append({
-                "id": a.get("id"),
-                "name": c.get("name"),
-                "sprite": SPRITES + c["sprite"],
-                "move": c.get("move") or "walk",
-                "power": c.get("power") or "glow",
-                "color": c.get("powerColor") or c.get("aura") or "#FFFFFF",
-                "aura": c.get("aura"),
-                "state": LEAD_STATE.get(status, "alert") if index == 0 else "walking",
-            })
-        lead = actors[0].get("character") if actors else None
-        since = s.get("statusSince")
-        sessions.append({
-            "id": s.get("id"),
-            "name": s.get("name"),
-            "project": home.sub("~", s.get("cwd") or "") or None,
-            "status": status,
-            "since": datetime.fromtimestamp(since / 1000, timezone.utc).astimezone().isoformat(timespec="seconds") if since else None,
-            "room": (room or {}).get("name") or s.get("room"),
-            "lead": (characters.get(lead) or {}).get("name") or lead,
-            "agents": max(len(actors) - 1, 0),
-            "scene": room and {
-                "room": {
-                    "sprite": SPRITES + room["sprite"],
-                    "frames": room.get("frames", 1),
-                    "fps": room.get("fps", 8),
-                    "walk": room.get("walkArea"),
-                },
-                "actors": cast,
-            },
-        })
+    sessions = [cerebro_session(s, rooms, characters) for s in snapshot.get("scenes") or []]
     sessions.sort(key=lambda s: (ORDER.get(s["status"], 2), s["name"] or ""))
     return {
         "sessions": sessions,
@@ -316,20 +345,12 @@ def printer(status, at):
     printer service); None while it is off, or when the service has not written for
     PRINTER_FRESH seconds: the home page's card hides then too. Without a cloud token
     the printer shows as on, with no print."""
-    if not status or not status.get("online"):
-        return None
-    try:
-        checked = datetime.fromisoformat(status["checked_at"])
-    except (KeyError, TypeError, ValueError):
-        return None
-    if (at - checked).total_seconds() > PRINTER_FRESH:
+    checked = printer_checked(status, at)
+    if checked is None:
         return None
     job = status.get("job") or {}
     layer, layers = as_int(job.get("layer")), as_int(job.get("layers"))
-    # the cloud's progress, else the share of layers done
-    progress = job.get("progress")
-    if progress is None and layers:
-        progress = 100 * (layer or 0) / layers
+    progress = print_progress(job, layer, layers)
     left = job.get("remaining_min") if job.get("active") else None
     return {
         "name": status.get("name") or "Anycubic",
@@ -348,6 +369,26 @@ def printer(status, at):
         "resin_ml": job.get("resin_ml"),
         "image": preview(job),
     }
+
+
+def printer_checked(status, at):
+    """When the printer service last saw the printer on; None when it is off, or when
+    that was more than PRINTER_FRESH seconds before `at`."""
+    if not status or not status.get("online"):
+        return None
+    try:
+        checked = datetime.fromisoformat(status["checked_at"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return None if (at - checked).total_seconds() > PRINTER_FRESH else checked
+
+
+def print_progress(job, layer, layers):
+    """The cloud's progress, else the share of layers done; None when neither is known."""
+    progress = job.get("progress")
+    if progress is None and layers:
+        progress = 100 * (layer or 0) / layers
+    return progress
 
 
 def preview(job):
