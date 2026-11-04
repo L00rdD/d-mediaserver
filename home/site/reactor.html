@@ -566,7 +566,14 @@
     .printer { grid-area: pr; animation-delay: 0.9s; }
     .pr-row { display: flex; gap: 18px; align-items: center; }
     .pr-row .bot-stats { flex: 1; }
-    .pr-image { width: 84px; height: 84px; object-fit: contain; border: 1px solid var(--cyan-faint); }
+    .pr-view { flex: none; width: 300px; height: 220px; cursor: grab; }
+    .pr-view:active { cursor: grabbing; }
+    @media (max-width: 640px) { .pr-row { flex-wrap: wrap; } .pr-view { width: 100%; } .pr-picture { display: none; } }
+    /* the slicer's picture, dimmed from the top where the part is still to print */
+    .pr-picture { position: relative; flex: none; width: 150px; margin: 0; overflow: hidden; border-radius: 3px; }
+    .pr-picture img { display: block; width: 100%; }
+    .pr-picture img[hidden] + i { display: none; }
+    .pr-picture i { position: absolute; left: 0; right: 0; top: 0; height: 100%; background: rgba(5, 8, 14, 0.2); backdrop-filter: grayscale(1) brightness(0.45); border-bottom: 2px solid var(--t-accent); transition: height 1s; }
     .printer dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
     .printer .st-bar i { transition: width 1s; }
     /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
@@ -817,18 +824,19 @@
       <div class="cb-cards" data-cb="list"></div>
       <span class="tag bot-foot"><span data-cb="counts"></span><span class="bot-more">X-Mansion :4243 →</span></span>
     </a>
-    <a class="panel bot printer" id="printer" href="https://cloud-universe.anycubic.com/" target="_blank" rel="noopener" hidden aria-label="Anycubic printer, open the Anycubic cloud">
+    <a class="panel bot printer" id="printer" href="/printer.html" data-accent="#6fe3ff" hidden aria-label="Anycubic printer, open the full view">
       <span class="tag"><i>11</i> // <span data-pr="name">Anycubic</span> <span data-pr="state"></span></span>
       <div class="pr-row">
-        <img class="pr-image" data-pr="image" alt="" hidden>
+        <canvas class="pr-view" data-pr="view" hidden aria-label="The printer in 3D: drag to turn it"></canvas>
         <dl class="bot-stats">
           <div><dt>File</dt><dd data-pr="file">–</dd></div>
           <div><dt>Progress</dt><dd><span data-pr="pct">–</span> <small data-pr="layers"></small></dd></div>
           <div><dt>Time left</dt><dd><span data-pr="left">–</span> <small data-pr="end"></small></dd></div>
         </dl>
+        <figure class="pr-picture"><img data-pr="image" alt="The part as sliced" hidden><i data-pr="ghost"></i></figure>
       </div>
       <span class="st-bar"><i data-pr="fill"></i></span>
-      <span class="tag bot-foot"><span data-pr="note"></span><span class="bot-more">Anycubic cloud →</span></span>
+      <span class="tag bot-foot"><span data-pr="note"></span><span data-pr="resin"></span><span class="bot-more">Full view →</span></span>
     </a>
   </main>
 

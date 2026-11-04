@@ -1,11 +1,15 @@
-// Fills the Anycubic printer card. /printer.json comes from the optional printer
-// service (through Caddy), read again every 20 s: the card shows while the printer
-// is on the network, with the print going on (file, progress, layers, time left,
-// preview), and hides again when the printer is switched off, when the service is
-// off (404) or when it has not written for 3 minutes.
+// Fills the Anycubic printer card, and the full view of printer.html (same fields,
+// marked data-page). /printer.json comes from the optional printer service (through
+// Caddy), read again every 20 s: the card shows while the printer is on the
+// network, with the print going on (file, progress, layers, time left, resin), the
+// printer in 3D (printer-scene.js, loaded once the card shows) and the slicer's
+// picture of the part, dimmed where it is still to print. It hides again when the printer is switched off,
+// when the service is off (404) or when it has not written for 3 minutes; the full
+// view stays and says the printer is off.
 (() => {
   const card = document.getElementById("printer");
   if (!card) return;
+  const page = "page" in card.dataset;
 
   const STATES = {
     printing: "Printing", done: "Done", cancelled: "Cancelled", downloading: "Receiving the file",
@@ -42,17 +46,40 @@
     set("pct", pct == null ? "–" : `${Math.round(pct)}%`);
     set("layers", job.layers ? `layer ${job.layer ?? "?"} / ${job.layers}` : "");
     card.querySelector('[data-pr="fill"]').style.width = `${pct ?? 0}%`;
+    card.querySelector('[data-pr="ghost"]').style.height = `${100 - (pct ?? 0)}%`;
   };
   const paintTime = (job) => {
     const left = job.active ? job.remaining_min : null;
     set("left", left == null ? "–" : duration(left));
     set("end", left == null ? "" : `done at ${clock(new Date(Date.now() + left * 60e3))}`);
   };
+  // the slicer's picture, the part still to print dimmed from the top: once the 3D
+  // view has loaded it, without its background and cropped to the part
+  let cropped = { for: null, url: null };
+  const pictureOf = (job) => (job.preview && cropped.for === job.preview ? cropped.url : job.preview || job.image);
   const paintImage = (job) => {
     const img = card.querySelector('[data-pr="image"]');
-    img.hidden = !job.image;
-    if (job.image && img.src !== job.image) img.src = job.image;
+    const src = pictureOf(job);
+    img.hidden = !src;
+    if (src && !img.src.endsWith(src)) img.src = src;
   };
+  const onPicture = (from, url) => {
+    cropped = { for: from, url };
+    card.querySelector('[data-pr="image"]').src = url;
+  };
+
+  // The 3D view, loaded the first time the card shows. A drag on it turns the
+  // printer and must not open the card's link
+  let scene = null, loading = null;
+  const view = card.querySelector('[data-pr="view"]');
+  const mount = () => {
+    loading = import("/printer-scene.js")
+      .then((m) => m.mountPrinter(view, { accent: card.dataset.accent, distance: page ? 980 : 560, onPicture }))
+      .then((s) => { scene = s; view.hidden = false; })
+      .catch(() => {});
+    return loading;
+  };
+  card.addEventListener("click", (e) => scene && scene.dragged() && e.preventDefault());
 
   // "Printing" while a job runs, else "Ready", with how the last print ended
   const stateOf = (job) => {
@@ -70,13 +97,19 @@
     paintProgress(job);
     paintTime(job);
     paintImage(job);
+    set("resin", job.resin_ml ? `${Math.round(job.resin_ml)} ml of resin` : "");
     set("note", noteOf(p, job));
   };
 
   const refresh = async () => {
     const p = await read();
-    card.hidden = !shown(p);
-    if (!card.hidden) paint(p);
+    const on = shown(p);
+    card.hidden = !on && !page;
+    card.classList.toggle("off", !on);
+    if (!on) return set("state", "Switched off");
+    if (view && !loading && window.WebGLRenderingContext) await mount();
+    paint(p);
+    if (scene) scene.update(p);
   };
   refresh();
   setInterval(refresh, 20000);

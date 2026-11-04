@@ -21,7 +21,8 @@ PROJECT = {
     "remain_time": "95",
     "start_time": 1793700000,
     "img": "https://cdn.example/riser.png",
-    "settings": json.dumps({"progress": 37, "curr_layer": 740, "total_layers": 2000}),
+    "settings": json.dumps({"progress": 37, "curr_layer": 740, "total_layers": 2000,
+                            "model_hight": 148.9, "z_thick": 0.05, "supplies_usage": 99.5}),
 }
 
 
@@ -95,6 +96,7 @@ class Job(unittest.TestCase):
         self.assertEqual(job["remaining_min"], 95)
         self.assertEqual(job["started_at"], "2026-11-03T10:00:00+00:00")
         self.assertEqual(job["name"], "04_riser")
+        self.assertEqual((job["height_mm"], job["layer_mm"], job["resin_ml"]), (148.9, 0.05, 99.5))
 
     def test_finished_job_reads_device_message(self):
         job = watch.job_of({"print_status": 2, "device_message": {"filename": "lid", "progress": 100}})
@@ -147,7 +149,7 @@ class CloudPart(unittest.TestCase):
         with mock.patch.object(watch, "find_printer", return_value=(42, "M7")) as find, \
                 mock.patch.object(watch, "latest_job", return_value={"name": "a"}):
             part, printer = watch.cloud_part("tok", None)
-            self.assertEqual(part, {"cloud": "ok", "name": "M7", "job": {"name": "a"}})
+            self.assertEqual(part, {"cloud": "ok", "name": "M7", "job": {"name": "a", "preview": None}})
             watch.cloud_part("tok", printer)
             find.assert_called_once()
 
@@ -162,6 +164,37 @@ class CloudPart(unittest.TestCase):
     def test_cloud_down_keeps_the_printer(self):
         with mock.patch.object(watch, "latest_job", side_effect=OSError("down")), mock.patch("builtins.print"):
             self.assertEqual(watch.cloud_part("tok", (42, "M7")), ({"cloud": "unreachable", "job": None}, (42, "M7")))
+
+
+class Preview(unittest.TestCase):
+    JOB = {"image": "https://s3.example/cloud/2026/11-04/jpg/abc123.jpg?X-Amz-Signature=1"}
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        for patcher in (mock.patch.object(watch, "STATUS", self.dir), mock.patch("builtins.print")):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_downloaded_once_per_picture(self):
+        seen = {}
+        answer = mock.MagicMock()
+        answer.__enter__.return_value = io.BytesIO(b"jpeg")
+        with mock.patch("urllib.request.urlopen", return_value=answer) as get:
+            self.assertEqual(watch.fetch_preview(self.JOB, seen), "/printer.jpg?abc123")
+            self.assertEqual(watch.fetch_preview(self.JOB, seen), "/printer.jpg?abc123")
+            get.assert_called_once()
+        with open(os.path.join(self.dir, "printer.jpg"), "rb") as f:
+            self.assertEqual(f.read(), b"jpeg")
+
+    def test_failed_download_tried_again(self):
+        seen = {}
+        with mock.patch("urllib.request.urlopen", side_effect=OSError("down")):
+            self.assertIsNone(watch.fetch_preview(self.JOB, seen))
+        self.assertEqual(seen, {})
+
+    def test_no_picture(self):
+        self.assertIsNone(watch.fetch_preview(None))
+        self.assertIsNone(watch.fetch_preview({"image": None}))
 
 
 class Round(unittest.TestCase):

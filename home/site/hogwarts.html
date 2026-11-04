@@ -276,7 +276,14 @@
     /* Anycubic printer card: shown while the printer is on (see printer.js) */
     .pr-row { display: flex; gap: 16px; align-items: center; }
     .pr-row .bot-stats { flex: 1; }
-    .pr-image { width: 76px; height: 76px; object-fit: contain; border-radius: 6px; }
+    .pr-view { flex: none; width: 300px; height: 220px; cursor: grab; }
+    .pr-view:active { cursor: grabbing; }
+    @media (max-width: 640px) { .pr-row { flex-wrap: wrap; } .pr-view { width: 100%; } .pr-picture { display: none; } }
+    /* the slicer's picture, dimmed from the top where the part is still to print */
+    .pr-picture { position: relative; flex: none; width: 150px; margin: 0; overflow: hidden; border-radius: 3px; }
+    .pr-picture img { display: block; width: 100%; }
+    .pr-picture img[hidden] + i { display: none; }
+    .pr-picture i { position: absolute; left: 0; right: 0; top: 0; height: 100%; background: rgba(5, 8, 14, 0.2); backdrop-filter: grayscale(1) brightness(0.45); border-bottom: 2px solid var(--t-accent); transition: height 1s; }
     .printer dd { overflow-wrap: anywhere; }
     .printer .st-bar i { transition: width 1s; }
     .st-bar i.full { background: linear-gradient(90deg, #a3213a, var(--t-down)); box-shadow: 0 0 10px var(--t-down); }
@@ -465,20 +472,21 @@
           </dl>
           <span class="nfoot"><span data-kp="date"></span><span data-kp="pages"></span><span class="nmore">Read on KPIECE →</span></span>
         </a>
-        <a class="note t-panel printer" id="printer" href="https://cloud-universe.anycubic.com/" target="_blank" rel="noopener" hidden aria-label="Anycubic printer, open the Anycubic cloud">
+        <a class="note t-panel printer" id="printer" href="/printer.html" data-accent="#e5c172" hidden aria-label="Anycubic printer, open the full view">
           <div class="nh">
             <b>The Philosopher's vat</b><small><span data-pr="name">Anycubic</span> · <span data-pr="state"></span></small>
           </div>
           <div class="pr-row">
-            <img class="pr-image" data-pr="image" alt="" hidden>
+            <canvas class="pr-view" data-pr="view" hidden aria-label="The printer in 3D: drag to turn it"></canvas>
             <dl class="bot-stats t-stats">
               <div><dt>File</dt><dd data-pr="file">–</dd></div>
               <div><dt>Progress</dt><dd><span data-pr="pct">–</span> <small data-pr="layers"></small></dd></div>
               <div><dt>Time left</dt><dd><span data-pr="left">–</span> <small data-pr="end"></small></dd></div>
             </dl>
+            <figure class="pr-picture"><img data-pr="image" alt="The part as sliced" hidden><i data-pr="ghost"></i></figure>
           </div>
           <span class="st-bar t-bar"><i data-pr="fill"></i></span>
-          <span class="nfoot"><span data-pr="note"></span><span class="nmore">Anycubic cloud →</span></span>
+          <span class="nfoot"><span data-pr="note"></span><span data-pr="resin"></span><span class="nmore">Full view →</span></span>
         </a>
       </div>
       <span class="deeper" aria-hidden="true">Deeper into the case</span>

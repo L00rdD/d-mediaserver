@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ or (.Cookie "style") "reactor" }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Printer</title>
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/theme/theme.css">
+  <script src="/theme/theme.js"></script>
+  <link rel="modulepreload" href="/vendor/three-r186.min.js">
+  <!-- The printer card's full view (see printer.js and printer-scene.js): the printer in
+       3D to turn and zoom, the figures of the print, and the slicer's picture filling up -->
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; flex-direction: column; }
+    main {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 20px;
+      padding: 16px 20px 20px;
+    }
+    .pr-view { width: 100%; height: 100%; min-height: 360px; cursor: grab; display: block; }
+    .pr-view:active { cursor: grabbing; }
+    .pr-hint { position: absolute; left: 14px; bottom: 10px; margin: 0; opacity: 0.6; }
+    .stage { position: relative; min-height: 0; }
+    aside { display: flex; flex-direction: column; gap: 16px; overflow: auto; }
+    aside .t-panel { padding: 16px 18px; }
+    .t-title { margin: 0; font-size: 1.5rem; }
+    .state { margin: 6px 0 0; }
+    .t-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin: 14px 0 0; }
+    .t-stats dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+    .t-stats .wide { grid-column: 1 / -1; }
+    .t-bar { display: block; height: 10px; margin-top: 14px; }
+    .t-bar i { transition: width 1s; }
+    .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin-top: 12px; }
+    /* the slicer's picture: what is left to print is dimmed, from the top */
+    .picture { margin: 0; }
+    .pic { position: relative; display: block; overflow: hidden; border-radius: 4px; }
+    .pic img { display: block; width: 100%; max-height: 46vh; object-fit: contain; }
+    .pic i { position: absolute; left: 0; right: 0; top: 0; height: 100%; background: rgba(5, 8, 14, 0.2); backdrop-filter: grayscale(1) brightness(0.45); transition: height 1s; border-bottom: 2px solid var(--t-accent); }
+    .pic img[hidden] + i { display: none; }
+    #printer.off .stage, #printer.off .picture { opacity: 0.35; }
+    @media (max-width: 860px) {
+      main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 55vh auto; }
+    }
+  </style>
+</head>
+<body class="t-app" data-t-name="Printer" data-t-calm>
+  <main id="printer" data-page>
+    <div class="stage">
+      <canvas class="pr-view" data-pr="view" hidden aria-label="The printer in 3D: drag to turn it, scroll or pinch to zoom"></canvas>
+      <p class="pr-hint t-label">Drag to turn · scroll or pinch to zoom</p>
+    </div>
+    <aside>
+      <section class="t-panel t-main">
+        <h1 class="t-title" data-pr="name">Anycubic</h1>
+        <p class="state t-label" data-pr="state">–</p>
+        <dl class="t-stats">
+          <div class="wide"><dt>File</dt><dd data-pr="file">–</dd></div>
+          <div><dt>Progress</dt><dd><span data-pr="pct">–</span> <small data-pr="layers"></small></dd></div>
+          <div><dt>Time left</dt><dd><span data-pr="left">–</span> <small data-pr="end"></small></dd></div>
+        </dl>
+        <span class="t-bar"><i data-pr="fill"></i></span>
+        <div class="foot t-label"><span data-pr="note"></span><span data-pr="resin"></span></div>
+      </section>
+      <figure class="picture t-panel">
+        <span class="pic"><img data-pr="image" alt="The part as sliced" hidden><i data-pr="ghost"></i></span>
+      </figure>
+      <a class="t-btn" href="https://cloud-universe.anycubic.com/" target="_blank" rel="noopener">Anycubic cloud →</a>
+    </aside>
+  </main>
+  <script>
+    // the 3D view takes the colour of the look
+    document.getElementById("printer").dataset.accent =
+      { reactor: "#6fe3ff", cyberpunk: "#5ef6ff", hogwarts: "#e5c172" }[document.documentElement.dataset.theme] || "#6fe3ff";
+  </script>
+  <script src="/printer.js" defer></script>
+</body>
+</html>

@@ -13,7 +13,8 @@ in two steps:
   has expired (about 90 days), the card still shows that the printer is on.
 
 It writes /status/printer.json every PRINTER_INTERVAL seconds (20 s), or every
-minute while the printer is off. Read only: nothing here can start, pause or stop
+minute while the printer is off, and /status/printer.jpg, the slicer's picture of
+the job. Read only: nothing here can start, pause or stop
 a print.
 
 Standard library only: runs on the stock python:3-alpine image.
@@ -47,6 +48,8 @@ APP_ID = "f9b3528877c94d5c9c5af32245db46ef"
 APP_SECRET = "0cf75926606049a3937f56b0373b99fb"
 APP_VERSION = "1.0.0"
 # print_status of a job, as the cloud gives it
+# the slicer picture last copied to printer.jpg
+PREVIEW = {"key": None}
 STATES = {1: "printing", 2: "done", 3: "cancelled", 4: "downloading",
           5: "checking", 6: "preheating", 7: "slicing", 9: "levelling"}
 
@@ -141,7 +144,29 @@ def job_of(project):
         "remaining_min": number(project.get("remain_time")),
         "started_at": datetime.fromtimestamp(started, timezone.utc).isoformat(timespec="seconds") if started else None,
         "image": project.get("img") or project.get("image_id") or None,
+        "height_mm": number(live.get("model_hight")),
+        "layer_mm": number(live.get("z_thick")),
+        "resin_ml": number(live.get("supplies_usage")),
     }
+
+
+def fetch_preview(job, seen=PREVIEW):
+    """Copies the slicer's picture of the job next to printer.json and gives its
+    link on the home page. The cloud's link expires after 4 h, and the card's 3D
+    view can only draw a picture served by the home page itself. Downloaded once
+    per job (the picture's name is in its link)."""
+    if not job or not job.get("image"):
+        return None
+    key = job["image"].split("?")[0].rsplit("/", 1)[-1].split(".")[0]
+    if seen.get("key") != key:
+        try:
+            with urllib.request.urlopen(job["image"], timeout=30) as r:
+                write_bytes("printer.jpg", r.read())
+        except OSError as e:
+            log(f"preview download failed: {e!r}")
+            return None
+        seen["key"] = key
+    return f"/printer.jpg?{key}"
 
 
 def latest_job(token, printer_id):
@@ -173,7 +198,10 @@ def cloud_part(token, printer):
         printer = printer or find_printer(token, os.environ.get("PRINTER_NAME", ""))
         if not printer:
             return {"cloud": "no printer on the account", "job": None}, None
-        return {"cloud": "ok", "name": printer[1], "job": latest_job(token, printer[0])}, printer
+        job = latest_job(token, printer[0])
+        if job:
+            job["preview"] = fetch_preview(job)
+        return {"cloud": "ok", "name": printer[1], "job": job}, printer
     except TokenRejected as e:
         log(f"Anycubic token rejected: {e}")
         return {"cloud": "token rejected", "job": None}, None
@@ -183,9 +211,13 @@ def cloud_part(token, printer):
 
 
 def write(name, text):
+    write_bytes(name, text.encode())
+
+
+def write_bytes(name, data):
     path = os.path.join(STATUS, name)
-    with open(path + ".tmp", "w") as f:
-        f.write(text)
+    with open(path + ".tmp", "wb") as f:
+        f.write(data)
     os.replace(path + ".tmp", path)
 
 

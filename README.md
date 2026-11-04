@@ -437,7 +437,9 @@ KPIECE_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 ## 🖨️ Resin Printer (optional)
 
-A small `printer` container follows an Anycubic resin printer (made for the Photon Mono M7). While the printer is on, the home page shows a card with the print going on: the file, the progress and the layer, the time left and when it will be done, and the preview of the model. The card hides again when the printer is switched off.
+A small `printer` container follows an Anycubic resin printer (made for the Photon Mono M7). While the printer is on, the home page shows a card with the print going on: the file, the progress and the layer, the time left and when it will be done, the resin used, and the slicer's picture of the part, dimmed where it is still to print. Next to it the printer turns in 3D, its build plate at the height of the layer being printed and the part coming out of the resin under it; drag it to turn it. The card opens a full view (`/printer.html`) to turn and zoom it. The card hides again when the printer is switched off.
+
+The 3D printer is drawn to scale, but the part in it is the slicer's picture, not its real shape: the cloud does not give the sliced file of a print sent from Photon Workshop.
 
 The M7 has no local API: on the home network it only answers a few ports that say it is there. So the container checks every 20 s that the printer answers on the network (every minute while it is off), and only while it does, reads the print from the Anycubic cloud, as the Anycubic web app does. Nothing is sent to the printer: it cannot start, pause or stop a print.
 
