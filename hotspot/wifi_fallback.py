@@ -214,6 +214,115 @@ def try_rejoin(profile):
     return None
 
 
+class Fallback:
+    """What the loop remembers from one check to the next, and one check."""
+
+    def __init__(self, ssid, fixed, address, webhook, host):
+        self.ssid, self.fixed, self.address = ssid, fixed, address
+        self.webhook, self.host = webhook, host
+        self.hotspot_since = None
+        self.broken_since = None
+        self.last_scan = self.last_blind = 0
+        self.pending_message = None
+
+    def check(self, now):
+        """One round. False when the next one should come at once (no sleep)."""
+        if self.hotspot_since is None:
+            self.on_home_network(now)
+            return True
+        back = self.on_hotspot(now)
+        if back:
+            self.came_back(back)
+            return False
+        return True
+
+    # -- on the home network (or trying to be) --
+
+    def on_home_network(self, now):
+        link = home_link()
+        if link:
+            self.home_works(link)
+        elif active_connection() == HOTSPOT:
+            # opened by hand, or the service restarted: take it over
+            log("hotspot already up")
+            self.hotspot_since = self.broken_since or now
+            self.last_scan = self.last_blind = now
+        else:
+            self.home_broken(now)
+
+    def home_works(self, link):
+        self.broken_since = None
+        current = home_address(link)
+        if not self.fixed and current and current != self.address:
+            log(f"address at home is now {current} ({link}), the hotspot will use it")
+            self.address = current
+            ADDRESS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            ADDRESS_FILE.write_text(self.address + "\n")
+            set_hotspot_address(self.address)
+        if self.pending_message and self.webhook:
+            try:
+                post(self.webhook, self.pending_message)
+                self.pending_message = None
+            except Exception as e:
+                log(f"Discord post failed: {e}")
+
+    def home_broken(self, now):
+        self.broken_since = self.broken_since or now
+        if now - self.broken_since >= GRACE:
+            log(f"home network down for {int(now - self.broken_since)} s, opening hotspot {self.ssid}")
+            if start_hotspot():
+                self.hotspot_since = self.broken_since
+                self.last_scan = self.last_blind = now
+            else:
+                self.broken_since = now  # try again after another GRACE
+
+    # -- on the hotspot --
+
+    def on_hotspot(self, now):
+        """The interface the home network works on again, or None."""
+        if link_works(WIRED):
+            log("the cable works again, closing the hotspot")
+            run("nmcli", "connection", "down", HOTSPOT)
+            return WIRED
+        if active_connection() != HOTSPOT:
+            back = home_link()
+            if not back:
+                log("hotspot went down on its own, restarting it")
+                start_hotspot()
+            return back
+        if now - self.last_scan >= SCAN_EVERY:
+            return self.look_for_home(now)
+        return None
+
+    def look_for_home(self, now):
+        self.last_scan = now
+        known = known_wifis()
+        seen = scan()
+        target = next((known[s] for s in known if s in (seen or ())), None)
+        due = target is not None or now - self.last_blind >= BLIND_EVERY
+        if not due:
+            return None
+        self.last_blind = now
+        log(f"trying to rejoin {target or 'any known wifi'}")
+        back = try_rejoin(target)
+        if not back:
+            log("rejoin failed, reopening the hotspot")
+            if not start_hotspot():
+                # back to the wifi branch: GRACE, then try again
+                self.hotspot_since, self.broken_since = None, time.time()
+        return back
+
+    def came_back(self, back):
+        minutes = int((time.time() - self.hotspot_since) / 60)
+        via = active_connection(back) or back
+        log(f"back on {via}, hotspot closed after {minutes} min")
+        self.pending_message = (
+            f"📶 **{self.host}**: lost the home network, ran its own hotspot `{self.ssid}` "
+            f"for {minutes} min, now back on `{via}`."
+        )
+        self.hotspot_since = self.broken_since = None
+
+
 def main():
     env = read_env()
     ssid = ensure_hotspot_profile(env)
@@ -223,85 +332,13 @@ def main():
     webhook = env.get("WATCHDOG_WEBHOOK_URL") or env.get("AUTOHEAL_WEBHOOK_URL")
     host = socket.gethostname()
 
-    hotspot_since = time.time() if active_connection() == HOTSPOT else None
-    broken_since = None
-    last_scan = last_blind = 0
-    pending_message = None
-    log(f"started, {'hotspot up' if hotspot_since else 'on the home network'}, hotspot address {address}")
+    state = Fallback(ssid, fixed, address, webhook, host)
+    state.hotspot_since = time.time() if active_connection() == HOTSPOT else None
+    log(f"started, {'hotspot up' if state.hotspot_since else 'on the home network'}, hotspot address {address}")
 
     while True:
-        now = time.time()
-
-        if hotspot_since is None:
-            link = home_link()
-            if link:
-                broken_since = None
-                current = home_address(link)
-                if not fixed and current and current != address:
-                    log(f"address at home is now {current} ({link}), the hotspot will use it")
-                    address = current
-                    ADDRESS_FILE.parent.mkdir(parents=True, exist_ok=True)
-                    ADDRESS_FILE.write_text(address + "\n")
-                    set_hotspot_address(address)
-                if pending_message and webhook:
-                    try:
-                        post(webhook, pending_message)
-                        pending_message = None
-                    except Exception as e:
-                        log(f"Discord post failed: {e}")
-            elif active_connection() == HOTSPOT:
-                # opened by hand, or the service restarted: take it over
-                log("hotspot already up")
-                hotspot_since = broken_since or now
-                last_scan = last_blind = now
-            else:
-                broken_since = broken_since or now
-                if now - broken_since >= GRACE:
-                    log(f"home network down for {int(now - broken_since)} s, opening hotspot {ssid}")
-                    if start_hotspot():
-                        hotspot_since = broken_since
-                        last_scan = last_blind = now
-                    else:
-                        broken_since = now  # try again after another GRACE
-
-        else:
-            back = None
-            if link_works(WIRED):
-                log("the cable works again, closing the hotspot")
-                run("nmcli", "connection", "down", HOTSPOT)
-                back = WIRED
-            elif active_connection() != HOTSPOT:
-                back = home_link()
-                if not back:
-                    log("hotspot went down on its own, restarting it")
-                    start_hotspot()
-            elif now - last_scan >= SCAN_EVERY:
-                last_scan = now
-                known = known_wifis()
-                seen = scan()
-                target = next((known[s] for s in known if s in (seen or ())), None)
-                due = target is not None or now - last_blind >= BLIND_EVERY
-                if due:
-                    last_blind = now
-                    log(f"trying to rejoin {target or 'any known wifi'}")
-                    back = try_rejoin(target)
-                    if not back:
-                        log("rejoin failed, reopening the hotspot")
-                        if not start_hotspot():
-                            # back to the wifi branch: GRACE, then try again
-                            hotspot_since, broken_since = None, time.time()
-            if back:
-                minutes = int((time.time() - hotspot_since) / 60)
-                via = active_connection(back) or back
-                log(f"back on {via}, hotspot closed after {minutes} min")
-                pending_message = (
-                    f"📶 **{host}**: lost the home network, ran its own hotspot `{ssid}` "
-                    f"for {minutes} min, now back on `{via}`."
-                )
-                hotspot_since = broken_since = None
-                continue
-
-        time.sleep(TICK)
+        if state.check(time.time()):
+            time.sleep(TICK)
 
 
 if __name__ == "__main__":
