@@ -2,18 +2,13 @@
 // fake canvas: node --test home/tests/
 const test = require("node:test");
 const assert = require("node:assert");
-const fs = require("node:fs");
 const path = require("node:path");
-const vm = require("node:vm");
+const { pathToFileURL } = require("node:url");
 
 const SCRIPT = path.join(__dirname, "../site/cerebro-scene.js");
 
-// The bundle is a classic script that sets the global CerebroScene
-function load() {
-  delete globalThis.CerebroScene;
-  vm.runInThisContext(fs.readFileSync(SCRIPT, "utf8"), { filename: SCRIPT });
-  return globalThis.CerebroScene;
-}
+// The bundle is an ES module, loaded once for every test
+const load = () => import(pathToFileURL(SCRIPT).href);
 
 // A 2D context that records every call and every style set on it
 function canvas() {
@@ -38,8 +33,8 @@ const ROOM = { image: "room.png", frames: 4, fps: 2, walkArea: { x: 20, y: 90, w
 const STATES = ["walking", "asleep", "alert", "walking"];
 const actors = () => POWERS.map((power, i) => ({ id: "agent-" + i, character: power, state: STATES[i % STATES.length] }));
 
-test("draws the room's current frame, then every known character, back to front", () => {
-  const { drawScene } = load();
+test("draws the room's current frame, then every known character, back to front", async () => {
+  const { drawScene } = await load();
   const ctx = canvas();
   drawScene(ctx, catalog(), ROOM, [...actors(), { id: "ghost", character: "nobody", state: "walking" }], 1.6);
   assert.equal(ctx.imageSmoothingEnabled, false);
@@ -51,8 +46,8 @@ test("draws the room's current frame, then every known character, back to front"
   assert.ok(!sprites.some((c) => c[1] === "nobody.png"));
 });
 
-test("a still room has a single frame; the sleeping and the alert get their emote", () => {
-  const { drawScene } = load();
+test("a still room has a single frame; the sleeping and the alert get their emote", async () => {
+  const { drawScene } = await load();
   const ctx = canvas();
   const one = [{ id: "a", character: "glow", state: "asleep" }, { id: "b", character: "glow", state: "alert" }];
   drawScene(ctx, catalog(), { ...ROOM, frames: 1 }, one, 0.1); // the ! blinks: on at 0.1 s
@@ -61,8 +56,8 @@ test("a still room has a single frame; the sleeping and the alert get their emot
   assert.deepEqual(emotes.sort(), [0, 9]); // the Zz and the !
 });
 
-test("the same instant always gives the same picture", () => {
-  const { drawScene } = load();
+test("the same instant always gives the same picture", async () => {
+  const { drawScene } = await load();
   const a = canvas(), b = canvas();
   drawScene(a, catalog(), ROOM, actors(), 123.4);
   drawScene(b, catalog(), ROOM, actors(), 123.4);
@@ -70,8 +65,8 @@ test("the same instant always gives the same picture", () => {
 });
 
 // Over a few minutes every movement walks, pauses, uses its power, flies, fades and dashes
-test("every movement and every power, all along the walk", () => {
-  const { drawScene } = load();
+test("every movement and every power, all along the walk", async () => {
+  const { drawScene } = await load();
   const seen = new Set();
   for (const move of MOVES) {
     const cat = catalog({ move });
@@ -85,8 +80,8 @@ test("every movement and every power, all along the walk", () => {
   for (const call of ["drawImage", "fillRect", "save", "restore", "translate", "scale", "=globalAlpha"]) assert.ok(seen.has(call), call);
 });
 
-test("sprites face left by mirroring the side row", () => {
-  const { drawScene } = load();
+test("sprites face left by mirroring the side row", async () => {
+  const { drawScene } = await load();
   let mirrored = 0;
   for (let s = 0; s < 120; s += 0.25) {
     const ctx = canvas();
@@ -96,8 +91,8 @@ test("sprites face left by mirroring the side row", () => {
   assert.ok(mirrored > 0);
 });
 
-test("the ticker draws once at once, then at 10 fps while animating", () => {
-  const { onFrame, setAnimating } = load();
+test("the ticker draws once at once, then at 10 fps while animating", async () => {
+  const { onFrame, setAnimating } = await load();
   const frames = [];
   globalThis.requestAnimationFrame = (fn) => (frames.push(fn), frames.length);
   globalThis.cancelAnimationFrame = () => frames.splice(0);
@@ -121,8 +116,8 @@ test("the ticker draws once at once, then at 10 fps while animating", () => {
   setAnimating(false);
 });
 
-test("durations and status labels", () => {
-  const { humanizeDuration, STATUS_LABELS, CHARACTER_SCALE } = load();
+test("durations and status labels", async () => {
+  const { humanizeDuration, STATUS_LABELS, CHARACTER_SCALE } = await load();
   assert.equal(humanizeDuration(-5), "0s");
   assert.equal(humanizeDuration(42e3), "42s");
   assert.equal(humanizeDuration(5 * 60e3), "5min");

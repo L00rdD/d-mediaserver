@@ -8,14 +8,8 @@
 (async () => {
   const card = document.getElementById("cerebro");
   if (!card) return;
-  const scene = await new Promise((resolve) => {
-    if (window.CerebroScene) return resolve(window.CerebroScene);
-    const script = document.createElement("script");
-    script.src = "/cerebro-scene.js";
-    script.onload = () => resolve(window.CerebroScene);
-    script.onerror = () => resolve(null);
-    document.head.append(script);
-  });
+  // the scene engine is an ES module; when it does not load, the card stays hidden
+  const scene = await import("/cerebro-scene.js").catch(() => null);
   if (!scene) return;
   const { drawScene, onFrame, setAnimating, STATUS_LABELS, humanizeDuration } = scene;
 

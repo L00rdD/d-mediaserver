@@ -23,24 +23,30 @@ function scene() {
   return s;
 }
 
-// The page, with the scene already there, loaded by its script tag, or failing to load
+// cerebro.js imports /cerebro-scene.js: it resolves to a module handing out the test's
+// fake engine, or to one that fails to load. A new address each time, so each test
+// gets its own copy
+let copies = 0, loads = true;
+require("node:module").registerHooks({
+  resolve(specifier, context, next) {
+    if (specifier !== "/cerebro-scene.js") return next(specifier, context);
+    const body = loads ? "export const { drawScene, onFrame, setAnimating, STATUS_LABELS, humanizeDuration } = globalThis.__cerebroScene;" : "throw new Error('no engine');";
+    return { url: `data:text/javascript,${encodeURIComponent(body)}//${copies++}`, shortCircuit: true };
+  },
+});
+
+// The page, with the scene engine loading or failing to load
 function cerebro({ answer = 404, load = "there", eventSource = false, dpr } = {}) {
   const p = page({ id: "cerebro", answers: { "/screen.json": () => (typeof answer === "function" ? answer() : answer) }, eventSource });
   const engine = scene();
-  if (load === "there") window.CerebroScene = engine;
+  globalThis.__cerebroScene = engine;
+  loads = load !== "fails";
   if (dpr) window.devicePixelRatio = dpr;
   const make = document.createElement;
   document.createElement = (tag) => {
     const e = make(tag);
     if (tag === "canvas") e.getContext = () => ({ setTransform: (...m) => (e.transform = m) });
     return e;
-  };
-  const append = document.head.append.bind(document.head);
-  document.head.append = (e) => {
-    append(e);
-    if (e.tagName !== "SCRIPT") return;
-    if (load === "script") window.CerebroScene = engine;
-    setImmediate(load === "script" ? e.onload : e.onerror);
   };
   return { ...p, engine };
 }
@@ -59,7 +65,6 @@ test("does nothing on a page without the card", async () => {
 test("stays hidden when the scene engine cannot load", async () => {
   const { card, calls } = cerebro({ load: "fails", answer: { cerebro: { sessions: [] } } });
   await run("cerebro.js");
-  assert.equal(document.head.children[0].src, "/cerebro-scene.js");
   assert.equal(card.hidden, true);
   assert.equal(calls.length, 0);
 });
