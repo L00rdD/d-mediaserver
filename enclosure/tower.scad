@@ -97,6 +97,7 @@ floor_bar   = 2;              // floor lattice bar width, thicker than on the wa
 floor_edge  = 3;              // solid border kept around the floor lattice
 roof_h      = 12;             // pagoda roof rise
 eave        = 5;              // roof overhang
+roof_t      = 2;              // roof shell, measured vertically (2 mm like the walls)
 
 /* ---------- colours, for the renders only ---------- */
 c_body = "#26262b";   // anthracite resin
@@ -663,20 +664,32 @@ module lid() {
             color(c_body) translate([sx2, sy2, lid_h]) cylinder(d = 30, h = roof_h + stack_h - 4);
             color(c_trim) translate([sx2, sy2, lid_h]) cylinder(d = 38, h = roof_h - 2);
         }
-        // the roof is a shell about 3 mm thick over the plate, clear of the
-        // stacks, drained through four holes in the plate. The cavity follows
-        // the roof slopes 3 mm lower: a tapered extrusion rather than a hull,
-        // which FreeCAD's importer cannot nest in a difference.
+        // the roof is a bare shell `roof_t` thick, clear of the stacks. The
+        // cavity follows the roof slopes `roof_t` lower: a tapered extrusion
+        // rather than a hull, which FreeCAD's importer cannot nest in a
+        // difference.
         color(c_body) difference() {
             let(r0 = [W + 2 * eave - 4, D + 2 * eave - 4], r1 = [W - 70, 14],
                 at = function(t) [for (i = [0, 1]) r0[i] + (r1[i] - r0[i]) * t / roof_h - 2],
-                b = at(3), e = at(roof_h))
-                translate([0, 0, lid_h]) linear_extrude(roof_h - 3, scale = [e[0] / b[0], e[1] / b[1]]) cham(b[0], b[1], chamfer + eave);
+                b = at(roof_t), e = at(roof_h))
+                translate([0, 0, lid_h]) linear_extrude(roof_h - roof_t, scale = [e[0] / b[0], e[1] / b[1]]) cham(b[0], b[1], chamfer + eave);
             translate([0, 0, lid_h - 1]) cylinder(d = stack_d + 4, h = roof_h + 2);
             translate([sx2, sy2, lid_h - 1]) cylinder(d = 34, h = roof_h + 2);
         }
-        for (sx = [-1, 1], sy = [-1, 1])
-            translate([sx * (inner_w / 2 - 25), sy * (inner_d / 2 - 20), lid_h - floor_t - 1]) cylinder(d = 3, h = floor_t + 2, $fn = 16);
+        // no plate under the roof (it hid ~50 ml of resin and made the
+        // largest layers of any part): 2 mm walls like the stages, open into
+        // the roof, with only a ring left around each stack to carry its fins
+        color(c_body) difference() {
+            translate([0, 0, tie_h]) linear_extrude(lid_h - tie_h + 0.01) cham(inner_w, inner_d, chamfer - wall);
+            translate([0, 0, lid_h - floor_t]) cylinder(d = stack_d + 12, h = floor_t + 1);
+            translate([sx2, sy2, lid_h - floor_t]) cylinder(d = 38, h = floor_t + 1);
+        }
+        // the collar at the foot of the main stack is hollow too: a 2 mm skin
+        // outside, open underneath into the roof
+        color(c_body) translate([0, 0, lid_h - floor_t - 1]) difference() {
+            cylinder(d = stack_d + 12 - 2 * wall, h = roof_h + 3 - wall + floor_t + 1);
+            translate([0, 0, -1]) cylinder(d = stack_d, h = roof_h + 6);
+        }
         // the stacks are tubes, open through the roof and the plate
         color(c_body) translate([0, 0, lid_h - floor_t - 1]) cylinder(d = stack_d - 2 * wall, h = roof_h + stack_h + floor_t + 6);
         color(c_body) translate([sx2, sy2, lid_h - floor_t - 1]) cylinder(d = 30 - 2 * wall, h = roof_h + stack_h + floor_t + 2);
@@ -688,7 +701,7 @@ module lid() {
             translate([sx * fan_holes / 2, sy * fan_holes / 2, lid_h - floor_t - 1]) cylinder(d = fan_hole_d, h = floor_t + 2);
         pockets(0, lid_h, top = false);
     }
-    color(c_body) difference() { columns(0, lid_h - floor_t + 0.01); pockets(0, lid_h, top = false); }
+    color(c_body) difference() { columns(0, col_end); pockets(0, lid_h, top = false); }
     // radial fins and a hub close the stacks: the grilles over the openings
     color(c_trim) translate([0, 0, lid_h - floor_t]) {
         for (a = [0 : 30 : 359]) rotate(a) translate([8, -1, 0]) cube([stack_d / 2 - wall - 8 + 0.5, 2, roof_h + stack_h + floor_t - 1]);   // from the hub into the tube wall

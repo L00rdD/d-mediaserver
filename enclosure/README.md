@@ -78,8 +78,11 @@ Outer size: 190 × 110 mm over the pipes, about 385 mm tall with two disk stages
   corner printed clean on 2026-10-13, so `orient.py` now tilts every part as far
   as it can while keeping its highest supported point within those 40 mm (42 with
   the Workshop lift). Only the lid cannot: roof down, the top of its eave stands
-  at least 46 mm up, 50 mm as oriented. `stl/print/lid-coupon.stl`
-  (`coupon_lid.scad`) is that corner, held 19 mm up by the same kind of pin.
+  at least 46 mm up. Since 2026-10-31 it is hollow (no plate under the roof,
+  2 mm walls and roof, 123 ml instead of 193) and leans 25 degrees along the
+  plate, so its largest layer is about 2,000 mm2 like the disk's, with the eave
+  corner about 82 mm up. `stl/print/lid-coupon.stl` (`coupon_lid.scad`, 13 ml)
+  is that corner, held 39 mm up by the same kind of pin: print it first.
 - `step/`: the same parts as STEP (AP214), real solids for CAD tools rather than
   meshes. Made by `scad2step.py`, which runs OpenSCAD for the 2D profiles and
   [FreeCAD](https://www.freecad.org) for the solids and the export; the header of

@@ -37,6 +37,12 @@ REAR_DOWN = {"disk", "riser", "hub"}   # tilt across the plate with the rear (+y
 # printed roof down, it is a corner of the eave, which cannot come under 46 mm
 # (the roof and the stack are that tall), so the lid takes the lowest it can get.
 HIGH = 40
+# Parts printed at a set tilt (across, along) instead of the search above. The
+# lid, hollowed on 2026-10-31 (no plate under the roof), leans 25 degrees along
+# the plate: its largest layer drops to about 2,000 mm2, the size of the disk
+# that printed, at the cost of supports up to the eave corner about 90 mm up
+# (coupon_lid.scad tests that corner first). Across the plate it has no room.
+FIXED = {"lid": (0, 25)}
 
 here = pathlib.Path(__file__).parent
 src, out = here / "stl", here / "stl" / "print"
@@ -115,6 +121,11 @@ for name, flip in PARTS.items():
             key = (high <= HIGH, abs(ax) + ay if high <= HIGH else -high)
             if best is None or key > best[2]:
                 best = (ax, ay, key, high)
+    if name in FIXED:
+        ax, ay = FIXED[name]
+        m = rot(ax, ay, flip)
+        lo, hi = bbox([apply(m, p) for p in pts])
+        best = (ax, ay, None, max(apply(m, p)[2] for p in low) - lo[2])
     if not best:
         print(f"{name}: does not fit on the plate tilted by {MIN_TILT} degrees or more")
         continue
