@@ -8,7 +8,7 @@ Used by `vivarium.js`, one world per section of the hub page. Places and props c
 |---|---|
 | `rogland_clear_night` | the starry night (the media apps) |
 | `hikers_cave` | the Niffler's den (the trading bot) |
-| `mossy_forest` | the Bowtruckle's tree (Sapling Sunrise) |
+| `mossy_forest` | the Bowtruckle's tree (Mandrake) |
 | `misty_pines` | the Hippogriff's forest (Bifrost) |
 | `hayloft` | Newt's shed (Errol) |
 

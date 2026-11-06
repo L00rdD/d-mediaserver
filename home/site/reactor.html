@@ -255,7 +255,7 @@
         "p3 reactor p4"
         "sto sto sto"
         "bot bot bot"
-        "sap sap sap"
+        "mand mand mand"
         "kp kp kp"
         "bf bf bf"
         "er er er"
@@ -498,7 +498,7 @@
     }
     .panel:hover .name, .panel:focus-visible .name { text-shadow: 0 0 12px rgba(255, 200, 87, 0.5); }
 
-    /* Sapling Sunrise card: hidden until the tracker answers on :8081 (see sapling-sunrise.js) */
+    /* Mandrake card: hidden until the tracker answers on :8081 (see mandrake.js) */
     .ss-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; font: 0.8rem var(--mono); }
     .ss-list li { display: grid; grid-template-columns: 1.2fr 1.4fr 1.6fr 0.8fr; gap: 12px; align-items: center; }
     .ss-list li span:last-child { text-align: right; }
@@ -553,7 +553,7 @@
       color: var(--muted);
       background: repeating-linear-gradient(90deg, var(--cyan-soft) 0 1px, transparent 1px 10%) 0 0 / 100% 4px no-repeat;
     }
-    .sapling { grid-area: sap; animation-delay: 0.65s; }
+    .mandrake { grid-area: mand; animation-delay: 0.65s; }
     /* One Piece card: hidden until the kpiece service writes /kpiece.json (see kpiece.js) */
     .kpiece { grid-area: kp; animation-delay: 0.7s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
@@ -629,7 +629,7 @@
           "p3 p4"
           "sto sto"
           "bot bot"
-          "sap sap"
+          "mand mand"
           "kp kp"
           "bf bf"
           "er er"
@@ -648,7 +648,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf" "er" "cb" "pr";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "mand" "kp" "bf" "er" "cb" "pr";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -792,8 +792,8 @@
       <span class="tag bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span><span class="bot-more">Dashboard :8080 →</span></span>
     </a>
 
-    <a class="panel bot sapling" id="sapling-sunrise" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Sapling Sunrise, open its dashboard">
-      <span class="tag"><i>06</i> // Sapling Sunrise <span data-ss="state"></span></span>
+    <a class="panel bot mandrake" id="mandrake" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Mandrake, open its dashboard">
+      <span class="tag"><i>06</i> // Mandrake <span data-ss="state"></span></span>
       <ul class="ss-list" data-ss="list"></ul>
       <span class="tag bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></span>
     </a>
@@ -891,7 +891,7 @@
   </script>
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
-  <script src="/sapling-sunrise.js" defer></script>
+  <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>

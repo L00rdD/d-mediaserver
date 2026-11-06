@@ -12,7 +12,7 @@
 // Poly Haven models (CC0), and their creatures are real models (Sketchfab, CC-BY), animated:
 //   night      the media apps under the Milky Way (Jellyfin calls Fawkes close)
 //   cave       the Niffler's den, the Niffler on its gold (the trading bot)
-//   forest     the Bowtruckle's tree, Pickett on his stump (Sapling Sunrise)
+//   forest     the Bowtruckle's tree, Pickett on his stump (Mandrake)
 //   mist       pines in the mist, a hippogriff that rears up when you come (Bifrost)
 // Fawkes, Dumbledore's phoenix, goes with you through every world; Hedwig flies across now and then.
 //   shed       Newt's shed, an owl under the rafters (Errol)
@@ -595,7 +595,7 @@ const DEFS = {
     },
     wake(w) { burst(w, new T.Vector3(1.8, 0.4, -3.1), 50, { speed: 2, size: 0.08, color: [3, 2.2, 0.8] }); },
   },
-  // the Bowtruckle's tree (Sapling Sunrise): a mossy forest, Pickett on his stump
+  // the Bowtruckle's tree (Mandrake): a mossy forest, Pickett on his stump
   forest: {
     hdri: "mossy_forest", height: 2, radius: 70, grade: [0.75, 0.88, 0.8], env: 0.9, turn: 0.7, free: -1,
     cam: [0, 1.4, 3.6], look: [0, 1.2, -6],

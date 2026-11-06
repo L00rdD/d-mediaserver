@@ -1,8 +1,8 @@
-// Fills the Sapling Sunrise card and shows it. The tracker serves its own dashboard and
+// Fills the Mandrake card and shows it. The tracker serves its own dashboard and
 // state on port 8081 of the same host (CORS open); when it does not answer, the card
 // stays hidden.
 (async () => {
-  const card = document.getElementById("sapling-sunrise");
+  const card = document.getElementById("mandrake");
   if (!card) return;
 
   let s;

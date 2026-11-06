@@ -527,7 +527,7 @@
     .card:hover, .card:focus-visible { --edge: var(--red); --fill: #2a0f12; }
     .card:hover .name, .card:focus-visible .name { color: var(--red); animation: glitch-text 0.35s steps(2) 1; }
 
-    /* Telemetry cards: storage, trading bot, Sapling Sunrise, One Piece, Bifrost; each hidden until its source answers */
+    /* Telemetry cards: storage, trading bot, Mandrake, One Piece, Bifrost; each hidden until its source answers */
     .bot {
       grid-column: 1 / -1;
       position: relative;
@@ -847,8 +847,8 @@
       <div class="bot-head bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span><span class="bot-more">Dashboard :8080 →</span></div>
     </a>
 
-    <a class="bot sapling" id="sapling-sunrise" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Sapling Sunrise, open its dashboard">
-      <div class="bot-head"><span>06</span><span class="name">Sapling Sunrise</span><span data-ss="state"></span></div>
+    <a class="bot mandrake" id="mandrake" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Mandrake, open its dashboard">
+      <div class="bot-head"><span>06</span><span class="name">Mandrake</span><span data-ss="state"></span></div>
       <ul class="ss-list" data-ss="list"></ul>
       <div class="bot-head bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></div>
     </a>
@@ -925,7 +925,7 @@
   </script>
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
-  <script src="/sapling-sunrise.js" defer></script>
+  <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>

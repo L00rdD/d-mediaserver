@@ -1,4 +1,4 @@
-// Tests of the Sapling Sunrise card (home/site/sapling-sunrise.js) on a fake page
+// Tests of the Mandrake card (home/site/mandrake.js) on a fake page
 const test = require("node:test");
 const assert = require("node:assert");
 const { page, run, minutesAgo } = require("./cards-page.cjs");
@@ -15,8 +15,8 @@ const plants = [
 
 for (const [age, words] of [[0, "just now"], [12, "12 min ago"], [180, "3 h ago"]]) {
   test(`one row per plant, updated ${words}`, async () => {
-    const { card, text, part } = page({ id: "sapling-sunrise", answers: { [URL]: { plants, updated_at: minutesAgo(age) } } });
-    await run("sapling-sunrise.js");
+    const { card, text, part } = page({ id: "mandrake", answers: { [URL]: { plants, updated_at: minutesAgo(age) } } });
+    await run("mandrake.js");
     assert.equal(card.hidden, false);
     const rows = part("list").children;
     assert.deepEqual(cells(rows[0]), ["Basil ×3", "Sprouting", "", "9 d left"]);
@@ -31,20 +31,20 @@ for (const [age, words] of [[0, "just now"], [12, "12 min ago"], [180, "3 h ago"
 }
 
 test("missing parts are skipped", async () => {
-  const { card } = page({ id: "sapling-sunrise", missing: ["state", "updated"], answers: { [URL]: { plants: [], updated_at: minutesAgo(0) } } });
-  await run("sapling-sunrise.js");
+  const { card } = page({ id: "mandrake", missing: ["state", "updated"], answers: { [URL]: { plants: [], updated_at: minutesAgo(0) } } });
+  await run("mandrake.js");
   assert.equal(card.hidden, false);
 });
 
 for (const [why, answer] of [["the service is off", 404], ["the page cannot reach it", new Error("offline")]]) {
   test(`hidden when ${why}`, async () => {
-    const { card } = page({ id: "sapling-sunrise", answers: { [URL]: answer } });
-    await run("sapling-sunrise.js");
+    const { card } = page({ id: "mandrake", answers: { [URL]: answer } });
+    await run("mandrake.js");
     assert.equal(card.hidden, true);
   });
 }
 
 test("does nothing on a page without the card", async () => {
   page({});
-  await run("sapling-sunrise.js");
+  await run("mandrake.js");
 });

@@ -516,10 +516,10 @@
     <section class="u u-project" data-universe="forest">
       <div class="world">
         <span class="realm-kicker">The Bowtruckle's tree</span>
-        <b class="world-name">Sapling Sunrise</b>
-        <a data-creature="bowtruckle" class="note t-panel sapling" id="sapling-sunrise" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Sapling Sunrise, open its dashboard">
+        <b class="world-name">Mandrake</b>
+        <a data-creature="bowtruckle" class="note t-panel mandrake" id="mandrake" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Mandrake, open its dashboard">
           <div class="nh">
-            <b>The seedlings</b><small> <span data-ss="state"></span></small>
+            <b>The mandrakes</b><small> <span data-ss="state"></span></small>
           </div>
           <ul class="ss-list" data-ss="list"></ul>
           <span class="nfoot"><span data-ss="updated"></span><span class="nmore">Dashboard :8081 →</span></span>
@@ -622,7 +622,7 @@
         if (shown("bifrost")) l.push(`The meadow: ${text('[data-bf="state"]')}.`);
         if (shown("printer")) l.push(`The Philosopher’s vat: ${text('[data-pr="state"]')}, ${text('[data-pr="pct"]')} brewed.`);
         if (shown("kpiece")) l.push(`An owl is due: One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
-        if (shown("sapling-sunrise")) l.push(`The Bowtruckle's tree: ${text('[data-ss="state"]')}.`);
+        if (shown("mandrake")) l.push(`The Bowtruckle's tree: ${text('[data-ss="state"]')}.`);
         l.push("Write a title above and say Accio; it will come to you.", "Transmission's Swooping Evil only flies behind the VPN, as agreed.", "The Demiguise saw this coming. It always does.", "Say Revelio, or touch the title, and the case shows what it hides.");
         return l;
       };
@@ -692,7 +692,7 @@
   <script src="/theme/magic.js" defer></script>
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
-  <script src="/sapling-sunrise.js" defer></script>
+  <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
