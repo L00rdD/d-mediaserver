@@ -456,15 +456,24 @@ ANYCUBIC_TOKEN=...
 
 ## 📺 Living-room Screen
 
-The Pi's small HDMI screen shows what happens on the server and in the house, with [Errol](https://github.com/L00rdD/errol). It shows what plays on Jellyfin, a lamp that switches, the projection screen coming down, a download that finished, a film or an episode that entered the library, the next One Piece scan, Draupnir and, while the resin printer is on, its print (progress, layers, time left, preview). When something happens, a print that starts, finishes or is cancelled included, it takes the screen for a minute; while a film plays, it shows a cinema marquee.
+The Pi's small HDMI screen shows what happens on the server and in the house, with [Errol](https://github.com/L00rdD/errol). It shows what plays on Jellyfin, a lamp that switches, the projection screen coming down, a download that finished, a film or an episode that entered the library, the next One Piece scan, Draupnir and, while the resin printer is on, its print (progress, layers, time left, preview). It also shows the weather, the next episodes to watch (Jellyfin's *Next up*), those airing today or tomorrow (Sonarr's calendar), the services that are down, and what happened since midnight (imports, downloads, videos started, lamps switched on, prints done, sessions that asked for an answer). When something happens, a print that starts, finishes or is cancelled included, it takes the screen for a minute; while a film plays, it shows a cinema marquee.
 
-The `screen` service of the stack does the reading: [`screen/feed.py`](screen/feed.py) reads Jellyfin, Bifrost and Transmission every 3 s, Radarr and Sonarr every 30 s, and the files of the other cards (`printer.json` too, when the optional `printer` service runs). It writes `screen.json`, which the home page serves at `/screen.json`. Errol itself is a separate project that runs on the Pi as a systemd service. It draws straight on the screen with the GPU, without a browser.
+The `screen` service of the stack does the reading: [`screen/feed.py`](screen/feed.py) reads Jellyfin, Bifrost and Transmission every 3 s, Radarr, Sonarr and Jellyfin's next up every 30 s, the weather every 15 min, and the files of the other cards (`printer.json` too, when the optional `printer` service runs). It writes `screen.json`, which the home page serves at `/screen.json`. Errol itself is a separate project that runs on the Pi as a systemd service. It draws straight on the screen with the GPU, without a browser.
 
 The cinema mode needs a Jellyfin API key (Jellyfin: *Dashboard → API Keys*), in `.env`:
 
 ```text
 JELLYFIN_API_KEY=...
 ```
+
+The weather comes from [Open-Meteo](https://open-meteo.com) (no account) for the house's place, in `.env` (decimal degrees); without it the screen shows no weather:
+
+```text
+WEATHER_LAT=<latitude>
+WEATHER_LON=<longitude>
+```
+
+A torrent sent by Radarr or Sonarr is not news when it finishes, its import is: the feed knows them by their category in Transmission (`radarr`, `sonarr` or `tv-sonarr`, the apps' defaults). The day's counts are kept in `screen-today.json` (in the `disk-status` volume), so a restart does not lose them.
 
 Then install Errol on the Pi:
 
