@@ -248,6 +248,7 @@
     a.note:hover, a.note:focus-visible { transform: translateY(-3px); border-color: rgba(160, 240, 255, 0.7); outline: none; }
     .nh { display: grid; gap: 2px; }
     .nh b { font: 700 0.98rem var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+    .nh .app-logo { height: 1.8em; width: auto; margin-right: 0.4em; vertical-align: middle; }
     .nh small { font: italic 500 0.98rem var(--serif); color: var(--muted); }
     .nh small span { font-style: normal; font-weight: 600; }
     .nfoot { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(229, 193, 114, 0.14); font: italic 500 0.92rem var(--serif); color: var(--muted); }
@@ -519,7 +520,7 @@
         <b class="world-name">Mandrake</b>
         <a data-creature="bowtruckle" class="note t-panel mandrake" id="mandrake" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Mandrake, open its dashboard">
           <div class="nh">
-            <b>The mandrakes</b><small> <span data-ss="state"></span></small>
+            <b><img class="app-logo" src="http://{{$host}}:8081/mandrake.svg" alt="" width="28" height="28">The mandrakes</b><small> <span data-ss="state"></span></small>
           </div>
           <ul class="ss-list" data-ss="list"></ul>
           <span class="nfoot"><span data-ss="updated"></span><span class="nmore">Dashboard :8081 →</span></span>

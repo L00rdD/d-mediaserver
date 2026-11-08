@@ -566,6 +566,7 @@
       color: var(--muted);
     }
     .bot-head .name { margin: 0; color: var(--red); font-size: clamp(1.4rem, 3vw, 1.8rem); }
+    .bot-head .app-logo { height: 1.1em; width: auto; margin-right: 0.35em; vertical-align: -0.2em; }
     .bot-head em { font-style: normal; padding: 1px 8px; color: #000; background: var(--cyan); font-weight: 700; }
     .bot-head .up { color: var(--cyan); }
     .bot-head .down { color: var(--red); }
@@ -848,7 +849,7 @@
     </a>
 
     <a class="bot mandrake" id="mandrake" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Mandrake, open its dashboard">
-      <div class="bot-head"><span>06</span><span class="name">Mandrake</span><span data-ss="state"></span></div>
+      <div class="bot-head"><span>06</span><span class="name"><img class="app-logo" src="http://{{$host}}:8081/mandrake.svg" alt="" width="32" height="32">Mandrake</span><span data-ss="state"></span></div>
       <ul class="ss-list" data-ss="list"></ul>
       <div class="bot-head bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></div>
     </a>

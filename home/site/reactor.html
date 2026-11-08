@@ -502,6 +502,8 @@
     .ss-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; font: 0.8rem var(--mono); }
     .ss-list li { display: grid; grid-template-columns: 1.2fr 1.4fr 1.6fr 0.8fr; gap: 12px; align-items: center; }
     .ss-list li span:last-child { text-align: right; }
+    .app-name { display: inline-flex; align-items: center; gap: 6px; }
+    .app-logo { height: 2.2em; width: auto; margin: -0.6em 0; }
     .ss-bar { display: block; height: 6px; background: var(--cyan-faint); }
     .ss-bar i { display: block; height: 100%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
     @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
@@ -793,7 +795,7 @@
     </a>
 
     <a class="panel bot mandrake" id="mandrake" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Mandrake, open its dashboard">
-      <span class="tag"><i>06</i> // Mandrake <span data-ss="state"></span></span>
+      <span class="tag"><i>06</i> <span class="app-name">// <img class="app-logo" src="http://{{$host}}:8081/mandrake.svg" alt="" width="22" height="22">Mandrake</span> <span data-ss="state"></span></span>
       <ul class="ss-list" data-ss="list"></ul>
       <span class="tag bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></span>
     </a>
