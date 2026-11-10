@@ -49,6 +49,7 @@ test("an empty library says how to start", async () => {
   const hint = part("list").children[0].children[0];
   assert.equal(hint.textContent, "Add a series in Suwayomi to follow its chapters.");
   assert.equal(hint.style.gridColumn, "1 / -1");
+  assert.equal(hint.style.textAlign, "left");
 });
 
 test("missing parts are skipped", async () => {

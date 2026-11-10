@@ -58,6 +58,7 @@
   if (!series) {
     const hint = el("span", "Add a series in Suwayomi to follow its chapters.");
     hint.style.gridColumn = "1 / -1";
+    hint.style.textAlign = "left";
     const row = el("li", "");
     row.append(hint);
     list.append(row);
