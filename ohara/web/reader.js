@@ -1,5 +1,6 @@
-// Ohara's reader: one volume, page by page or two pages side by side, right to left
-// by default (manga). Taps on the sides turn the pages, the middle shows the bars.
+// Ohara's reader: one volume, page by page or two pages side by side, left to right.
+// A click on the right half turns to the next page, on the left half back to the
+// previous one. The bars show while the mouse moves, or with the corner button.
 // The page reached is saved on the server, so another device picks it up.
 const Reader = (() => {
   // ---- pure page arithmetic (tested in node) ----
@@ -22,21 +23,16 @@ const Reader = (() => {
     return s[0] === 0 ? 0 : spread(s[0] - 1, count, double)[0];
   }
 
-  // Which way a tap on the left side of the screen goes
-  const leftGoes = (dir) => (dir === "rtl" ? "next" : "prev");
+  // Where a click lands, from its place across the screen (0 to 1)
+  const zone = (x) => (x < 0.5 ? "prev" : "next");
 
-  // Where a tap lands, from its place across the screen (0 to 1): a third on each
-  // side turns the page, the middle shows the bars
-  const zone = (x) => (x < 1 / 3 ? "left" : x > 2 / 3 ? "right" : "menu");
-
-  if (typeof document === "undefined") return { spread, after, before, leftGoes, zone };
+  if (typeof document === "undefined") return { spread, after, before, zone };
 
   // ---- the page ----
   const $ = (id) => document.getElementById(id);
   const vid = new URLSearchParams(location.search).get("vol");
   const pref = (key, fallback) => localStorage.getItem("ohara-" + key) || fallback;
   const settings = {
-    dir: pref("dir", "rtl"),
     double: pref("mode", innerWidth > innerHeight * 1.2 ? "double" : "single") === "double",
     fit: pref("fit", "height"),
   };
@@ -48,14 +44,12 @@ const Reader = (() => {
 
   function draw() {
     const stage = $("stage");
-    stage.dataset.dir = settings.dir;
     stage.dataset.fit = settings.fit;
     const shown = spread(page, info.count, settings.double);
     stage.replaceChildren(...shown.map((n) => Object.assign(document.createElement("img"), { src: src(n), alt: `Page ${n + 1}` })));
     stage.scrollTo(0, 0);
     $("count").textContent = `${shown.map((n) => n + 1).join("-")} / ${info.count}`;
     $("slider").value = page + 1;
-    $("dir").textContent = settings.dir === "rtl" ? "Sens : manga ←" : "Sens : BD →";
     $("mode").textContent = settings.double ? "2 pages" : "1 page";
     $("fit").textContent = settings.fit === "height" ? "Ajuster : hauteur" : "Ajuster : largeur";
     preload(after(page, info.count, settings.double));
@@ -96,12 +90,14 @@ const Reader = (() => {
     $("end").hidden = false;
   }
 
+  // the bars: shown by the corner button, or for a few seconds while the mouse moves
+  let barsTimer = null;
   const toggleBars = () => document.body.classList.toggle("bars");
-  // a tap or an arrow key on one side of the screen
-  function side(where) {
-    const left = leftGoes(settings.dir);
-    const way = where === "left" ? left : left === "next" ? "prev" : "next";
-    return way === "next" ? next() : prev();
+  function peekBars(e) {
+    if (e.pointerType !== "mouse") return;
+    document.body.classList.add("bars");
+    clearTimeout(barsTimer);
+    if (!e.target.closest(".bar")) barsTimer = setTimeout(() => document.body.classList.remove("bars"), 2500);
   }
 
   function setting(key, value) {
@@ -111,7 +107,7 @@ const Reader = (() => {
   }
 
   function keys(e) {
-    const k = { ArrowLeft: () => side("left"), ArrowRight: () => side("right"), " ": next, PageDown: next, PageUp: prev, Escape: () => (location.href = $("back").href) }[e.key];
+    const k = { ArrowLeft: prev, ArrowRight: next, " ": next, PageDown: next, PageUp: prev, Escape: () => (location.href = $("back").href) }[e.key];
     if (!k) return;
     e.preventDefault();
     k();
@@ -124,11 +120,9 @@ const Reader = (() => {
     $("back").href = $("end-back").href = "/#" + encodeURIComponent(info.series);
     $("slider").max = info.count;
     $("slider").oninput = (e) => go(+e.target.value - 1);
-    $("stage").onclick = (e) => {
-      const where = zone(e.clientX / innerWidth);
-      return where === "menu" ? toggleBars() : side(where);
-    };
-    $("dir").onclick = () => setting("dir", settings.dir === "rtl" ? "ltr" : "rtl");
+    $("stage").onclick = (e) => (zone(e.clientX / innerWidth) === "next" ? next() : prev());
+    $("menu").onclick = toggleBars;
+    addEventListener("pointermove", peekBars);
     $("mode").onclick = () => setting("double", !settings.double);
     $("fit").onclick = () => setting("fit", settings.fit === "height" ? "width" : "height");
     $("end-stay").onclick = () => go(page);
@@ -137,7 +131,7 @@ const Reader = (() => {
   }
 
   start();
-  return { spread, after, before, leftGoes, zone };
+  return { spread, after, before, zone };
 })();
 
 if (typeof module !== "undefined") module.exports = Reader;

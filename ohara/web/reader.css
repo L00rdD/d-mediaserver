@@ -4,7 +4,6 @@ html, body { margin: 0; height: 100%; background: #000; color: #eee; font: 15px 
 [hidden] { display: none !important; }
 
 .stage { position: fixed; inset: 0; -webkit-tap-highlight-color: transparent; display: flex; justify-content: center; align-items: center; overflow: auto; }
-.stage[data-dir="rtl"] { flex-direction: row-reverse; }
 .stage img { display: block; user-select: none; -webkit-user-drag: none; }
 .stage[data-fit="height"] img { max-height: 100vh; max-width: 100vw; object-fit: contain; }
 .stage[data-fit="height"] img:only-child { max-width: 100vw; }
@@ -23,13 +22,16 @@ html, body { margin: 0; height: 100%; background: #000; color: #eee; font: 15px 
 body.bars #top, body.bars #bottom { transform: none; }
 .title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .count { font-variant-numeric: tabular-nums; color: #aaa; }
-#slider { flex: 1; direction: rtl; }
-.stage[data-dir="ltr"] ~ #bottom #slider { direction: ltr; }
+#slider { flex: 1; }
 
 .btn {
   display: inline-block; padding: 8px 12px; border: 1px solid #444; border-radius: 4px; background: #1a1d22;
   color: inherit; font: inherit; text-decoration: none; cursor: pointer; white-space: nowrap;
 }
+/* the corner button that shows the bars, faint until hovered */
+.menu { position: fixed; top: max(8px, env(safe-area-inset-top)); right: 10px; z-index: 3; opacity: 0.45; padding: 6px 11px; }
+.menu:hover, body.bars .menu { opacity: 1; }
+#top { padding-right: 64px; }
 .btn.main { background: #e8b84a; color: #111; border-color: #e8b84a; font-weight: 600; }
 
 .end {

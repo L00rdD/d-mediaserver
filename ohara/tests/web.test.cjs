@@ -26,15 +26,11 @@ test("two pages: the cover alone, then pairs", () => {
   assert.equal(Reader.before(0, 10, true), 0);
 });
 
-test("a tap on the left goes forward in a manga, back in a comic", () => {
-  assert.equal(Reader.leftGoes("rtl"), "next");
-  assert.equal(Reader.leftGoes("ltr"), "prev");
-});
-
-test("a third on each side turns the page, the middle shows the bars", () => {
-  assert.equal(Reader.zone(0.1), "left");
-  assert.equal(Reader.zone(0.5), "menu");
-  assert.equal(Reader.zone(0.9), "right");
+test("the right half turns to the next page, the left half back", () => {
+  assert.equal(Reader.zone(0.1), "prev");
+  assert.equal(Reader.zone(0.49), "prev");
+  assert.equal(Reader.zone(0.5), "next");
+  assert.equal(Reader.zone(0.9), "next");
 });
 
 test("sizes in Mo and Go", () => {
