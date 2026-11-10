@@ -460,22 +460,17 @@ A release with only English subtitles scores 0 and is never grabbed. When you ad
 
 ### Manga: Ohara (optional)
 
-Ohara is a manga library made for this stack, on `http://<pi>:8585`: one page to find a series, get all its volumes, follow it and read it.
+[Ohara](https://github.com/L00rdD/ohara) is a manga library made for this stack, on `http://<pi>:8585`, to read the volumes you own anywhere without wearing out the paper ones. It finds a series through Prowlarr (the *Books* category of YggReborn, Nyaa.si and Knaben, `OHARA_INDEXERS` to change them), gets all its volumes with Transmission (so through the VPN), files them in `manga/<Series>/`, keeps followed series complete and reads them in the browser. How it works is in its own README.
 
-- **Search:** type a title. Ohara asks Prowlarr for books (the *Books* category) on YggReborn, Nyaa.si and Knaben (`OHARA_INDEXERS` to change them) and keeps only manga volumes: no videos, music or adult releases. The releases are grouped by series, whatever each one calls it ("Frieren", "Sousou no Frieren"), with the cover, status and number of volumes from [AniList](https://anilist.co). Each series comes with the best release already picked (French, with seeders, the most tomes) in one sentence, "Tomes 1 à 14 en français, 3,6 Go, téléchargement rapide", and the others folded below. English releases show on demand.
-- **Get it:** *Tout récupérer* sends the torrent to Transmission, so it goes through the VPN. When the download is done, the volumes are filed in `manga/<Series>/` and the torrent is removed (no seeding). Tomes already in the library are left out of a pack. `.zip` becomes `.cbz`, `.cbr`/`.cb7` are converted to `.cbz` with 7-Zip, a release of plain images becomes one `.cbz` per folder; PDF and EPUB are kept as they are and open in the browser.
-- **Complete and follow:** a series page says which tomes are missing, from the first to the last one out, and *Récupérer les tomes manquants* fetches them. Ohara picks the French releases that bring them for the least data (a fixed price per torrent favours packs, slow ones cost more, colour editions are another series), then drops the packs a bigger one made useless. Following a series (ticked by default when you get it, or the switch on its page) does the same at once and then every 12 hours (`OHARA_FOLLOW_HOURS`), so new tomes come by themselves. New volumes wear a *Nouveau* ribbon until opened.
-- **Read:** the page opens on the volume you were reading, tinted with its cover's colour. The shelf shows each series as a book; a series page shows its volumes, where you are in each, and the tomes missing between those you have. The reader goes left to right: a click on the right half of the screen turns to the next page, on the left half back to the previous one (the arrow keys too). It shows one page or two side by side, fitted to the height or the width; its bars show while the mouse moves, or with the ☰ button in the corner. It preloads the next pages, offers the next volume at the end, and saves the page reached on the Pi, so the phone picks up where the computer stopped.
+Here it reads Prowlarr's API key from `config/prowlarr/config.xml` and keeps its state in `manga/.ohara/`. The home page shows an *Ohara* card (*Flourish and Blotts* in Hogwarts): series, volumes, downloads under way and the volume being read.
 
-Ohara keeps its state (downloads under way, reading progress, followed series, AniList answers, covers) in `manga/.ohara/`. It reads Prowlarr's API key from `config/prowlarr/config.xml`. The home page shows an *Ohara* card (*Flourish and Blotts* in Hogwarts): series, volumes, downloads under way and the volume being read.
-
-Add the file to `COMPOSE_FILE` in your `.env`, then run `docker compose up -d --build` (the image adds Pillow and 7-Zip to Python):
+Add the file to `COMPOSE_FILE` in your `.env`, then run `docker compose up -d --build`; Docker builds the image from Ohara's repository:
 
 ```text
 COMPOSE_FILE=docker-compose.yml:docker-compose.ohara.yml
 ```
 
-Its tests: `python3 -m unittest ohara/test_ohara.py` and `node --test ohara/tests/`. Titles use Cormorant Garamond (SIL Open Font License, in `ohara/web/fonts/`).
+Update it with `docker compose build ohara && docker compose up -d ohara`.
 
 ## 🖨️ Resin Printer (optional)
 
