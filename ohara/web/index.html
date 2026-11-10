@@ -3,52 +3,51 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1c2a26">
   <title>Ohara</title>
   <link rel="icon" href="/ohara.svg">
-  <!-- the hub's look (Reactor, Cyberpunk or Hogwarts), see home/site/theme/README.md -->
-  <script>document.write(`<link rel="stylesheet" href="//${location.hostname}/theme/theme.css"><script src="//${location.hostname}/theme/theme.js"><\/script>`)</script>
   <link rel="stylesheet" href="/ohara.css">
 </head>
-<body class="t-app" data-t-name="Ohara" data-t-calm>
+<body>
+  <header class="masthead">
+    <a class="brand" href="#" aria-label="Ohara, ta bibliothèque"><img src="/ohara.svg" alt="" width="44" height="44"><span>Ohara</span></a>
+    <form class="search" id="search" role="search">
+      <input type="search" name="q" placeholder="Chercher un manga" aria-label="Chercher un manga" autocomplete="off" required>
+      <button class="button primary">Chercher</button>
+    </form>
+  </header>
+
   <main>
-    <header class="top">
-      <h1 class="t-title"><img src="/ohara.svg" alt="" width="40" height="40">Ohara</h1>
-      <form class="search" id="search">
-        <input type="search" name="q" placeholder="Chercher un manga : naruto, frieren…" autocomplete="off" required>
-        <button class="t-btn t-main">Chercher</button>
-      </form>
-    </header>
-
-    <section id="results" hidden>
-      <h2 class="t-heading"><i>?</i>Résultats <span class="t-label" data-results-for></span></h2>
-      <p class="filters">
-        <label><input type="checkbox" id="fr-only" checked> Seulement en français</label>
-        <button class="t-btn" type="button" id="close-results">Fermer</button>
-      </p>
-      <p class="t-callout" id="searching" hidden>Recherche sur les indexeurs… (jusqu'à une minute)</p>
-      <ul class="results" id="result-list"></ul>
-    </section>
-
-    <section id="last" hidden>
-      <h2 class="t-heading"><i>01</i>Reprendre</h2>
-      <a class="t-panel t-main continue" id="continue"></a>
-    </section>
+    <section class="resume" id="resume" hidden></section>
 
     <section id="downloads" hidden>
-      <h2 class="t-heading"><i>02</i>En téléchargement</h2>
+      <h2>En cours de téléchargement</h2>
       <ul class="downloads" id="download-list"></ul>
     </section>
 
-    <section id="shelf">
-      <h2 class="t-heading"><i>03</i>Bibliothèque</h2>
-      <p class="t-callout" id="empty" hidden>Ta bibliothèque est vide : cherche un manga ci-dessus et clique sur « Ajouter ».</p>
-      <div class="grid" id="series-grid"></div>
+    <section id="results" hidden>
+      <div class="section-head">
+        <h2 id="results-title"></h2>
+        <label class="check"><input type="checkbox" id="all-languages"> Afficher aussi l'anglais</label>
+        <button class="button quiet" type="button" id="close-results">Fermer</button>
+      </div>
+      <p class="searching" id="searching" hidden>Recherche sur YggReborn, Nyaa et Knaben, ça peut prendre une minute.</p>
+      <div class="finds" id="finds"></div>
     </section>
 
-    <section id="series" hidden>
-      <h2 class="t-heading"><button class="t-btn back" type="button" id="back">←</button><span id="series-name"></span></h2>
-      <div class="grid" id="volume-grid"></div>
+    <section id="shelf">
+      <div class="section-head">
+        <h2>Ta bibliothèque</h2>
+        <span class="count" id="shelf-count"></span>
+      </div>
+      <div class="empty" id="empty" hidden>
+        <p>Ta bibliothèque est vide. Cherche un manga et récupère tous ses tomes en un clic.</p>
+        <p class="examples">Par exemple <button class="link" type="button" data-try="Frieren">Frieren</button>, <button class="link" type="button" data-try="Naruto">Naruto</button> ou <button class="link" type="button" data-try="Berserk">Berserk</button>.</p>
+      </div>
+      <div class="books" id="books"></div>
     </section>
+
+    <section class="series" id="series" hidden></section>
   </main>
   <script src="/library.js" defer></script>
 </body>

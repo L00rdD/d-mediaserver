@@ -1,5 +1,6 @@
 """Ohara: a manga library on the Pi. Finds volumes through Prowlarr, downloads them
-with Transmission, files them in /manga/<Series>/ and serves them to the reader.
+with Transmission, files them in /manga/<Series>/, follows the series for their new
+volumes and serves them to the reader. Covers and series facts come from AniList.
 
 Only the standard library and Pillow (for the covers). Every setting comes from the
 environment (see docker-compose.ohara.yml)."""
@@ -12,14 +13,20 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from names import (LANG_ORDER, guess_series, language, natural, norm, safe_name,  # noqa: E402
+                   speed, tome_range, volume_label, volume_number)
 
 MANGA = Path(os.environ.get("OHARA_MANGA", "/manga"))
 STATE_DIR = MANGA / ".ohara"
@@ -30,6 +37,9 @@ TRANSMISSION_URL = os.environ.get("OHARA_TRANSMISSION_URL", "http://transmission
 PROWLARR_URL = os.environ.get("OHARA_PROWLARR_URL", "http://prowlarr:9696")
 PROWLARR_CONFIG = os.environ.get("OHARA_PROWLARR_CONFIG", "/config/prowlarr/config.xml")
 INDEXERS = [n.strip() for n in os.environ.get("OHARA_INDEXERS", "YggReborn,Nyaa.si,Knaben").split(",") if n.strip()]
+ANILIST = "https://graphql.anilist.co"
+FOLLOW_EVERY = float(os.environ.get("OHARA_FOLLOW_HOURS", "12")) * 3600
+NEW_FOR = 7 * 86400  # a volume stays "new" a week, until it is opened
 WEB = Path(__file__).with_name("web")
 PORT = int(os.environ.get("OHARA_PORT", "8585"))
 
@@ -39,24 +49,20 @@ KEPT = (".cbz", ".zip", ".pdf", ".epub")
 ARCHIVES = (".cbr", ".rar", ".cb7", ".7z")
 VIDEO = re.compile(r"(?i)\b(1080p|720p|2160p|x26[45]|hevc|web-?dl|webrip|bluray|s\d\d(e\d\d)?)\b|\.(mkv|mp4|avi)\b")
 BOOKISH = re.compile(r"(?i)\b(cbz|cbr|cb7|tomes?|t\d{1,3}|vol(ume)?s?\.?\s*\d+|v\d{1,3}|scans?)\b")
-FRENCH = re.compile(r"(?i)\b(fr|vf|vff|french|fran[cç]ais|truefrench)\b")
-ENGLISH = re.compile(r"(?i)\b(eng|english|scanlated|digital|viz|yen press)\b")
-JAPANESE = re.compile(r"(?i)\b(jp|jap|raw)\b|[\u3040-\u30ff]|巻")
-FRENCH_TRACKERS = ("YggReborn", "Torrent9", "World-torrent")
-LANG_ORDER = {"FR": 0, "EN": 1, "?": 2, "JP": 3}
-VOLUME = re.compile(r"(?i)(?:tome|vol(?:ume)?|\bt|\bv)[\s._-]*0*(\d+(?:\.\d+)?)")
-SERIES_END = re.compile(r"(?i)[\s._-]*(\b(tomes?|t\d+|vol(ume)?s?|v\d+|int[ée]grale|cbz|cbr|pdf|epub|ebook|complete|chapitres?)\b|\d+\s*(à|-|to)\s*\d+).*$")
 
 lock = threading.Lock()
 
 
-# ---------- state: downloads under way and reading progress, in one JSON file ----------
+# ---------- state: downloads, reading progress, followed series, AniList answers ----------
 
 def load_state():
     try:
-        return json.loads((STATE_DIR / "state.json").read_text())
+        state = json.loads((STATE_DIR / "state.json").read_text())
     except (OSError, ValueError):
-        return {"downloads": {}, "progress": {}}
+        state = {}
+    for key in ("downloads", "progress", "series", "lookups"):
+        state.setdefault(key, {})
+    return state
 
 
 def save_state(state):
@@ -75,42 +81,56 @@ def update_state(change):
         return result
 
 
-# ---------- names ----------
-
-def natural(text):
-    return [int(p) if p.isdigit() else p.lower() for p in re.split(r"(\d+)", text)]
+def series_entry(state, name):
+    return state["series"].setdefault(name, {"follow": False, "query": name})
 
 
-def guess_series(title):
-    """The series name in a release title: "Naruto - T01 à T72 [CBZ] Fr" → "Naruto"."""
-    t = re.sub(r"\[[^\]]*\]|\([^)]*\)|\{[^}]*\}", " ", title)
-    t = re.sub(r"[._]+", " ", t)
-    t = SERIES_END.sub("", t)
-    t = re.sub(r"\s+", " ", t).strip(" -–+:,")
-    return t or title.strip()
+# ---------- AniList: cover, colour, status and number of volumes of a series ----------
+
+ANILIST_QUERY = """query($s: String) { Page(perPage: 1) { media(search: $s, type: MANGA, sort: SEARCH_MATCH) {
+  id title { romaji english } coverImage { extraLarge large color } volumes status startDate { year } } } }"""
+STATUS = {"RELEASING": "En cours", "FINISHED": "Terminé", "HIATUS": "En pause", "CANCELLED": "Arrêté", "NOT_YET_RELEASED": "À paraître"}
 
 
-def safe_name(name):
-    """A series name usable as a folder name."""
-    name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', " ", name)
-    name = re.sub(r"\s+", " ", name).strip(" .")
-    return name[:120] or "Sans titre"
+def anilist_fetch(name):
+    body = json.dumps({"query": ANILIST_QUERY, "variables": {"s": name}}).encode()
+    headers = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Ohara/1.0"}
+    found = http_json(ANILIST, data=body, headers=headers, timeout=15)["data"]["Page"]["media"]
+    if not found:
+        return {}
+    m = found[0]
+    return {
+        "id": m["id"],
+        "title": m["title"]["english"] or m["title"]["romaji"],
+        "cover": m["coverImage"]["extraLarge"] or m["coverImage"]["large"],
+        "color": m["coverImage"]["color"],
+        "status": STATUS.get(m["status"], ""),
+        "volumes": m["volumes"],
+        "year": (m.get("startDate") or {}).get("year"),
+    }
 
 
-def volume_label(filename):
-    m = VOLUME.search(Path(filename).stem)
-    return f"Tome {m.group(1)}" if m else Path(filename).stem
+def lookup(name):
+    """The AniList facts of a series name, asked once and kept (an empty dict when
+    AniList does not know it; nothing kept when it does not answer)."""
+    key = norm(name)
+    cached = load_state()["lookups"].get(key)
+    if cached is not None:
+        return cached
+    try:
+        found = anilist_fetch(name)
+    except Exception:
+        return {}
+
+    def keep(state):
+        state["lookups"][key] = found
+    update_state(keep)
+    return found
 
 
-def language(title, indexer=""):
-    """FR, EN, JP or ?; a French tracker's release is French unless it says otherwise."""
-    if FRENCH.search(title):
-        return "FR"
-    if ENGLISH.search(title):
-        return "EN"
-    if JAPANESE.search(title):
-        return "JP"
-    return "FR" if indexer in FRENCH_TRACKERS else "?"
+def lookups(names):
+    with ThreadPoolExecutor(6) as pool:
+        return dict(zip(names, pool.map(lookup, names)))
 
 
 # ---------- Prowlarr ----------
@@ -144,15 +164,17 @@ def is_manga(result):
 def release(result):
     """What the page needs of a Prowlarr result; the token stands for it in a grab."""
     token = hashlib.sha1((result.get("guid") or result["title"]).encode()).hexdigest()[:16]
+    seeders = result.get("seeders", 0)
     return {
         "token": token,
         "title": result["title"],
         "series": guess_series(result["title"]),
         "lang": language(result["title"], result.get("indexer", "")),
+        "range": tome_range(result["title"]),
         "size": result.get("size", 0),
-        "seeders": result.get("seeders", 0),
+        "seeders": seeders,
+        "speed": speed(seeders),
         "indexer": result.get("indexer", ""),
-        "age": result.get("publishDate", ""),
         "_url": result.get("magnetUrl") or result.get("downloadUrl"),
     }
 
@@ -160,16 +182,67 @@ def release(result):
 found_releases = {}
 
 
-def search(query):
+def find_releases(query):
+    """Every manga release Prowlarr finds for query, remembered for a grab."""
     key = prowlarr_key()
     # the Books category on the indexers' side: their manga are there, not drowned in videos
     params = [("query", query), ("type", "search"), ("categories", 7000)] + [("indexerIds", i) for i in indexer_ids(key)]
     url = f"{PROWLARR_URL}/api/v1/search?" + urllib.parse.urlencode(params)
     results = [release(r) for r in http_json(url, headers={"X-Api-Key": key}, timeout=150) if is_manga(r)]
-    results.sort(key=lambda r: (LANG_ORDER[r["lang"]], -r["seeders"]))
     for r in results:
         found_releases[r["token"]] = r
-    return [{k: v for k, v in r.items() if not k.startswith("_")} for r in results]
+    return results
+
+
+def coverage(r):
+    return r["range"][1] - r["range"][0] + 1 if r["range"] else 0
+
+
+def best_first(r):
+    """French, then a release that will come, then the most tomes, then the most seeders."""
+    return (LANG_ORDER[r["lang"]], r["seeders"] == 0, -coverage(r), -r["seeders"])
+
+
+def public(r):
+    return {k: v for k, v in r.items() if not k.startswith("_")}
+
+
+def group_releases(results):
+    """{AniList id or name: [releases]}: one group per series, whatever the release calls it."""
+    names = sorted({r["series"] for r in results})
+    facts = lookups(names)
+    groups = {}
+    for r in results:
+        meta = facts.get(r["series"]) or {}
+        groups.setdefault(meta.get("id") or norm(r["series"]), []).append(r)
+    return groups, facts
+
+
+def search(query):
+    """The series found for query, each with its releases, the best one first."""
+    results = find_releases(query)
+    groups, facts = group_releases(results)
+    have = {norm(n): n for n in library_names()}
+    out = []
+    for releases in groups.values():
+        releases.sort(key=best_first)
+        meta = facts.get(releases[0]["series"]) or {}
+        name = owned_name(releases, meta, have)
+        out.append({"name": name, "meta": meta, "owned": name in have.values(), "releases": [public(r) for r in releases]})
+    out.sort(key=lambda g: (LANG_ORDER[g["releases"][0]["lang"]], -sum(r["seeders"] for r in g["releases"])))
+    return out
+
+
+def owned_name(releases, meta, have):
+    """The folder a group goes to: the series already in the library under one of its
+    names, or else the name the best release gives it."""
+    for r in releases:
+        if norm(r["series"]) in have:
+            return have[norm(r["series"])]
+    for state_name, entry in load_state()["series"].items():
+        if meta.get("id") and entry.get("anilist") == meta.get("id"):
+            return state_name
+    return safe_name(releases[0]["series"])
 
 
 # ---------- Transmission ----------
@@ -219,7 +292,7 @@ def torrent_source(url):
     return {"metainfo": base64.b64encode(data).decode()}
 
 
-def grab(token, series):
+def grab(token, series, follow=False, query=""):
     r = found_releases.get(token)
     if not r:
         raise KeyError("search again: this result is no longer known")
@@ -229,11 +302,22 @@ def grab(token, series):
     args["download-dir"] = f"{TRANSMISSION_INCOMING}/{folder}"
     added = rpc("torrent-add", args)
     t = added.get("torrent-added") or added.get("torrent-duplicate")
+    meta = lookup(series)
 
     def note(state):
-        state["downloads"][t["hashString"]] = {"series": series, "title": r["title"], "folder": folder, "at": time.time()}
+        state["downloads"][t["hashString"]] = {"series": series, "title": r["title"], "folder": folder, "range": r["range"], "at": time.time()}
+        entry = series_entry(state, series)
+        entry["anilist"] = meta.get("id") or entry.get("anilist")
+        if follow:
+            entry.update(follow=True, query=query or entry.get("query") or series)
     update_state(note)
     return {"series": series, "hash": t["hashString"]}
+
+
+def set_follow(series, on):
+    def change(state):
+        series_entry(state, series)["follow"] = bool(on)
+    update_state(change)
 
 
 def cancel(torrent_hash):
@@ -275,21 +359,29 @@ def free_name(folder, name):
     return target
 
 
+def owned_numbers(dest):
+    return {volume_number(p.name) for p in dest.iterdir() if p.is_file()} - {None} if dest.exists() else set()
+
+
 def import_download(source, series):
-    """Moves every volume found under source into MANGA/series. Returns how many."""
+    """Moves every volume found under source into MANGA/series, leaving out the tomes
+    already there (a pack often repeats them). Returns how many came in."""
     dest = MANGA / series
+    owned = owned_numbers(dest)
     dest.mkdir(parents=True, exist_ok=True)
     count = 0
     files = sorted((p for p in source.rglob("*") if p.is_file()), key=lambda p: natural(str(p)))
     for p in files:
         ext = p.suffix.lower()
-        if ext in KEPT:
-            shutil.move(str(p), free_name(dest, p.name if ext != ".zip" else p.stem + ".cbz"))
-            count += 1
-        elif ext in ARCHIVES:
-            unpack_archive(p, free_name(dest, p.stem + ".cbz"))
-            count += 1
-    if not count:
+        if ext not in KEPT + ARCHIVES or volume_number(p.name) in owned:
+            continue
+        name = p.name if ext in (".cbz", ".pdf", ".epub") else p.stem + ".cbz"
+        if ext in ARCHIVES:
+            unpack_archive(p, free_name(dest, name))
+        else:
+            shutil.move(str(p), free_name(dest, name))
+        count += 1
+    if not count and not any(p.suffix.lower() in KEPT + ARCHIVES for p in files):
         count = import_image_folders(source, dest)
     return count
 
@@ -317,12 +409,71 @@ def check_downloads():
         update_state(lambda s, h=t["hashString"]: s["downloads"].pop(h, None))
 
 
+# ---------- following: new volumes of a series, fetched by themselves ----------
+
+def wanted(r, have, coming):
+    """The tomes of release r not in the library nor on their way."""
+    if not r["range"]:
+        return set()
+    lo, hi = r["range"]
+    return set(range(lo, hi + 1)) - have - coming
+
+
+def next_release(series, releases, state):
+    """The release that brings the most new tomes after the last one owned, French
+    and with seeders; None when there is nothing new."""
+    have = {int(n) for n in owned_numbers(MANGA / series)}
+    coming = set()
+    for d in state["downloads"].values():
+        if d["series"] == series and d.get("range"):
+            coming |= set(range(d["range"][0], d["range"][1] + 1))
+    last = max(have | coming, default=0)
+    useful = [r for r in releases if r["lang"] == "FR" and r["seeders"] > 0 and any(n > last for n in wanted(r, have, coming))]
+    useful.sort(key=lambda r: (min(wanted(r, have, coming)) != last + 1, -len(wanted(r, have, coming)), -r["seeders"]))
+    return useful[0] if useful else None
+
+
+def same_series(r, series, entry, facts):
+    meta = facts.get(r["series"]) or {}
+    return norm(r["series"]) == norm(series) or (entry.get("anilist") and meta.get("id") == entry.get("anilist"))
+
+
+def check_follows():
+    """Looks for the new volumes of every followed series and downloads them."""
+    state = load_state()
+    for series, entry in state["series"].items():
+        if not entry.get("follow"):
+            continue
+        releases = find_releases(entry.get("query") or series)
+        facts = lookups(sorted({r["series"] for r in releases}))
+        mine = [r for r in releases if same_series(r, series, entry, facts)]
+        r = next_release(series, mine, state)
+        if r:
+            print(f"follow: {series} ← {r['title']}", flush=True)
+            grab(r["token"], series)
+            state = load_state()
+
+    def stamp(s):
+        s["followed_at"] = time.time()
+    update_state(stamp)
+
+
+def follows_due():
+    return time.time() - load_state().get("followed_at", 0) >= FOLLOW_EVERY
+
+
+def tick():
+    check_downloads()
+    if follows_due():
+        check_follows()
+
+
 def watch():
     while True:
         try:
-            check_downloads()
+            tick()
         except Exception as e:  # Transmission restarting, a disk hiccup: try again later
-            print("check_downloads:", e, flush=True)
+            print("watch:", e, flush=True)
         time.sleep(30)
 
 
@@ -345,14 +496,33 @@ def volumes(series_dir):
     return sorted(files, key=lambda p: natural(p.name))
 
 
-def series_list(progress):
-    out = []
-    dirs = sorted((d for d in MANGA.iterdir() if d.is_dir() and not d.name.startswith(".")), key=lambda d: natural(d.name))
-    for d in dirs:
-        vols = [volume_info(v, progress) for v in volumes(d)]
-        if vols:
-            out.append({"name": d.name, "volumes": vols, "read": sum(v["done"] for v in vols)})
-    return out
+def library_names():
+    if not MANGA.exists():
+        return []
+    return [d.name for d in MANGA.iterdir() if d.is_dir() and not d.name.startswith(".") and volumes(d)]
+
+
+def series_info(d, state):
+    vols = [volume_info(v, state["progress"]) for v in volumes(d)]
+    entry = state["series"].get(d.name, {})
+    meta = state["lookups"].get(norm(d.name)) or {}
+    numbers = sorted({int(v["number"]) for v in vols if v["number"]})
+    # the holes between the first and the last tome owned, not everything before
+    gaps = [n for n in range(numbers[0], numbers[-1]) if n not in numbers] if numbers else []
+    return {
+        "name": d.name,
+        "volumes": vols,
+        "read": sum(v["done"] for v in vols),
+        "new": sum(v["new"] for v in vols),
+        "follow": entry.get("follow", False),
+        "meta": meta,
+        "missing": gaps,
+    }
+
+
+def series_list(state):
+    dirs = sorted((MANGA / n for n in library_names()), key=lambda d: natural(d.name))
+    return [series_info(d, state) for d in dirs]
 
 
 def volume_info(path, progress):
@@ -362,21 +532,24 @@ def volume_info(path, progress):
     return {
         "id": vid,
         "label": volume_label(path.name),
+        "number": volume_number(path.name),
         "file": path.name,
         "readable": readable,
         "page": p.get("page", 0),
         "pages": p.get("pages", 0),
         "done": bool(p.get("pages")) and p.get("page", 0) >= p["pages"] - 1,
+        "new": not p and time.time() - path.stat().st_mtime < NEW_FOR,
         "at": p.get("at", 0),
     }
 
 
 def library():
     state = load_state()
-    progress = state["progress"]
-    series = series_list(progress) if MANGA.exists() else []
+    series = series_list(state)
     live = {t["hashString"]: t for t in safe_torrents(list(state["downloads"]))}
     downloads = [download_info(h, d, live.get(h)) for h, d in state["downloads"].items()]
+    for d in downloads:
+        d["cover"] = (state["lookups"].get(norm(d["series"])) or {}).get("cover")
     return {"series": series, "downloads": downloads, "last": last_read(series)}
 
 
@@ -388,7 +561,7 @@ def safe_torrents(hashes):
 
 
 def download_info(torrent_hash, d, t):
-    info = {"hash": torrent_hash, "series": d["series"], "title": d["title"], "pct": 0, "state": "unknown"}
+    info = {"hash": torrent_hash, "series": d["series"], "title": d["title"], "range": d.get("range"), "pct": 0, "state": "unknown"}
     if t:
         info["pct"] = round(t["percentDone"] * 100)
         info["eta"] = t.get("eta", -1)
@@ -398,8 +571,22 @@ def download_info(torrent_hash, d, t):
 
 
 def last_read(series):
-    vols = [dict(v, series=s["name"]) for s in series for v in s["volumes"] if v["at"]]
+    vols = [dict(v, series=s["name"], meta=s["meta"]) for s in series for v in s["volumes"] if v["at"]]
     return max(vols, key=lambda v: v["at"]) if vols else None
+
+
+def refresh_meta():
+    """Asks AniList about the series of the library it has not been asked about yet."""
+    state = load_state()
+    names = set(library_names()) | {d["series"] for d in state["downloads"].values()}
+    missing = sorted(n for n in names if norm(n) not in state["lookups"])
+    found = lookups(missing)
+
+    def keep(state):
+        for name, meta in found.items():
+            if meta.get("id"):
+                series_entry(state, name).setdefault("anilist", meta["id"])
+    update_state(keep)
 
 
 # ---------- pages ----------
@@ -465,14 +652,15 @@ def status():
     """The home page's card."""
     lib = library()
     vols = sum(len(s["volumes"]) for s in lib["series"])
-    return {"series": len(lib["series"]), "volumes": vols, "downloads": lib["downloads"], "last": lib["last"]}
+    new = sum(s["new"] for s in lib["series"])
+    return {"series": len(lib["series"]), "volumes": vols, "new": new, "downloads": lib["downloads"], "last": lib["last"]}
 
 
 # ---------- HTTP ----------
 
 TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml",
          ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif",
-         ".avif": "image/avif", ".pdf": "application/pdf", ".epub": "application/epub+zip"}
+         ".avif": "image/avif", ".pdf": "application/pdf", ".epub": "application/epub+zip", ".woff2": "font/woff2"}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -551,7 +739,13 @@ def get_cover(h):
 
 def post_grab(h):
     b = h.body()
-    h.send(200, grab(b["token"], b.get("series", "")))
+    h.send(200, grab(b["token"], b.get("series", ""), b.get("follow", False), b.get("query", "")))
+
+
+def post_follow(h):
+    b = h.body()
+    set_follow(b["series"], b["follow"])
+    h.send(200, {"ok": True})
 
 
 def post_progress(h):
@@ -574,12 +768,13 @@ GET_ROUTES = {
     "/api/cover": get_cover,
     "/api/status.json": lambda h: h.send(200, status(), extra={"Access-Control-Allow-Origin": "*"}),
 }
-POST_ROUTES = {"/api/grab": post_grab, "/api/progress": post_progress, "/api/cancel": post_cancel}
+POST_ROUTES = {"/api/grab": post_grab, "/api/follow": post_follow, "/api/progress": post_progress, "/api/cancel": post_cancel}
 
 
 def main():
     MANGA.mkdir(parents=True, exist_ok=True)
     INCOMING.mkdir(parents=True, exist_ok=True)
+    threading.Thread(target=refresh_meta, daemon=True).start()
     threading.Thread(target=watch, daemon=True).start()
     print(f"Ohara on port {PORT}, library in {MANGA}", flush=True)
     ThreadingHTTPServer(("", PORT), Handler).serve_forever()

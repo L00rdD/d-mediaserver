@@ -106,35 +106,128 @@ class Names(unittest.TestCase):
         self.assertTrue(ohara.is_manga({"title": "Naruto T01-72 [CBZ]", "categories": cat(8000)}))
 
 
+class MoreNames(unittest.TestCase):
+    def test_tome_ranges(self):
+        cases = {
+            "Naruto - T01 à T72 Intégrale + Gaiden [CBZ]  Fr": (1, 72),
+            "Frieren T01 - T14 (scan officiel) [CBZ] Fr": (1, 14),
+            "Sousou no Frieren - Tomes 01 à 13 [CBZ/FR]": (1, 13),
+            "One Piece - Édition Originale - Tome 98 : Les neuf rônins": (98, 98),
+            "[SoM] Dragon Ball Manga Kanzenban v01-34": (1, 34),
+            "One Piece T106-114 Scan CBZ": (106, 114),
+            "Frieren - Tomes 3 à 5 - Ki-oon": (3, 5),
+            "Frieren - Tomes 1 et 2 - Yamada": (1, 2),
+            "Boruto T17 & T18  [CBZ] Fr": (17, 18),
+            "Berserk v42 (2025) (Digital)": (42, 42),
+            "One Piece en couleurs - T001-104 CBZ": (1, 104),
+            "Sousou no Frieren Tome 1 à Tome 13 VF": (1, 13),
+            "Sousou no Frieren T01 à 6 +Ch.65 à 79 [Scantrad KSS]": (1, 6),
+            "Naruto [VON] Manga Volumes 01-73 + Data Books": (1, 73),
+            "Odd T09 - T03 [CBZ]": (9, 9),
+            "Berserk (01-41+) (Miura)": None,
+            "Naruto Intégrale [CBZ]": None,
+        }
+        for title, expected in cases.items():
+            self.assertEqual(ohara.tome_range(title), expected, title)
+
+    def test_norm_speed_and_numbers(self):
+        self.assertEqual(ohara.norm("Shingeki no Kyojin : L'Attaque des Titans!"), "shingekinokyojinlattaquedestitans")
+        self.assertEqual(ohara.norm("Élan"), "elan")
+        self.assertEqual([ohara.speed(n) for n in (25, 4, 1, 0)], ["rapide", "correct", "lent", "bloqué"])
+        self.assertEqual(ohara.volume_number("Naruto T05.cbz"), 5.0)
+        self.assertIsNone(ohara.volume_number("ScanTrad bonus.cbz"))
+
+
 class Search(Library):
-    def test_keeps_volumes_french_first(self):
-        results = [
-            {"guid": "a", "title": "Berserk v42 (Digital)", "size": 3e8, "seeders": 100, "indexer": "Nyaa.si", "categories": [{"id": 7030}], "downloadUrl": "http://p/a"},
-            {"guid": "b", "title": "Naruto T01 à T72 [CBZ] Fr", "size": 7e9, "seeders": 5, "indexer": "YggReborn", "categories": [{"id": 7000}], "magnetUrl": "magnet:?b"},
-            {"guid": "c", "title": "Naruto S01E01 1080p", "categories": [{"id": 5000}]},
-        ]
-        indexers = [{"id": 1, "name": "YggReborn", "enable": True}, {"id": 2, "name": "Nyaa.si", "enable": True}, {"id": 3, "name": "EZTV", "enable": True}]
-        calls = []
+    RESULTS = [
+        {"guid": "a", "title": "Berserk v42 (Digital)", "size": 3e8, "seeders": 100, "indexer": "Nyaa.si", "categories": [{"id": 7030}], "downloadUrl": "http://p/a"},
+        {"guid": "b", "title": "Naruto T01 à T72 [CBZ] Fr", "size": 7e9, "seeders": 5, "indexer": "YggReborn", "categories": [{"id": 7000}], "magnetUrl": "magnet:?b"},
+        {"guid": "c", "title": "Naruto S01E01 1080p", "categories": [{"id": 5000}]},
+        {"guid": "d", "title": "Naruto - Tome 48 [CBZ] Fr", "size": 1e8, "seeders": 0, "indexer": "YggReborn", "categories": [{"id": 7000}]},
+        {"guid": "e", "title": "Naruto Shippuden Tomes 1 à 3 FR", "size": 1e8, "seeders": 9, "indexer": "YggReborn", "categories": [{"id": 7000}]},
+    ]
+    INDEXERS = [{"id": 1, "name": "YggReborn", "enable": True}, {"id": 2, "name": "Nyaa.si", "enable": True}, {"id": 3, "name": "EZTV", "enable": True}]
+    FACTS = {"Naruto": {"id": 11, "title": "Naruto"}, "Naruto Shippuden": {"id": 11, "title": "Naruto"}, "Berserk": {"id": 22}}
 
-        def fake(url, headers=None, timeout=60):
+    def fake_prowlarr(self, calls):
+        def fake(url, data=None, headers=None, timeout=60):
             calls.append(url)
-            return indexers if url.endswith("/indexer") else results
+            return self.INDEXERS if url.endswith("/indexer") else self.RESULTS
+        return fake
 
-        with mock.patch.object(ohara, "prowlarr_key", return_value="K"), mock.patch.object(ohara, "http_json", side_effect=fake):
-            found = ohara.search("naruto")
+    def test_find_releases_keeps_volumes(self):
+        calls = []
+        with mock.patch.object(ohara, "prowlarr_key", return_value="K"), mock.patch.object(ohara, "http_json", side_effect=self.fake_prowlarr(calls)):
+            found = ohara.find_releases("naruto")
         self.assertIn("categories=7000&indexerIds=1&indexerIds=2", calls[1])
         self.assertNotIn("indexerIds=3", calls[1])
-        self.assertEqual([r["title"][:6] for r in found], ["Naruto", "Berser"])
-        self.assertEqual(found[0]["lang"], "FR")
-        self.assertEqual(found[0]["series"], "Naruto")
-        self.assertNotIn("_url", found[0])
-        self.assertEqual(ohara.found_releases[found[0]["token"]]["_url"], "magnet:?b")
+        self.assertEqual(len(found), 4)
+        naruto = [r for r in found if r["title"].startswith("Naruto T01")][0]
+        self.assertEqual((naruto["lang"], naruto["series"], naruto["range"], naruto["speed"]), ("FR", "Naruto", (1, 72), "correct"))
+        self.assertEqual(ohara.found_releases[naruto["token"]]["_url"], "magnet:?b")
+
+    def test_search_groups_by_series_best_first(self):
+        cbz(self.root / "Naruto" / "Naruto T01.cbz", ["1.png"])
+        with mock.patch.object(ohara, "prowlarr_key", return_value="K"), mock.patch.object(ohara, "http_json", side_effect=self.fake_prowlarr([])), \
+                mock.patch.object(ohara, "lookup", side_effect=lambda n: self.FACTS.get(n, {})):
+            groups = ohara.search("naruto")
+        self.assertEqual([g["name"] for g in groups], ["Naruto", "Berserk"])
+        naruto = groups[0]
+        self.assertTrue(naruto["owned"])
+        self.assertEqual(naruto["meta"]["id"], 11)
+        self.assertEqual([r["title"][:12] for r in naruto["releases"]], ["Naruto T01 à", "Naruto Shipp", "Naruto - Tom"])
+        self.assertNotIn("_url", naruto["releases"][0])
+        self.assertFalse(groups[1]["owned"])
+
+    def test_owned_name_by_anilist_id(self):
+        ohara.save_state({"series": {"Naruto (VF)": {"anilist": 11}}})
+        rel = [{"series": "Naruto Shippuden"}]
+        self.assertEqual(ohara.owned_name(rel, {"id": 11}, {}), "Naruto (VF)")
+        self.assertEqual(ohara.owned_name(rel, {"id": 99}, {}), "Naruto Shippuden")
+        self.assertEqual(ohara.owned_name(rel, {}, {"narutoshippuden": "NS"}), "NS")
 
     def test_prowlarr_key_from_its_config(self):
         cfg = self.root / "config.xml"
         cfg.write_text("<Config><ApiKey>abc123</ApiKey></Config>")
         with mock.patch.object(ohara, "PROWLARR_CONFIG", str(cfg)):
             self.assertEqual(ohara.prowlarr_key(), "abc123")
+
+
+class AniList(Library):
+    ANSWER = {"data": {"Page": {"media": [{"id": 5, "title": {"romaji": "Sousou no Frieren", "english": None},
+                                           "coverImage": {"extraLarge": None, "large": "http://c/l.jpg", "color": "#e4ae5d"},
+                                           "volumes": None, "status": "RELEASING", "startDate": {"year": 2020}}]}}}
+
+    def test_fetch(self):
+        with mock.patch.object(ohara, "http_json", return_value=self.ANSWER) as call:
+            meta = ohara.anilist_fetch("frieren")
+        self.assertEqual(meta, {"id": 5, "title": "Sousou no Frieren", "cover": "http://c/l.jpg", "color": "#e4ae5d", "status": "En cours", "volumes": None, "year": 2020})
+        self.assertEqual(call.call_args.kwargs["headers"]["User-Agent"], "Ohara/1.0")
+        with mock.patch.object(ohara, "http_json", return_value={"data": {"Page": {"media": []}}}):
+            self.assertEqual(ohara.anilist_fetch("zzz"), {})
+
+    def test_lookup_is_kept(self):
+        with mock.patch.object(ohara, "anilist_fetch", return_value={"id": 5}) as fetch:
+            self.assertEqual(ohara.lookup("Frieren"), {"id": 5})
+            self.assertEqual(ohara.lookup("frieren!"), {"id": 5})
+        fetch.assert_called_once()
+
+    def test_lookup_not_kept_when_anilist_is_down(self):
+        with mock.patch.object(ohara, "anilist_fetch", side_effect=OSError):
+            self.assertEqual(ohara.lookup("Frieren"), {})
+        self.assertEqual(ohara.load_state()["lookups"], {})
+
+    def test_refresh_meta_for_the_library(self):
+        cbz(self.root / "Frieren" / "T1.cbz", ["1.png"])
+        cbz(self.root / "Unknown" / "T1.cbz", ["1.png"])
+        ohara.save_state({"downloads": {"H": {"series": "Naruto"}}})
+        with mock.patch.object(ohara, "anilist_fetch", side_effect=lambda n: {"id": 5} if n == "Frieren" else {"id": 7} if n == "Naruto" else {}):
+            ohara.refresh_meta()
+        state = ohara.load_state()
+        self.assertEqual(state["series"]["Frieren"]["anilist"], 5)
+        self.assertNotIn("Unknown", state["series"])
+        self.assertEqual(state["lookups"]["unknown"], {})
+        self.assertEqual(state["lookups"]["naruto"], {"id": 7})
 
 
 class FakeResponse(io.BytesIO):
@@ -194,14 +287,24 @@ class Transmission(Library):
         up.assert_called_once()
 
     def test_grab_adds_and_remembers(self):
-        ohara.found_releases["t1"] = {"title": "Naruto [CBZ]", "series": "Naruto", "_url": "magnet:?n"}
-        with mock.patch.object(ohara, "rpc", return_value={"torrent-added": {"hashString": "H1"}}) as rpc:
+        ohara.found_releases["t1"] = {"title": "Naruto [CBZ]", "series": "Naruto", "range": None, "_url": "magnet:?n"}
+        with mock.patch.object(ohara, "rpc", return_value={"torrent-added": {"hashString": "H1"}}) as rpc, mock.patch.object(ohara, "lookup", return_value={}):
             done = ohara.grab("t1", "Naruto: Gaiden")
         self.assertEqual(done, {"series": "Naruto Gaiden", "hash": "H1"})
         args = rpc.call_args[0][1]
         self.assertEqual(args["filename"], "magnet:?n")
         self.assertTrue(args["download-dir"].startswith(ohara.TRANSMISSION_INCOMING + "/"))
         self.assertEqual(ohara.load_state()["downloads"]["H1"]["series"], "Naruto Gaiden")
+
+    def test_grab_and_follow(self):
+        ohara.found_releases["t2"] = {"title": "Frieren T01-T14", "series": "Frieren", "range": (1, 14), "_url": "magnet:?f"}
+        with mock.patch.object(ohara, "rpc", return_value={"torrent-duplicate": {"hashString": "H2"}}), mock.patch.object(ohara, "lookup", return_value={"id": 5}):
+            ohara.grab("t2", "", follow=True, query="frieren")
+        state = ohara.load_state()
+        self.assertEqual(state["series"]["Frieren"], {"follow": True, "query": "frieren", "anilist": 5})
+        self.assertEqual(state["downloads"]["H2"]["range"], [1, 14])
+        ohara.set_follow("Frieren", False)
+        self.assertFalse(ohara.load_state()["series"]["Frieren"]["follow"])
 
     def test_grab_unknown_token(self):
         with self.assertRaises(KeyError):
@@ -233,9 +336,19 @@ class Import(Library):
         (src / "readme.nfo").write_text("x")
         (self.root / "Naruto").mkdir()
         cbz(self.root / "Naruto" / "Naruto T01.cbz", ["1.png"])
+        (src / "Naruto" / "Bonus.cbz").write_bytes(b"x")
+        (self.root / "Naruto" / "Bonus.cbz").write_bytes(b"x")
         self.assertEqual(ohara.import_download(src, "Naruto"), 3)
         names = sorted(p.name for p in (self.root / "Naruto").iterdir())
-        self.assertEqual(names, ["Naruto T01 (2).cbz", "Naruto T01.cbz", "Naruto T02.cbz", "Naruto T03.pdf"])
+        self.assertEqual(names, ["Bonus (2).cbz", "Bonus.cbz", "Naruto T01.cbz", "Naruto T02.cbz", "Naruto T03.pdf"])
+
+    def test_tomes_already_there_are_left_out(self):
+        cbz(self.root / "Frieren" / "Frieren T01.cbz", ["1.png"])
+        src = self.root / ".incoming" / "f9"
+        for n in (1, 2):
+            cbz(src / f"Frieren - Tome {n:02d}.cbz", ["1.png"])
+        self.assertEqual(ohara.import_download(src, "Frieren"), 1)
+        self.assertEqual(sorted(p.name for p in (self.root / "Frieren").iterdir()), ["Frieren - Tome 02.cbz", "Frieren T01.cbz"])
 
     def test_cbr_is_unpacked_with_7zip(self):
         src = self.root / ".incoming" / "f2"
@@ -335,6 +448,7 @@ class Reading(Library):
         self.assertEqual(d["H2"]["state"], "done")
         self.assertEqual((d["H3"]["state"], d["H3"]["error"]), ("error", "no space"))
         self.assertEqual(d["H4"]["state"], "unknown")
+        self.assertIsNone(d["H1"]["cover"])
 
     def test_volume_pages_and_next_readable(self):
         ohara.save_progress("Naruto/Naruto T02.cbz", 1, 2)
@@ -352,11 +466,11 @@ class Reading(Library):
     def test_status_for_the_home_card(self):
         with mock.patch.object(ohara, "safe_torrents", return_value=[]):
             s = ohara.status()
-        self.assertEqual((s["series"], s["volumes"], s["downloads"], s["last"]), (1, 4, [], None))
+        self.assertEqual((s["series"], s["volumes"], s["new"], s["downloads"], s["last"]), (1, 4, 4, [], None))
 
     def test_broken_state_file(self):
         (self.root / ".ohara" / "state.json").write_text("{")
-        self.assertEqual(ohara.load_state(), {"downloads": {}, "progress": {}})
+        self.assertEqual(ohara.load_state(), {"downloads": {}, "progress": {}, "series": {}, "lookups": {}})
 
 
 class Http(Reading):
@@ -426,11 +540,65 @@ class Http(Reading):
         ohara.Handler.log_message(None, "x")
 
 
+class Follow(Library):
+    def rel(self, title, seeders=5, lang="FR"):
+        return {"title": title, "series": ohara.guess_series(title), "range": ohara.tome_range(title), "lang": lang, "seeders": seeders, "token": title}
+
+    def test_next_release_brings_the_next_tome(self):
+        for n in (1, 2, 3):
+            cbz(self.root / "Frieren" / f"T{n:02d}.cbz", ["1.png"])
+        state = {"downloads": {"H": {"series": "Frieren", "range": [4, 4]}, "X": {"series": "Other", "range": [1, 9]}, "Y": {"series": "Frieren"}}}
+        releases = [
+            self.rel("Frieren T01 à T14 FR", seeders=20),
+            self.rel("Frieren T06 - T14 FR", seeders=50),
+            self.rel("Frieren T05 FR", seeders=2),
+            self.rel("Frieren T05 - T06 FR", seeders=0),
+            self.rel("Frieren T15 eng", lang="EN"),
+            self.rel("Frieren Artbook FR"),
+        ]
+        self.assertEqual(ohara.next_release("Frieren", releases, state)["title"], "Frieren T01 à T14 FR")
+        self.assertEqual(ohara.next_release("Frieren", releases[1:], state)["title"], "Frieren T05 FR")
+        self.assertIsNone(ohara.next_release("Frieren", releases[3:], state))
+
+    def test_check_follows_grabs_for_followed_series_only(self):
+        cbz(self.root / "Frieren" / "T01.cbz", ["1.png"])
+        ohara.save_state({"series": {"Frieren": {"follow": True, "query": "frieren", "anilist": 5}, "Naruto": {"follow": False}}})
+        found = [self.rel("Sousou no Frieren T02 FR"), self.rel("Frieren Anthology T03 FR"), self.rel("Frieren T01 FR")]
+        facts = {"Sousou no Frieren": {"id": 5}, "Frieren Anthology": {"id": 6}, "Frieren": {"id": 5}}
+        with mock.patch.object(ohara, "find_releases", return_value=found) as find, mock.patch.object(ohara, "lookups", return_value=facts), \
+                mock.patch.object(ohara, "grab") as grab:
+            ohara.check_follows()
+        find.assert_called_once_with("frieren")
+        grab.assert_called_once_with("Sousou no Frieren T02 FR", "Frieren")
+        self.assertGreater(ohara.load_state()["followed_at"], 0)
+
+    def test_follows_are_due_every_twelve_hours(self):
+        self.assertTrue(ohara.follows_due())
+        ohara.save_state({"followed_at": ohara.time.time()})
+        self.assertFalse(ohara.follows_due())
+        with mock.patch.object(ohara, "check_downloads") as downloads, mock.patch.object(ohara, "check_follows") as follows:
+            ohara.tick()
+        downloads.assert_called_once()
+        follows.assert_not_called()
+
+    def test_series_info_missing_new_and_followed(self):
+        for n in (1, 2, 5):
+            cbz(self.root / "Frieren" / f"Frieren T{n:02d}.cbz", ["1.png"])
+        old = self.root / "Frieren" / "Frieren T01.cbz"
+        os.utime(old, (0, 0))
+        ohara.save_state({"series": {"Frieren": {"follow": True}}, "lookups": {"frieren": {"id": 5, "cover": "c"}},
+                          "progress": {"Frieren/Frieren T02.cbz": {"page": 3, "pages": 10, "at": 1}}})
+        info = ohara.series_info(self.root / "Frieren", ohara.load_state())
+        self.assertEqual((info["follow"], info["meta"]["cover"], info["missing"]), (True, "c", [3, 4]))
+        self.assertEqual([v["new"] for v in info["volumes"]], [False, False, True])
+        self.assertEqual(info["new"], 1)
+
+
 class Main(Library):
     def test_main_starts_the_watch_and_the_server(self):
         with mock.patch.object(ohara.threading, "Thread") as thread, mock.patch.object(ohara, "ThreadingHTTPServer") as server:
             ohara.main()
-        thread.return_value.start.assert_called_once()
+        self.assertEqual(thread.return_value.start.call_count, 2)
         server.return_value.serve_forever.assert_called_once()
         self.assertTrue((self.root / ".incoming").is_dir())
 
