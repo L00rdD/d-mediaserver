@@ -46,7 +46,9 @@ test("an empty library says how to start", async () => {
   assert.equal(card.hidden, false);
   assert.equal(text("state"), "0 series");
   assert.equal(text("queue"), "idle");
-  assert.equal(part("list").children[0].textContent, "Add a series in Suwayomi to follow its chapters.");
+  const hint = part("list").children[0].children[0];
+  assert.equal(hint.textContent, "Add a series in Suwayomi to follow its chapters.");
+  assert.equal(hint.style.gridColumn, "1 / -1");
 });
 
 test("missing parts are skipped", async () => {

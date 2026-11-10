@@ -55,6 +55,12 @@
     row.append(el("span", c.manga.title), el("span", c.name), el("span", ""), el("span", ago(c.fetchedAt)));
     list.append(row);
   }
-  if (!series) list.append(el("li", "Add a series in Suwayomi to follow its chapters."));
+  if (!series) {
+    const hint = el("span", "Add a series in Suwayomi to follow its chapters.");
+    hint.style.gridColumn = "1 / -1";
+    const row = el("li", "");
+    row.append(hint);
+    list.append(row);
+  }
   card.hidden = false;
 })();
