@@ -48,6 +48,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 | **[Prowlarr](https://prowlarr.com/)** | Indexer manager/proxy built to integrate with Sonarr/Radarr. | `9696` |
 | **[FlareSolverr](https://github.com/FlareSolverr/)**| Proxy server to bypass Cloudflare protection for indexers. | `8191` |
 | **[Gluetun](https://github.com/qdm12/gluetun)** | Optional VPN client that Transmission goes through (see VPN). | |
+| **[Suwayomi](https://github.com/Suwayomi/Suwayomi-Server)** | Optional manga reader and downloader (see Anime and Manga). | `4567` |
 
 ---
 
@@ -65,10 +66,14 @@ Each USB drive is mounted on its own under `/mnt/disks/`, and mergerfs merges th
     ├── complete/        # Finished downloads
     ├── incomplete/      # Active downloads
     ├── movies/          # Sorted movies
-    └── shows/           # Sorted TV shows
+    ├── shows/           # Sorted TV shows
+    ├── anime/           # Sorted anime series
+    └── manga/           # Manga (optional, see Manga)
+        ├── scans/       # Chapters downloaded by Suwayomi
+        └── local/       # Volumes you add yourself, one folder per series
 ```
 
-Inside every container the pool is mounted at `/data` (`/data/movies`, `/data/shows`, `/data/complete`, `/data/incomplete`).
+Inside every container the pool is mounted at `/data` (`/data/movies`, `/data/shows`, `/data/anime`, `/data/complete`, `/data/incomplete`).
 
 Good to know:
 
@@ -221,8 +226,8 @@ Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/s
 | :--- | :--- | :--- |
 | Transmission | Download / incomplete directory | `/data/complete`, `/data/incomplete` |
 | Radarr | Root folder | `/data/movies` |
-| Sonarr | Root folder | `/data/shows` |
-| Jellyfin | Libraries | `/data/movies`, `/data/shows` |
+| Sonarr | Root folders | `/data/shows`, `/data/anime` |
+| Jellyfin | Libraries | `/data/movies`, `/data/shows`, `/data/anime` (type *Shows*) |
 
 ---
 
@@ -403,7 +408,7 @@ services:
 docker compose up -d
 ```
 
-Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191 and 51413. `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
+Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191, 51413 and 4567 (with Suwayomi). `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
 
 ### 2. Give it the hub's look
 
@@ -434,6 +439,41 @@ KPIECE_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ```
 
 `KPIECE_WEBHOOK_URL` is optional: it is the webhook URL Discord gives you, as is (no `/slack` here). Without it the card still works. `docker compose logs kpiece` shows each scan it found.
+
+## 📚 Anime and Manga
+
+### Anime in VF or VOSTFR
+
+Anime go through Sonarr like any series, in their own folder and with their own indexers and profile:
+
+- **Indexers** (Prowlarr): [Nyaa.si](https://nyaa.si/) (with *Sonarr compatibility* on and *No remakes*) and Anime Tosho, next to YggReborn for the French releases. Prowlarr sends them to Sonarr's anime categories.
+- **Root folder** `/data/anime`, and a Jellyfin library *Animes* (type *Shows*) on it.
+- **Quality profile** *Anime VF / VOSTFR* (720p/1080p, minimum score 500), with these custom formats:
+
+| Custom format | Release title | Score |
+| :--- | :--- | ---: |
+| MULTi | `MULTi`, but not `Multi-Subs` or `Multi-Audio` | 1500 |
+| VOSTFR | `VOSTFR` | 1200 |
+| Subs FR (tag) | `[FRE]` in the list of subtitles (Erai-raws) | 1100 |
+| French (title) / French audio | `FRENCH`, `VF`… | 1000 |
+| Multi-Subs | `Multi-Subs`, `Multiple Subtitle` (Crunchyroll subtitles, French included most of the time) | 600 |
+
+A release with only English subtitles scores 0 and is never grabbed. When you add an anime, pick the series type *Anime*, the root folder `/data/anime` and this profile.
+
+### Manga (optional)
+
+[Suwayomi](https://github.com/Suwayomi/Suwayomi-Server) reads and downloads manga: the Mihon/Tachiyomi app as a server, with a web reader at `http://<pi>:4567`.
+
+- **Scans:** in *Browse → Extensions*, install a source (French ones under `fr`: Scan VF, Japscan, Lelscan-VF, AnimeSama, FMTEAM…), search a series and add it to the library. Turn on *Settings → Downloads → Download new chapters*: every new chapter found by the 12-hourly update is then downloaded as CBZ to `manga/scans`.
+- **Volumes** downloaded by torrent (Nyaa *Literature*, YggReborn *BD/Comics/Manga*): move them to `manga/local/<Series>/` and they show in the *Local source*.
+
+Sites protected by Cloudflare go through the stack's FlareSolverr; scan sites are often blocked by ISPs' DNS, so Suwayomi uses 1.1.1.1 like Prowlarr. Its Java heap is capped at 768 MB.
+
+Add the file to `COMPOSE_FILE` in your `.env`, then run `docker compose up -d`:
+
+```text
+COMPOSE_FILE=docker-compose.yml:docker-compose.manga.yml
+```
 
 ## 🖨️ Resin Printer (optional)
 
