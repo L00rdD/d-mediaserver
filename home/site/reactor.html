@@ -560,9 +560,9 @@
     /* One Piece card: hidden until the kpiece service writes /kpiece.json (see kpiece.js) */
     .kpiece { grid-area: kp; animation-delay: 0.7s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
-    /* Manga card: hidden until Suwayomi answers on port 4567 (see manga.js) */
-    .manga { grid-area: mg; animation-delay: 0.75s; }
-    .manga dd { font-variant-numeric: tabular-nums; }
+    /* Ohara card: hidden until the manga library answers on port 8585 (see ohara.js) */
+    .ohara { grid-area: mg; animation-delay: 0.75s; }
+    .ohara dd { font-variant-numeric: tabular-nums; }
     /* Bifrost card: hidden until bifrost answers on :8582 (see bifrost.js) */
     .errol { grid-area: er; animation-delay: 0.8s; }
     .bifrost { grid-area: bf; animation-delay: 0.75s; }
@@ -815,15 +815,15 @@
       <span class="tag bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></span>
     </a>
 
-    <a class="panel bot manga" id="manga" href="http://{{$host}}:4567" target="_blank" rel="noopener" hidden aria-label="Manga, read them on Suwayomi">
-      <span class="tag"><i>12</i> // Manga <span data-mg="state"></span></span>
+    <a class="panel bot ohara" id="ohara" href="http://{{$host}}:8585" target="_blank" rel="noopener" hidden aria-label="Ohara, open the manga library">
+      <span class="tag"><i>12</i> <span class="app-name">// <img class="app-logo" src="http://{{$host}}:8585/ohara.svg" alt="" width="22" height="22">Ohara</span> <span data-oh="state"></span></span>
       <dl class="bot-stats">
-        <div><dt>Unread</dt><dd data-mg="unread">–</dd></div>
-        <div><dt>Chapters saved</dt><dd data-mg="saved">–</dd></div>
-        <div><dt>Downloading</dt><dd data-mg="queue">–</dd></div>
+        <div><dt>Volumes</dt><dd data-oh="volumes">–</dd></div>
+        <div><dt>Downloading</dt><dd data-oh="downloads">–</dd></div>
+        <div><dt>Reading</dt><dd data-oh="reading">–</dd></div>
       </dl>
-      <ul class="bot-list" data-mg="list"></ul>
-      <span class="tag bot-foot"><span>Suwayomi</span><span class="bot-more">Read :4567 →</span></span>
+      <ul class="ss-list" data-oh="list"></ul>
+      <span class="tag bot-foot"><span>Manga library</span><span class="bot-more">Read :8585 →</span></span>
     </a>
 
     <div class="panel bot bifrost" id="bifrost" hidden>
@@ -886,7 +886,7 @@
         if (shown("trading-bot")) l.push(`The trading bot reports ${text('[data-tb="pnl"]')} so far.`);
         if (shown("bifrost")) l.push(`Bifrost reports ${text('[data-bf="state"]')}.`);
         if (shown("printer")) l.push(`The printer reports ${text('[data-pr="state"]')}, ${text('[data-pr="pct"]')} done.`);
-        if (shown("manga")) l.push(`Your manga shelf holds ${text('[data-mg="state"]')}, ${text('[data-mg="unread"]')} chapters unread.`);
+        if (shown("ohara")) l.push(`The Ohara library holds ${text('[data-oh="state"]')}, ${text('[data-oh="volumes"]')} volumes.`);
         if (shown("kpiece")) l.push(`One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
         l.push("Type a title above and I will find it.", "Transmission stays behind the VPN, as instructed.", "Uplink {{$host}} is stable.");
         return l;
@@ -912,7 +912,7 @@
   <script src="/trading-bot.js" defer></script>
   <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
-  <script src="/manga.js" defer></script>
+  <script src="/ohara.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>

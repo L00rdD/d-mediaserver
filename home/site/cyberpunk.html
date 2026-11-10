@@ -625,8 +625,8 @@
     @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
     .kpiece { animation-delay: 0.5s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
-    .manga { animation-delay: 0.55s; }
-    .manga dd { font-variant-numeric: tabular-nums; }
+    .ohara { animation-delay: 0.55s; }
+    .ohara dd { font-variant-numeric: tabular-nums; }
     /* Anycubic printer card: shown while the printer is on (see printer.js) */
     .printer { animation-delay: 0.6s; }
     .pr-row { display: flex; gap: 18px; align-items: center; }
@@ -866,15 +866,15 @@
       <div class="bot-head bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></div>
     </a>
 
-    <a class="bot manga" id="manga" href="http://{{$host}}:4567" target="_blank" rel="noopener" hidden aria-label="Manga, read them on Suwayomi">
-      <div class="bot-head"><span>12</span><span class="name">Manga</span><span data-mg="state"></span></div>
+    <a class="bot ohara" id="ohara" href="http://{{$host}}:8585" target="_blank" rel="noopener" hidden aria-label="Ohara, open the manga library">
+      <div class="bot-head"><span>12</span><span class="name"><img class="app-logo" src="http://{{$host}}:8585/ohara.svg" alt="" width="32" height="32">Ohara</span><span data-oh="state"></span></div>
       <dl class="bot-stats">
-        <div><dt>Unread</dt><dd data-mg="unread">–</dd></div>
-        <div><dt>Chapters saved</dt><dd data-mg="saved">–</dd></div>
-        <div><dt>Downloading</dt><dd data-mg="queue">–</dd></div>
+        <div><dt>Volumes</dt><dd data-oh="volumes">–</dd></div>
+        <div><dt>Downloading</dt><dd data-oh="downloads">–</dd></div>
+        <div><dt>Reading</dt><dd data-oh="reading">–</dd></div>
       </dl>
-      <ul class="bot-list" data-mg="list"></ul>
-      <div class="bot-head bot-foot"><span>Suwayomi</span><span class="bot-more">Read :4567 →</span></div>
+      <ul class="ss-list" data-oh="list"></ul>
+      <div class="bot-head bot-foot"><span>Manga library</span><span class="bot-more">Read :8585 →</span></div>
     </a>
 
     <div class="bot bifrost" id="bifrost" hidden>
@@ -941,7 +941,7 @@
   <script src="/trading-bot.js" defer></script>
   <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
-  <script src="/manga.js" defer></script>
+  <script src="/ohara.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>

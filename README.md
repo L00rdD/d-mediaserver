@@ -48,7 +48,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 | **[Prowlarr](https://prowlarr.com/)** | Indexer manager/proxy built to integrate with Sonarr/Radarr. | `9696` |
 | **[FlareSolverr](https://github.com/FlareSolverr/)**| Proxy server to bypass Cloudflare protection for indexers. | `8191` |
 | **[Gluetun](https://github.com/qdm12/gluetun)** | Optional VPN client that Transmission goes through (see VPN). | |
-| **[Suwayomi](https://github.com/Suwayomi/Suwayomi-Server)** | Optional manga reader and downloader (see Anime and Manga). | `4567` |
+| **Ohara** | Optional manga library: finds volumes through Prowlarr, downloads and reads them (see Anime and Manga). | `8585` |
 
 ---
 
@@ -68,9 +68,7 @@ Each USB drive is mounted on its own under `/mnt/disks/`, and mergerfs merges th
     ├── movies/          # Sorted movies
     ├── shows/           # Sorted TV shows
     ├── anime/           # Sorted anime series
-    └── manga/           # Manga (optional, see Manga)
-        ├── scans/       # Chapters downloaded by Suwayomi
-        └── local/       # Volumes you add yourself, one folder per series
+    └── manga/           # Manga volumes, one folder per series (optional, see Ohara)
 ```
 
 Inside every container the pool is mounted at `/data` (`/data/movies`, `/data/shows`, `/data/anime`, `/data/complete`, `/data/incomplete`).
@@ -408,7 +406,7 @@ services:
 docker compose up -d
 ```
 
-Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191, 51413 and 4567 (with Suwayomi). `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
+Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191, 51413 and 8585 (with Ohara). `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
 
 ### 2. Give it the hub's look
 
@@ -460,22 +458,23 @@ Anime go through Sonarr like any series, in their own folder and with their own 
 
 A release with only English subtitles scores 0 and is never grabbed. When you add an anime, pick the series type *Anime*, the root folder `/data/anime` and this profile.
 
-### Manga (optional)
+### Manga: Ohara (optional)
 
-[Suwayomi](https://github.com/Suwayomi/Suwayomi-Server) reads and downloads manga: the Mihon/Tachiyomi app as a server, with a web reader at `http://<pi>:4567`.
+Ohara is a manga library made for this stack, on `http://<pi>:8585`: one page to find volumes, download them and read them.
 
-- **Scans:** in *Browse → Extensions*, install a source (French ones under `fr`: Scan VF, Japscan, Lelscan-VF, AnimeSama, FMTEAM…), search a series and add it to the library. Turn on *Settings → Downloads → Download new chapters*: every new chapter found by the 12-hourly update is then downloaded as CBZ to `manga/scans`.
-- **Volumes** downloaded by torrent (Nyaa *Literature*, YggReborn *BD/Comics/Manga*): move them to `manga/local/<Series>/` and they show in the *Local source*.
+- **Search:** type a title. Ohara asks Prowlarr for books (the *Books* category) on YggReborn, Nyaa.si and Knaben (`OHARA_INDEXERS` to change them) and keeps only manga volumes: no videos, music or adult releases. French releases come first; a release of a French tracker counts as French unless its title says otherwise.
+- **Add:** pick the series name (guessed from the title, editable; the names of the series already there are suggested) and Ohara sends the torrent to Transmission, so it goes through the VPN. When the download is done, the volumes are filed in `manga/<Series>/` and the torrent is removed (no seeding). `.zip` becomes `.cbz`, `.cbr`/`.cb7` are converted to `.cbz` with 7-Zip, a release of plain images becomes one `.cbz` per folder; PDF and EPUB are kept as they are and open in the browser.
+- **Read:** the shelf shows each series with its cover, then its volumes with where you are in each. The reader goes right to left by default (a tap on the left turns the page, the arrow keys too), one page or two side by side, fitted to the height or the width; it preloads the next pages, offers the next volume at the end, and saves the page reached on the Pi, so the phone picks up where the computer stopped.
 
-The home page then shows a *Manga* card (*Flourish and Blotts* in Hogwarts): series followed, unread chapters, chapters saved, downloads going on and the last chapters downloaded; it opens Suwayomi. It stays hidden while Suwayomi does not answer.
+Ohara keeps its state (downloads under way, reading progress, covers) in `manga/.ohara/`. It reads Prowlarr's API key from `config/prowlarr/config.xml`. The home page shows an *Ohara* card (*Flourish and Blotts* in Hogwarts): series, volumes, downloads under way and the volume being read.
 
-Sites protected by Cloudflare go through the stack's FlareSolverr; scan sites are often blocked by ISPs' DNS, so Suwayomi uses 1.1.1.1 like Prowlarr. Its Java heap is capped at 768 MB.
-
-Add the file to `COMPOSE_FILE` in your `.env`, then run `docker compose up -d`:
+Add the file to `COMPOSE_FILE` in your `.env`, then run `docker compose up -d --build` (the image adds Pillow and 7-Zip to Python):
 
 ```text
-COMPOSE_FILE=docker-compose.yml:docker-compose.manga.yml
+COMPOSE_FILE=docker-compose.yml:docker-compose.ohara.yml
 ```
+
+Its tests: `python3 -m unittest ohara/test_ohara.py` and `node --test ohara/tests/`.
 
 ## 🖨️ Resin Printer (optional)
 

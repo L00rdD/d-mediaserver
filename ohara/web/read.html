@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ohara</title>
+  <link rel="icon" href="/ohara.svg">
+  <link rel="stylesheet" href="/reader.css">
+</head>
+<body>
+  <div class="stage" id="stage" data-dir="rtl" data-fit="height"></div>
+
+  <header class="bar" id="top">
+    <a class="btn" id="back" href="/">← Bibliothèque</a>
+    <span class="title" id="title"></span>
+    <span class="count" id="count"></span>
+  </header>
+  <footer class="bar" id="bottom">
+    <input type="range" id="slider" min="1" value="1" aria-label="Page">
+    <button class="btn" id="dir" type="button"></button>
+    <button class="btn" id="mode" type="button"></button>
+    <button class="btn" id="fit" type="button"></button>
+  </footer>
+
+  <div class="end" id="end" hidden>
+    <p id="end-text">Fin du tome</p>
+    <a class="btn main" id="next-volume" hidden>Tome suivant →</a>
+    <a class="btn" id="end-back" href="/">Retour à la bibliothèque</a>
+    <button class="btn" id="end-stay" type="button">Revenir à la dernière page</button>
+  </div>
+  <script src="/reader.js" defer></script>
+</body>
+</html>

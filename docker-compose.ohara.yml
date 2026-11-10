@@ -1,0 +1,23 @@
+# Optional: Ohara, a manga library on port 8585. It searches volumes through
+# Prowlarr (YggReborn, Nyaa.si, Knaben by default), downloads them with
+# Transmission, files them in manga/<Series>/ and has a reader in the browser.
+# Switch it on in .env:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.ohara.yml
+services:
+  ohara:
+    build: ./ohara
+    image: ohara:local
+    container_name: ohara
+    init: true
+    user: ${PUID:-1000}:${PGID:-1000}
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      # Prowlarr indexers to search, by their name in Prowlarr
+      - OHARA_INDEXERS=${OHARA_INDEXERS:-YggReborn,Nyaa.si,Knaben}
+    volumes:
+      - ./ohara:/app:ro
+      - ${DATA_ROOT:-/mnt/storage}/manga:/manga
+      - ./config/prowlarr/config.xml:/config/prowlarr/config.xml:ro
+    ports:
+      - 8585:8585
+    restart: unless-stopped
