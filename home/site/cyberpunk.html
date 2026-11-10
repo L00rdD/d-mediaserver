@@ -625,6 +625,8 @@
     @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
     .kpiece { animation-delay: 0.5s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
+    .manga { animation-delay: 0.55s; }
+    .manga dd { font-variant-numeric: tabular-nums; }
     /* Anycubic printer card: shown while the printer is on (see printer.js) */
     .printer { animation-delay: 0.6s; }
     .pr-row { display: flex; gap: 18px; align-items: center; }
@@ -864,6 +866,17 @@
       <div class="bot-head bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></div>
     </a>
 
+    <a class="bot manga" id="manga" href="http://{{$host}}:4567" target="_blank" rel="noopener" hidden aria-label="Manga, read them on Suwayomi">
+      <div class="bot-head"><span>12</span><span class="name">Manga</span><span data-mg="state"></span></div>
+      <dl class="bot-stats">
+        <div><dt>Unread</dt><dd data-mg="unread">–</dd></div>
+        <div><dt>Chapters saved</dt><dd data-mg="saved">–</dd></div>
+        <div><dt>Downloading</dt><dd data-mg="queue">–</dd></div>
+      </dl>
+      <ul class="bot-list" data-mg="list"></ul>
+      <div class="bot-head bot-foot"><span>Suwayomi</span><span class="bot-more">Read :4567 →</span></div>
+    </a>
+
     <div class="bot bifrost" id="bifrost" hidden>
       <a class="bf-open" href="http://{{$host}}:8582" target="_blank" rel="noopener" aria-label="Bifrost, open its dashboard"></a>
       <div class="bot-head"><span>08</span><span class="name">Bifrost</span><span data-bf="state"></span></div>
@@ -928,6 +941,7 @@
   <script src="/trading-bot.js" defer></script>
   <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
+  <script src="/manga.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>

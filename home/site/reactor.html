@@ -257,6 +257,7 @@
         "bot bot bot"
         "mand mand mand"
         "kp kp kp"
+        "mg mg mg"
         "bf bf bf"
         "er er er"
         "cb cb cb"
@@ -559,6 +560,9 @@
     /* One Piece card: hidden until the kpiece service writes /kpiece.json (see kpiece.js) */
     .kpiece { grid-area: kp; animation-delay: 0.7s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
+    /* Manga card: hidden until Suwayomi answers on port 4567 (see manga.js) */
+    .manga { grid-area: mg; animation-delay: 0.75s; }
+    .manga dd { font-variant-numeric: tabular-nums; }
     /* Bifrost card: hidden until bifrost answers on :8582 (see bifrost.js) */
     .errol { grid-area: er; animation-delay: 0.8s; }
     .bifrost { grid-area: bf; animation-delay: 0.75s; }
@@ -633,6 +637,7 @@
           "bot bot"
           "mand mand"
           "kp kp"
+          "mg mg"
           "bf bf"
           "er er"
           "cb cb"
@@ -650,7 +655,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "mand" "kp" "bf" "er" "cb" "pr";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "mand" "kp" "mg" "bf" "er" "cb" "pr";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -810,6 +815,17 @@
       <span class="tag bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></span>
     </a>
 
+    <a class="panel bot manga" id="manga" href="http://{{$host}}:4567" target="_blank" rel="noopener" hidden aria-label="Manga, read them on Suwayomi">
+      <span class="tag"><i>12</i> // Manga <span data-mg="state"></span></span>
+      <dl class="bot-stats">
+        <div><dt>Unread</dt><dd data-mg="unread">–</dd></div>
+        <div><dt>Chapters saved</dt><dd data-mg="saved">–</dd></div>
+        <div><dt>Downloading</dt><dd data-mg="queue">–</dd></div>
+      </dl>
+      <ul class="bot-list" data-mg="list"></ul>
+      <span class="tag bot-foot"><span>Suwayomi</span><span class="bot-more">Read :4567 →</span></span>
+    </a>
+
     <div class="panel bot bifrost" id="bifrost" hidden>
       <a class="bf-open" href="http://{{$host}}:8582" target="_blank" rel="noopener" aria-label="Bifrost, open its dashboard"></a>
       <span class="tag"><i>08</i> // Bifrost <span data-bf="state"></span></span>
@@ -870,6 +886,7 @@
         if (shown("trading-bot")) l.push(`The trading bot reports ${text('[data-tb="pnl"]')} so far.`);
         if (shown("bifrost")) l.push(`Bifrost reports ${text('[data-bf="state"]')}.`);
         if (shown("printer")) l.push(`The printer reports ${text('[data-pr="state"]')}, ${text('[data-pr="pct"]')} done.`);
+        if (shown("manga")) l.push(`Your manga shelf holds ${text('[data-mg="state"]')}, ${text('[data-mg="unread"]')} chapters unread.`);
         if (shown("kpiece")) l.push(`One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
         l.push("Type a title above and I will find it.", "Transmission stays behind the VPN, as instructed.", "Uplink {{$host}} is stable.");
         return l;
@@ -895,6 +912,7 @@
   <script src="/trading-bot.js" defer></script>
   <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
+  <script src="/manga.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>

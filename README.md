@@ -467,6 +467,8 @@ A release with only English subtitles scores 0 and is never grabbed. When you ad
 - **Scans:** in *Browse → Extensions*, install a source (French ones under `fr`: Scan VF, Japscan, Lelscan-VF, AnimeSama, FMTEAM…), search a series and add it to the library. Turn on *Settings → Downloads → Download new chapters*: every new chapter found by the 12-hourly update is then downloaded as CBZ to `manga/scans`.
 - **Volumes** downloaded by torrent (Nyaa *Literature*, YggReborn *BD/Comics/Manga*): move them to `manga/local/<Series>/` and they show in the *Local source*.
 
+The home page then shows a *Manga* card (*Flourish and Blotts* in Hogwarts): series followed, unread chapters, chapters saved, downloads going on and the last chapters downloaded; it opens Suwayomi. It stays hidden while Suwayomi does not answer.
+
 Sites protected by Cloudflare go through the stack's FlareSolverr; scan sites are often blocked by ISPs' DNS, so Suwayomi uses 1.1.1.1 like Prowlarr. Its Java heap is capped at 768 MB.
 
 Add the file to `COMPOSE_FILE` in your `.env`, then run `docker compose up -d`:
