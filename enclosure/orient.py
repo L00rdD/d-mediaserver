@@ -37,6 +37,12 @@ REAR_DOWN = {"disk", "riser", "hub"}   # tilt across the plate with the rear (+y
 # printed roof down, it is a corner of the eave, which cannot come under 46 mm
 # (the roof and the stack are that tall), so the lid takes the lowest it can get.
 HIGH = 40
+# Parts printed at a set tilt (across, along) instead of the search above. The
+# lid, hollowed on 2026-10-31 (no plate under the roof), leans 25 degrees along
+# the plate: its largest layer drops to about 2,000 mm2, the size of the disk
+# that printed, at the cost of supports up to the eave corner about 90 mm up
+# (coupon_lid.scad tests that corner first). Across the plate it has no room.
+FIXED = {"lid": (0, 25)}
 
 here = pathlib.Path(__file__).parent
 src, out = here / "stl", here / "stl" / "print"
@@ -87,7 +93,6 @@ def write(path, tris):
     path.write_bytes(buf)
 
 
-out.mkdir(exist_ok=True)
 def hanging(pts, flip):
     """The points whose height above the plate sets the tallest supports: the
     bottom of the plug for a tray, the top of the eave for the lid."""
@@ -97,10 +102,9 @@ def hanging(pts, flip):
     return [p for p in pts if p[2] - z0 < 0.6]
 
 
-for name, flip in PARTS.items():
-    tris = read(src / f"{name}.stl")
-    pts = list({p for t in tris for p in t})
-    low = hanging(pts, flip)
+def search(name, flip, pts, low):
+    """(tilt across, tilt along, key, highest support point) of the best tilt
+    that fits on the plate, or None."""
     best = None
     sx = -1 if name in REAR_DOWN else 1
     for ay in range(MAX_ALONG.get(name, MAX_TILT), MIN_TILT - 1, -1):
@@ -115,9 +119,18 @@ for name, flip in PARTS.items():
             key = (high <= HIGH, abs(ax) + ay if high <= HIGH else -high)
             if best is None or key > best[2]:
                 best = (ax, ay, key, high)
-    if not best:
-        print(f"{name}: does not fit on the plate tilted by {MIN_TILT} degrees or more")
-        continue
+    return best
+
+
+def fixed_tilt(name, flip, pts, low):
+    ax, ay = FIXED[name]
+    m = rot(ax, ay, flip)
+    lo, hi = bbox([apply(m, p) for p in pts])
+    return (ax, ay, None, max(apply(m, p)[2] for p in low) - lo[2])
+
+
+def place(name, flip, tris, best):
+    """Write the part tilted by best, centred on the plate, standing on z = 0."""
     m = rot(best[0], best[1], flip)
     moved = [tuple(apply(m, p) for p in t) for t in tris]
     lo, hi = bbox([p for t in moved for p in t])
@@ -127,3 +140,26 @@ for name, flip in PARTS.items():
     size = [hi[i] - lo[i] for i in range(3)]
     print(f"{name}: tilted {best[0]} x {best[1]} deg{', upside down' if flip else ''}, "
           f"{size[0]:.0f} x {size[1]:.0f} x {size[2]:.0f} mm, highest support point {best[3]:.0f} mm")
+
+
+def orient(name, flip):
+    tris = read(src / f"{name}.stl")
+    pts = list({p for t in tris for p in t})
+    low = hanging(pts, flip)
+    best = search(name, flip, pts, low)
+    if name in FIXED:
+        best = fixed_tilt(name, flip, pts, low)
+    if not best:
+        print(f"{name}: does not fit on the plate tilted by {MIN_TILT} degrees or more")
+        return
+    place(name, flip, tris, best)
+
+
+def main():
+    out.mkdir(exist_ok=True)
+    for name, flip in PARTS.items():
+        orient(name, flip)
+
+
+if __name__ == "__main__":
+    main()

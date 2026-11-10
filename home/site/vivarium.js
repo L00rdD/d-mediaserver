@@ -12,7 +12,7 @@
 // Poly Haven models (CC0), and their creatures are real models (Sketchfab, CC-BY), animated:
 //   night      the media apps under the Milky Way (Jellyfin calls Fawkes close)
 //   cave       the Niffler's den, the Niffler on its gold (the trading bot)
-//   forest     the Bowtruckle's tree, Pickett on his stump (Sapling Sunrise)
+//   forest     the Bowtruckle's tree, Pickett on his stump (Mandrake)
 //   mist       pines in the mist, a hippogriff that rears up when you come (Bifrost)
 // Fawkes, Dumbledore's phoenix, goes with you through every world; Hedwig flies across now and then.
 //   shed       Newt's shed, an owl under the rafters (Errol)
@@ -595,7 +595,7 @@ const DEFS = {
     },
     wake(w) { burst(w, new T.Vector3(1.8, 0.4, -3.1), 50, { speed: 2, size: 0.08, color: [3, 2.2, 0.8] }); },
   },
-  // the Bowtruckle's tree (Sapling Sunrise): a mossy forest, Pickett on his stump
+  // the Bowtruckle's tree (Mandrake): a mossy forest, Pickett on his stump
   forest: {
     hdri: "mossy_forest", height: 2, radius: 70, grade: [0.75, 0.88, 0.8], env: 0.9, turn: 0.7, free: -1,
     cam: [0, 1.4, 3.6], look: [0, 1.2, -6],
@@ -725,15 +725,17 @@ const leatherTexture = () => {
   t.anisotropy = 8;
   return t;
 };
-const buildCase = () => {
-  caseScene.environment = pmrem.fromScene(new T.RoomEnvironment(), 0.04).texture;
-  caseScene.environmentIntensity = 0.35;
-  caseScene.background = new T.Color(0x040305);
-  caseScene.fog = new T.Fog(0x040305, 9, 26);
+// the case's size: width, height of the body and of the lid, depth
+const CASE = { W: 4.4, Hb: 1.15, Hl: 0.55, D: 2.6 };
+const caseMaterials = () => {
   const leather = new T.MeshStandardMaterial({ map: leatherTexture(), roughness: 0.62, metalness: 0, bumpScale: 1.5 });
   leather.bumpMap = leather.map;
   const darkLeather = new T.MeshStandardMaterial({ color: 0x2e1a0c, roughness: 0.7 });
   const brass = new T.MeshStandardMaterial({ color: 0xc4934a, roughness: 0.38, metalness: 1 });
+  return { leather, darkLeather, brass };
+};
+// a dark floor under a warm spot, a cold light from behind
+const caseRoom = () => {
   const floor = new T.Mesh(new T.PlaneGeometry(60, 60), new T.MeshStandardMaterial({ color: 0x0e0a08, roughness: 0.95 }));
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
@@ -747,17 +749,18 @@ const buildCase = () => {
   const back = new T.DirectionalLight(0x6fa8ff, 1.2);
   back.position.set(-6, 4, -8);
   caseScene.add(back, new T.AmbientLight(0x30261e, 0.6));
-
-  const g = new T.Group();
-  const W = 4.4, Hb = 1.15, Hl = 0.55, D = 2.6;
-  const body = new T.Mesh(new T.RoundedBoxGeometry(W, Hb, D, 5, 0.16), leather);
+};
+// the body, and the lid on its hinge (pivot)
+const caseBox = (g, m) => {
+  const { W, Hb, Hl, D } = CASE;
+  const body = new T.Mesh(new T.RoundedBoxGeometry(W, Hb, D, 5, 0.16), m.leather);
   body.position.y = Hb / 2;
   body.castShadow = body.receiveShadow = true;
   g.add(body);
   const pivot = new T.Group();
   pivot.position.set(0, Hb, -D / 2);
   g.add(pivot);
-  const lid = new T.Mesh(new T.RoundedBoxGeometry(W, Hl, D, 5, 0.16), leather);
+  const lid = new T.Mesh(new T.RoundedBoxGeometry(W, Hl, D, 5, 0.16), m.leather);
   lid.position.set(0, Hl / 2, D / 2);
   lid.castShadow = true;
   pivot.add(lid);
@@ -766,38 +769,52 @@ const buildCase = () => {
   lining.rotation.x = Math.PI / 2;
   lining.position.set(0, 0.02, D / 2);
   pivot.add(lining);
-  // brass corners
+  return pivot;
+};
+// brass corners
+const caseCorners = (g, pivot, m) => {
+  const { W, Hl, D } = CASE;
   const corner = new T.RoundedBoxGeometry(0.42, 0.42, 0.42, 3, 0.08);
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const cb = new T.Mesh(corner, brass);
+    const cb = new T.Mesh(corner, m.brass);
     cb.position.set(sx * (W / 2 - 0.15), 0.16, sz * (D / 2 - 0.15));
     cb.castShadow = true;
     g.add(cb);
-    const ct = new T.Mesh(corner, brass);
+    const ct = new T.Mesh(corner, m.brass);
     ct.position.set(sx * (W / 2 - 0.15), Hl - 0.16, D / 2 + sz * (D / 2 - 0.15));
     pivot.add(ct);
   }
-  // clasps on the front, over the seam
+};
+// clasps on the front, over the seam
+const caseClasps = (g, m) => {
+  const { Hb, D } = CASE;
   const clasps = [];
   for (const sx of [-1, 1]) {
     const cp = new T.Group();
     cp.position.set(sx * 1.25, Hb - 0.2, D / 2 + 0.03);
-    const plate = new T.Mesh(new T.RoundedBoxGeometry(0.42, 0.5, 0.09, 2, 0.03), brass);
+    const plate = new T.Mesh(new T.RoundedBoxGeometry(0.42, 0.5, 0.09, 2, 0.03), m.brass);
     plate.position.y = 0.25;
     cp.add(plate);
-    const latch = new T.Mesh(new T.BoxGeometry(0.16, 0.08, 0.06), darkLeather);
+    const latch = new T.Mesh(new T.BoxGeometry(0.16, 0.08, 0.06), m.darkLeather);
     latch.position.set(0, 0.08, 0.05);
     cp.add(latch);
     g.add(cp);
     clasps.push(cp);
   }
-  // the handle on the front, hanging, with its brass fittings
-  const handle = new T.Mesh(new T.TorusGeometry(0.42, 0.075, 12, 40, Math.PI), darkLeather);
+  return clasps;
+};
+// the handle on the front, hanging, with its brass fittings
+const caseHandle = (g, m) => {
+  const { Hb, D } = CASE;
+  const handle = new T.Mesh(new T.TorusGeometry(0.42, 0.075, 12, 40, Math.PI), m.darkLeather);
   handle.rotation.set(Math.PI / 2 + 0.35, 0, 0);
   handle.position.set(0, Hb - 0.05, D / 2 + 0.06);
   g.add(handle);
-  for (const sx of [-1, 1]) { const f = new T.Mesh(new T.CylinderGeometry(0.07, 0.07, 0.12, 16), brass); f.rotation.x = Math.PI / 2; f.position.set(sx * 0.42, Hb - 0.05, D / 2 + 0.04); g.add(f); }
-  // the dial on the lid: Muggle worthy
+  for (const sx of [-1, 1]) { const f = new T.Mesh(new T.CylinderGeometry(0.07, 0.07, 0.12, 16), m.brass); f.rotation.x = Math.PI / 2; f.position.set(sx * 0.42, Hb - 0.05, D / 2 + 0.04); g.add(f); }
+};
+// the dial on the lid: Muggle worthy; returns its lever
+const caseDial = (pivot, m) => {
+  const { Hl, D } = CASE;
   const dc = document.createElement("canvas");
   dc.width = dc.height = 256;
   const dg = dc.getContext("2d");
@@ -806,15 +823,19 @@ const buildCase = () => {
   dg.fillText("MUGGLE", 128, 92); dg.fillText("WORTHY", 128, 196);
   const dialTex = new T.CanvasTexture(dc);
   dialTex.colorSpace = T.SRGBColorSpace;
-  const dial = new T.Mesh(new T.CylinderGeometry(0.34, 0.36, 0.06, 40), [brass, new T.MeshStandardMaterial({ map: dialTex, roughness: 0.5 }), brass]);
+  const dial = new T.Mesh(new T.CylinderGeometry(0.34, 0.36, 0.06, 40), [m.brass, new T.MeshStandardMaterial({ map: dialTex, roughness: 0.5 }), m.brass]);
   dial.position.set(1.35, Hl + 0.03, D / 2 + 0.55);
   pivot.add(dial);
-  const lever = new T.Mesh(new T.BoxGeometry(0.04, 0.03, 0.26), brass);
+  const lever = new T.Mesh(new T.BoxGeometry(0.04, 0.03, 0.26), m.brass);
   lever.geometry.translate(0, 0, 0.11);
   lever.position.set(1.35, Hl + 0.08, D / 2 + 0.55);
   lever.rotation.y = Math.PI * 0.85;
   pivot.add(lever);
-  // the luggage tag
+  return lever;
+};
+// the luggage tag
+const caseTag = (g) => {
+  const { Hb, D } = CASE;
   const tc = document.createElement("canvas");
   tc.width = 256; tc.height = 128;
   const tg = tc.getContext("2d");
@@ -826,7 +847,10 @@ const buildCase = () => {
   tag.position.set(0.55, Hb - 0.42, D / 2 + 0.1);
   tag.rotation.set(-0.15, 0.2, 0.25);
   g.add(tag);
-  // what is inside: black, bottomless, with a light rising from the depths, and the top of the ladder
+};
+// what is inside: black, bottomless, with a light rising from the depths
+const caseGlow = (g) => {
+  const { W, Hb, D } = CASE;
   const glow = new T.Mesh(new T.PlaneGeometry(W - 0.26, D - 0.26), new T.ShaderMaterial({
     uniforms: { uL: { value: 0 }, uTime: { value: 0 } },
     vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -842,17 +866,22 @@ const buildCase = () => {
   glow.rotation.x = -Math.PI / 2;
   glow.position.y = Hb + 0.006;
   g.add(glow);
+  return glow;
+};
+// and the top of the ladder
+const caseLadder = (g) => {
   const wood = new T.MeshStandardMaterial({ color: 0x4a3220, roughness: 0.8 });
   const ladder = new T.Group();
   for (const sx of [-0.28, 0.28]) { const rail = new T.Mesh(new T.BoxGeometry(0.06, 1.3, 0.06), wood); rail.position.set(sx, 0, 0); ladder.add(rail); }
   for (let y = -0.5; y < 0.6; y += 0.28) { const rung = new T.Mesh(new T.CylinderGeometry(0.022, 0.022, 0.56, 8), wood); rung.rotation.z = Math.PI / 2; rung.position.y = y; ladder.add(rung); }
-  ladder.position.set(-0.6, Hb + 0.05, -0.55);
+  ladder.position.set(-0.6, CASE.Hb + 0.05, -0.55);
   ladder.rotation.x = -0.28;
   ladder.visible = false;
   g.add(ladder);
-  const inner = new T.PointLight(0xffd090, 0, 12, 1.5);
-  inner.position.set(0, Hb + 0.6, 0);
-  g.add(inner);
+  return ladder;
+};
+// rays of light out of the open case
+const caseRays = (g) => {
   const rayMat = new T.ShaderMaterial({
     uniforms: { uA: { value: 0 } },
     vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -863,15 +892,37 @@ const buildCase = () => {
   for (let k = 0; k < 9; k++) {
     const r = new T.Mesh(new T.PlaneGeometry(rand(0.4, 1.1), 9), rayMat);
     r.geometry.translate(0, 4.5, 0);
-    r.position.set(rand(-1.6, 1.6), Hb, rand(-0.8, 0.8));
+    r.position.set(rand(-1.6, 1.6), CASE.Hb, rand(-0.8, 0.8));
     r.rotation.set(rand(-0.15, 0.15), rand(0, Math.PI), rand(-0.25, 0.25));
     rays.add(r);
   }
   rays.scale.y = 0.001;
   g.add(rays);
+  return { rays, rayMat };
+};
+const buildCase = () => {
+  caseScene.environment = pmrem.fromScene(new T.RoomEnvironment(), 0.04).texture;
+  caseScene.environmentIntensity = 0.35;
+  caseScene.background = new T.Color(0x040305);
+  caseScene.fog = new T.Fog(0x040305, 9, 26);
+  const m = caseMaterials();
+  caseRoom();
+  const g = new T.Group();
+  const pivot = caseBox(g, m);
+  caseCorners(g, pivot, m);
+  const clasps = caseClasps(g, m);
+  caseHandle(g, m);
+  const lever = caseDial(pivot, m);
+  caseTag(g);
+  const glow = caseGlow(g);
+  const ladder = caseLadder(g);
+  const inner = new T.PointLight(0xffd090, 0, 12, 1.5);
+  inner.position.set(0, CASE.Hb + 0.6, 0);
+  g.add(inner);
+  const { rays, rayMat } = caseRays(g);
   caseScene.add(g);
   caseScene.add(caseSparks.points);
-  return { g, pivot, clasps, lever, glow, ladder, inner, rays, rayMat, t: 0, done: false, D, Hb };
+  return { g, pivot, clasps, lever, glow, ladder, inner, rays, rayMat, t: 0, done: false, D: CASE.D, Hb: CASE.Hb };
 };
 
 // ================================================================ FAWKES AND HEDWIG
@@ -902,55 +953,63 @@ const hedwig = () => {
   if (!pals.hedwig && !hedwigAsked) { hedwigAsked = true; later(fetchHedwig); return true; } // she comes once loaded
   const h = pals.hedwig;
   if (!h || h.t >= 0 || (intro && !intro.done)) return false;
-  Object.assign(h, { t: 0, dir: Math.random() < 0.5 ? 1 : -1, y: rand(0.35, 0.6), depth: rand(4.5, 6) });
+  Object.assign(h, { t: 0, dir: (Math.random() < 0.5) ? 1 : -1, y: rand(0.35, 0.6), depth: rand(4.5, 6) });
   return true;
 };
 window.Vivarium = { hedwig };
 let nextHedwig = rand(40, 70);
 const into = (o, scene) => { if (o.parent !== scene) scene.add(o); };
 const tmpV = new T.Vector3(), tmpD = new T.Vector3();
+// Fawkes: off on the free side, now and then over to the other side or away out of sight;
+// Jellyfin calls him close. v = { cam, th, asp }: the camera and the half size of its view at 1 m
+const fawkesTarget = (w, f, v, called) => {
+  const side = w.def.free ?? 1;
+  if (called) { const d = 6; f.target.set(side * 0.5 * d * v.th * v.asp, 0.15 * d * v.th, -d); }
+  else if (f.next < 0 || f.p.distanceTo(f.target) < 0.8) {
+    const d = rand(6, 13), hw = d * v.th * v.asp, hh = d * v.th;
+    const cross = Math.random() < 0.18; // now and then over to the other side, or away out of sight
+    f.target.set(cross ? -side * rand(0.3, 1.3) * hw : side * rand(0.3, 0.85) * hw, rand(-0.05, 0.7) * hh, -d);
+    f.next = rand(4, 8);
+  }
+};
+const stepFawkes = (w, f, dt, v) => {
+  const cam = v.cam;
+  into(f.holder, w.scene);
+  const called = worlds.night.excite > 0.5 && w === worlds.night;
+  f.next -= dt;
+  fawkesTarget(w, f, v, called);
+  tmpD.copy(f.target).sub(f.p).normalize().multiplyScalar(called ? 3.2 : 2.2);
+  f.v.lerp(tmpD, Math.min(1, dt * 1.1));
+  f.p.addScaledVector(f.v, dt);
+  cam.updateMatrixWorld();
+  f.holder.position.copy(cam.localToWorld(tmpV.copy(f.p)));
+  const ahead = tmpD.copy(f.v).transformDirection(cam.matrixWorld).add(f.holder.position);
+  f.holder.lookAt(ahead);
+  f.mixer?.update(dt * (called ? 1.4 : 1));
+  f.light.intensity = 14 * (0.85 + 0.15 * Math.sin(time * 9));
+  if (Math.random() < dt * 16) w.sparks.emit(f.holder.position, { speed: 0.5, life: 1.3, size: 0.08, gravity: -0.3, color: (Math.random() < 0.7) ? [3.0, 1.3, 0.35] : [3.0, 2.4, 1.0] });
+};
+// Hedwig: across the screen in 7 s, now and then and with every piece of news
+const stepHedwig = (w, h, dt, v) => {
+  nextHedwig -= dt;
+  if (nextHedwig < 0) { hedwig(); nextHedwig = rand(80, 160); }
+  if (h.t < 0) return;
+  const cam = v.cam;
+  into(h.holder, w.scene);
+  h.t += dt / 7;
+  const k = h.t, d = h.depth, hw = d * v.th * v.asp, hh = d * v.th;
+  const at = (q, out) => out.set(h.dir * (-1.4 + 2.8 * q) * hw, (h.y + Math.sin(q * Math.PI) * 0.12 - q * 0.1) * hh, -d - Math.sin(q * Math.PI) * 1.5);
+  cam.updateMatrixWorld();
+  h.holder.position.copy(cam.localToWorld(at(k, tmpV)));
+  h.holder.lookAt(cam.localToWorld(at(k + 0.02, tmpD)));
+  h.mixer?.update(dt);
+  if (Math.random() < dt * 5) w.sparks.emit(h.holder.position, { speed: 0.3, life: 1.2, size: 0.05, gravity: -0.1, color: [2.2, 2.3, 2.6] });
+  if (k > 1) { h.t = -1; h.holder.removeFromParent(); }
+};
 const stepPals = (w, dt) => {
-  const cam = w.camera, th = Math.tan((cam.fov * Math.PI) / 360), asp = cam.aspect;
-  const f = pals.fawkes;
-  if (f) {
-    into(f.holder, w.scene);
-    const side = w.def.free ?? 1, called = worlds.night.excite > 0.5 && w === worlds.night;
-    f.next -= dt;
-    if (called) { const d = 6; f.target.set(side * 0.5 * d * th * asp, 0.15 * d * th, -d); }
-    else if (f.next < 0 || f.p.distanceTo(f.target) < 0.8) {
-      const d = rand(6, 13), hw = d * th * asp, hh = d * th;
-      const cross = Math.random() < 0.18; // now and then over to the other side, or away out of sight
-      f.target.set(cross ? -side * rand(0.3, 1.3) * hw : side * rand(0.3, 0.85) * hw, rand(-0.05, 0.7) * hh, -d);
-      f.next = rand(4, 8);
-    }
-    tmpD.copy(f.target).sub(f.p).normalize().multiplyScalar(called ? 3.2 : 2.2);
-    f.v.lerp(tmpD, Math.min(1, dt * 1.1));
-    f.p.addScaledVector(f.v, dt);
-    cam.updateMatrixWorld();
-    f.holder.position.copy(cam.localToWorld(tmpV.copy(f.p)));
-    const ahead = tmpD.copy(f.v).transformDirection(cam.matrixWorld).add(f.holder.position);
-    f.holder.lookAt(ahead);
-    f.mixer?.update(dt * (called ? 1.4 : 1));
-    f.light.intensity = 14 * (0.85 + 0.15 * Math.sin(time * 9));
-    if (Math.random() < dt * 16) w.sparks.emit(f.holder.position, { speed: 0.5, life: 1.3, size: 0.08, gravity: -0.3, color: Math.random() < 0.7 ? [3.0, 1.3, 0.35] : [3.0, 2.4, 1.0] });
-  }
-  const h = pals.hedwig;
-  if (h) {
-    nextHedwig -= dt;
-    if (nextHedwig < 0) { hedwig(); nextHedwig = rand(80, 160); }
-    if (h.t >= 0) {
-      into(h.holder, w.scene);
-      h.t += dt / 7;
-      const k = h.t, d = h.depth, hw = d * th * asp, hh = d * th;
-      const at = (q, out) => out.set(h.dir * (-1.4 + 2.8 * q) * hw, (h.y + Math.sin(q * Math.PI) * 0.12 - q * 0.1) * hh, -d - Math.sin(q * Math.PI) * 1.5);
-      cam.updateMatrixWorld();
-      h.holder.position.copy(cam.localToWorld(at(k, tmpV)));
-      h.holder.lookAt(cam.localToWorld(at(k + 0.02, tmpD)));
-      h.mixer?.update(dt);
-      if (Math.random() < dt * 5) w.sparks.emit(h.holder.position, { speed: 0.3, life: 1.2, size: 0.05, gravity: -0.1, color: [2.2, 2.3, 2.6] });
-      if (k > 1) { h.t = -1; h.holder.removeFromParent(); }
-    }
-  }
+  const cam = w.camera, v = { cam, th: Math.tan((cam.fov * Math.PI) / 360), asp: cam.aspect };
+  if (pals.fawkes) stepFawkes(w, pals.fawkes, dt, v);
+  if (pals.hedwig) stepHedwig(w, pals.hedwig, dt, v);
 };
 
 // ================================================================ the page: which world, how far across
@@ -1015,6 +1074,38 @@ const step = (w, dt, t) => {
   w.sparks.update(dt);
 };
 
+// which world are we in (ia), and are we crossing into the next one (ib, k across)?
+const crossing = (c, band) => {
+  let ia = 0, ib = -1, k = 0;
+  for (let i = 0; i < sections.length; i++) if (c >= sections[i].top) ia = i;
+  for (let j = 1; j < sections.length; j++) {
+    const b = sections[j].top;
+    if (Math.abs(c - b) < band) { ia = j - 1; ib = j; k = smooth(-band, band, c - b); break; }
+  }
+  return { ia, ib, k };
+};
+// a world fades in once its sky has come; the worlds around load ahead:
+// the world shown first, then its neighbours, one at a time
+const fadeIn = (dt) => { for (const w of Object.values(worlds)) if (w.loaded && w.ready < 1) w.ready = Math.min(1, w.ready + Math.max(dt, 0.016) * 1.2); };
+const loadAround = (sa, sb, ia) => {
+  load(sa.w, true);
+  if (sb) load(sb.w, true);
+  if (sa.w.loaded) for (const i of [ia + 1, ia - 1]) if (sections[i]) load(sections[i].w);
+};
+// the drop into the first world, the flash and the fade of the intro wear off
+const settle = (dt) => {
+  if (drop > 0) drop = Math.max(0, drop - dt * (drop * 1.8 + 0.3));
+  if (grade.uniforms.uFlash.value > 0) grade.uniforms.uFlash.value = Math.max(0, grade.uniforms.uFlash.value - dt * 1.1);
+  if (grade.uniforms.uFade.value < 1) grade.uniforms.uFade.value = Math.min(1, grade.uniforms.uFade.value + dt * 1.5);
+};
+const playIntro = (dt) => {
+  stepIntro(dt);
+  worldsPass.a = caseWorld;
+  worldsPass.b = null;
+  worldsPass.k = 0;
+  composer.render(dt);
+};
+
 const render = (now) => {
   raf = still ? 0 : requestAnimationFrame(render);
   const tt = now / 1000;
@@ -1026,42 +1117,24 @@ const render = (now) => {
   mouse.sx += (mouse.x - mouse.sx) * Math.min(1, dt * 2);
   mouse.sy += (mouse.y - mouse.sy) * Math.min(1, dt * 2);
 
-  if (intro && !intro.done) {
-    stepIntro(dt);
-    worldsPass.a = caseWorld;
-    worldsPass.b = null;
-    worldsPass.k = 0;
-    composer.render(dt);
-    return;
-  }
+  if (intro && !intro.done) { playIntro(dt); return; }
 
-  // which world are we in, and are we crossing into the next one?
-  const c = scrollY + H * 0.5, band = H * 0.3;
-  let ia = 0, ib = -1, k = 0;
-  for (let i = 0; i < sections.length; i++) if (c >= sections[i].top) ia = i;
-  for (let j = 1; j < sections.length; j++) {
-    const b = sections[j].top;
-    if (Math.abs(c - b) < band) { ia = j - 1; ib = j; k = smooth(-band, band, c - b); break; }
-  }
+  const c = scrollY + H * 0.5;
+  const { ia, ib, k } = crossing(c, H * 0.3);
   const sa = sections[ia], sb = ib >= 0 ? sections[ib] : null;
   if (!sa) { composer.render(dt); return; }
-  // a world fades in once its sky has come; the worlds around load ahead
-  for (const w of Object.values(worlds)) if (w.loaded && w.ready < 1) w.ready = Math.min(1, w.ready + Math.max(dt, 0.016) * 1.2);
-  // the world shown first, then its neighbours, one at a time
-  load(sa.w, true);
-  if (sb) load(sb.w, true);
-  if (sa.w.loaded) for (const i of [ia + 1, ia - 1]) if (sections[i]) load(sections[i].w);
+  fadeIn(dt);
+  loadAround(sa, sb, ia);
   const prog = (s) => clamp((c - (s.top + s.h / 2)) / Math.max(H, s.h), -0.7, 0.7);
+  const next = sb && sb.w !== sa.w ? sb.w : null;
   aim(sa.w, prog(sa));
   step(sa.w, dt, time);
-  if (sb && sb.w !== sa.w) { aim(sb.w, prog(sb)); step(sb.w, dt, time); }
+  if (next) { aim(next, prog(sb)); step(next, dt, time); }
   stepPals(sa.w, dt);
   worldsPass.a = sa.w;
-  worldsPass.b = sb && sb.w !== sa.w ? sb.w : null;
+  worldsPass.b = next;
   worldsPass.k = k;
-  if (drop > 0) drop = Math.max(0, drop - dt * (drop * 1.8 + 0.3));
-  if (grade.uniforms.uFlash.value > 0) grade.uniforms.uFlash.value = Math.max(0, grade.uniforms.uFlash.value - dt * 1.1);
-  if (grade.uniforms.uFade.value < 1) grade.uniforms.uFade.value = Math.min(1, grade.uniforms.uFade.value + dt * 1.5);
+  settle(dt);
   composer.render(dt);
 };
 
@@ -1083,7 +1156,7 @@ const stepIntro = (dt) => {
   c.g.rotation.z = Math.sin(t * 47) * 0.025 * r;
   c.g.rotation.x = Math.sin(t * 31) * 0.012 * r;
   c.g.position.y = Math.abs(Math.sin(t * 23)) * 0.06 * r;
-  if (r > 0.2 && Math.random() < dt * 30) caseSparks.emit(new T.Vector3(rand(-2, 2), c.Hb + 0.02, c.D / 2 + 0.02), { dir: { x: 0, y: 1, z: 0.4 }, speed: 1.4, life: 0.8, size: 0.06, gravity: -1, color: Math.random() < 0.5 ? [0.8, 2.4, 3] : [2.6, 1.8, 0.8] });
+  if (r > 0.2 && Math.random() < dt * 30) caseSparks.emit(new T.Vector3(rand(-2, 2), c.Hb + 0.02, c.D / 2 + 0.02), { dir: { x: 0, y: 1, z: 0.4 }, speed: 1.4, life: 0.8, size: 0.06, gravity: -1, color: (Math.random() < 0.5) ? [0.8, 2.4, 3] : [2.6, 1.8, 0.8] });
   // the dial turns from Muggle-worthy
   c.lever.rotation.y = Math.PI * 0.85 - ease((t - IN.lever) / 0.35) * Math.PI * 0.7;
   // the clasps spring open
@@ -1102,7 +1175,7 @@ const stepIntro = (dt) => {
   c.inner.intensity = 22 * L;
   c.rays.scale.y = 0.001 + L;
   c.rayMat.uniforms.uA.value = L * 0.45 * (0.8 + 0.2 * Math.sin(t * 9));
-  if (L > 0) for (let j = 0; j < 3; j++) caseSparks.emit(new T.Vector3(rand(-1.9, 1.9), c.Hb, rand(-1, 1)), { dir: { x: 0, y: 1, z: 0 }, spread: 0.25, speed: 6, life: 1.6, size: 0.09, gravity: 0.5, color: Math.random() < 0.5 ? [0.8, 2.4, 3] : [3, 2.2, 1] });
+  if (L > 0) for (let j = 0; j < 3; j++) caseSparks.emit(new T.Vector3(rand(-1.9, 1.9), c.Hb, rand(-1, 1)), { dir: { x: 0, y: 1, z: 0 }, spread: 0.25, speed: 6, life: 1.6, size: 0.09, gravity: 0.5, color: (Math.random() < 0.5) ? [0.8, 2.4, 3] : [3, 2.2, 1] });
   grade.uniforms.uFlash.value = smooth(IN.dive[1] - 0.5, IN.dive[1], t);
   caseSparks.update(dt);
   if (t >= IN.end) endIntro();

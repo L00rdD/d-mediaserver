@@ -42,10 +42,12 @@
 
 	# /disk.json is the space used on the data disk, written by the storage service.
 	# /kpiece.json is the latest One Piece scan, written by the optional kpiece
-	# service (404 when it is off, and the card stays hidden). /services.json lists
+	# service (404 when it is off, and the card stays hidden). /printer.json is the
+	# Anycubic printer and its print, written by the optional printer service (the
+	# card only shows while the printer is on), /printer.jpg the slicer's picture of it. /services.json lists
 	# the containers and their ports, written by the services service. /screen.json
 	# feeds the living-room screen, written by the screen service
-	# /screen/settings is the screens' remote control (the Errol card, Pensieve),
+	# /screen/settings is Errol's remote control (the home page's Errol card),
 	# /screen/events pushes screen.json as it changes (Server-Sent Events: the
 	# connection stays open, so it is passed through as it comes); both are
 	# answered by the screen service
@@ -61,7 +63,18 @@
 		}
 	}
 
-	@status path /disk.json /kpiece.json /services.json /screen.json
+	# /cerebro/ is the Mac's X-Mansion: Cerebro's rooms, characters and emotes, drawn by
+	# the Cerebro cards (cerebro.js) and by Errol. Only its pictures and their manifests:
+	# its API (the sessions, behind the key) is never passed on. Without CEREBRO_URL, or
+	# while the Mac sleeps, they answer 502 and the cards stay hidden anyway
+	@cerebro path /cerebro/rooms/* /cerebro/characters/* /cerebro/ui/emotes.png
+	handle @cerebro {
+		uri strip_prefix /cerebro
+		header Cache-Control "public, max-age=86400"
+		reverse_proxy {$CEREBRO_URL:http://127.0.0.1:9}
+	}
+
+	@status path /disk.json /kpiece.json /printer.json /printer.jpg /services.json /screen.json
 	handle @status {
 		root * /status
 		file_server

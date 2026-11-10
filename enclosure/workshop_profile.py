@@ -16,6 +16,29 @@ supports out of the raft under the compute (242 ml) on 2026-10-14. This adds:
                             critical angle 40 instead of 50, so the 45-degree
                             keels, chamfers and gussets added on 2026-10-25
                             print on their own instead of under 150 mm trunks
+  support "Heavy socle"   = Heavy compute + stronger tree feet: at most 4
+                            branches per trunk at most 6 (Heavy: 12, all pulling
+                            on one 1.6 mm foot), trunks 1.6 mm flaring to
+                            2.5 mm, foot r 4.5 mm x 2 mm, cross bars from 1 mm
+                            up every 5 mm, 1.0 mm thick, raft 1.5 mm around the
+                            feet. Photos up to 2026-10-29 show the trees
+                            tearing at the foot on every big part. A first
+                            version (4 branches, 2.0 mm trunks, bars every
+                            3 mm x 1.2) put the riser at 225 ml for a 57 ml part.
+                            Printed the riser fine on 2026-10-30; only the
+                            solid raft (~190 x 110 mm) lifted a little along
+                            one long side.
+  support "Heavy socle alveole" = Heavy socle on a honeycomb raft (1.0 mm,
+                            hole radius 1.5 instead of the stock 2), to cut the
+                            shrinkage that lifts the big solid raft. The feet
+                            are 9 mm wide, so each spans several cells. Not
+                            active: to be tried on a light part first.
+  support "Heavy socle toit" = Heavy socle with anchors every 3.5 mm instead
+                            of 2, for the hollow lid (123 ml spread over its
+                            whole roof): the 2 mm density came from the
+                            compute's solid floor and put the lid at 421 ml
+                            with its supports. The feet stay the same. Not
+                            active: pick it for the lid and its coupon.
   resin   "...@ACF@tower" = ABS-Like Pro 2 + lift raised to 10 mm in two stages
                             (4 mm at 3 mm/s, then 6 mm at 6 mm/s), retract
                             4 mm/s, 1 s wait before lift. Anycubic's own M7
@@ -24,7 +47,7 @@ supports out of the raft under the compute (242 ml) on 2026-10-14. This adds:
                             that a very slow lift separates worse, hence 3 mm/s
                             rather than 2.
 
-and makes "Heavy compute" active. The "tower" resin profile is installed but
+and makes "Heavy socle" active. The "tower" resin profile is installed but
 NOT made active: it only ever ran on the worn film (hub, 2026-10-15) and
 proved nothing, while the stock "normal_print" printed the disk and every
 coupon, so the stock profile stays active. Quit Photon Workshop first: it rewrites these files when
@@ -39,12 +62,17 @@ import pathlib
 import subprocess
 import sys
 
-APP = pathlib.Path.home() / "Library/Application Support/ANYCUBIC/AnycubicPhotonWorkshop_V4.2.0"
+APP = pathlib.Path.home() / "Library/Application Support/ANYCUBIC/AnycubicPhotonWorkshop_V4.2.1"
 MACHINE = APP / "machine_type/Anycubic Photon Mono M7.pwsp"
 SUPPORT = APP / "support_type/support_config.json"
 
 SUPPORT_NAME = "Heavy tower"
 COMPUTE_NAME = "Heavy compute"
+SOCLE_NAME = "Heavy socle"
+ALVEOLE_NAME = "Heavy socle alveole"
+HOLE_RADIUS = 1.5        # Heavy: 2
+TOIT_NAME = "Heavy socle toit"
+TOIT_ANCHORS = 3.5       # Heavy: 3, Heavy compute: 2
 RESIN_SETTING = "tower"
 RAFT_HEIGHT = 1.0        # Heavy: 0.8 honeycomb; 20 layers = bottom 5 + transition 15
 FOOT_RADIUS = 3.0
@@ -52,6 +80,15 @@ TIP_WIDTH = 0.7          # Heavy: 0.55
 TIP_DEPTH = 0.5          # Heavy: 0.4
 ANCHOR_DISTANCE = 2.0    # Heavy: 3
 CRITICAL_ANGLE = 40.0    # Heavy: 50; faces steeper than this get no support
+MAX_BRANCHES = 6         # Heavy: 12 branches merged onto one trunk
+TRUNK_TOP = 1.6          # Heavy: 1.6 (2.0 cost ~80 ml more on the riser)
+TRUNK_BOTTOM = 2.5       # Heavy: 1.6
+FOOT_RADIUS_SOCLE = 4.5  # Heavy compute: 3
+FOOT_HEIGHT = 2.0        # Heavy: 0.8
+CROSS_START = 1.0        # Heavy: 3 mm above the raft
+CROSS_INTERVAL = 5.0     # Heavy: 5
+CROSS_WIDTH = 1.0        # Heavy: 0.8
+RAFT_OFFSET = 1.5        # Heavy: 3 mm of raft around the feet
 ACTIVE_RESIN = "Anycubic@abs_like_resin_pro2@ACF@normal_print"
 WAIT_BEFORE_LIFT = 1.0
 LIFT = ({"height": 4.0, "up_speed": 3.0, "down_speed": 4.0},   # slow first stage, until the layer pops off the film
@@ -106,20 +143,64 @@ def compute_support(tower):
     return new
 
 
+def socle_support(compute):
+    """Heavy compute with feet that don't snap: fewer branches per trunk,
+    fatter flared trunks, a bigger foot, cross bars low and dense."""
+    new = copy.deepcopy(compute)
+    section(new, "property")["support_name"] = SOCLE_NAME
+    bar = section(new, "bar_shape_connection")
+    bar["shpBrunchMaxNum"] = MAX_BRANCHES
+    bar["shpTrunkTopWidth"] = TRUNK_TOP
+    bar["shpTrunkBottWidth"] = TRUNK_BOTTOM
+    foot = section(new, "plateform_connection")
+    foot["pltRadius"] = FOOT_RADIUS_SOCLE
+    foot["pltHeight"] = FOOT_HEIGHT
+    cross = section(new, "bar_cross_connection")
+    cross["crsEnabled"] = True
+    cross["crsStartHeight"] = CROSS_START
+    cross["crsInterval"] = CROSS_INTERVAL
+    cross["crsWidth"] = CROSS_WIDTH
+    section(new, "base")["baseOffset"] = RAFT_OFFSET
+    return new
+
+
+def alveole_support(socle):
+    """Heavy socle on a honeycomb raft with smaller holes."""
+    new = copy.deepcopy(socle)
+    section(new, "property")["support_name"] = ALVEOLE_NAME
+    base = section(new, "base")
+    base["baseEnableHoles"] = True
+    base["baseHoleRadius"] = HOLE_RADIUS
+    return new
+
+
+def toit_support(socle):
+    """Heavy socle with sparser anchors, for a light hollow part."""
+    new = copy.deepcopy(socle)
+    section(new, "property")["support_name"] = TOIT_NAME
+    anchors = section(new, "anchors")
+    anchors["anchorDistance"] = TOIT_ANCHORS
+    anchors["horizontalSurfaceAnchorDistance"] = TOIT_ANCHORS
+    return new
+
+
 def install_support():
     data = json.loads(SUPPORT.read_text())
     heavy = next(p for p in data["factory_support"] if section(p, "property")["support_name"] == "Heavy")
     tower = tower_support(heavy)
     compute = compute_support(tower)
+    socle = socle_support(compute)
+    alveole = alveole_support(socle)
+    toit = toit_support(socle)
     # Workshop keeps the profiles made in its own UI under "default_support"
     # (checked 2026-10-14 with a profile saved by hand); anything put in
     # "user_support" is dropped at the next launch.
     users = data.setdefault("default_support", [])
-    users[:] = [p for p in users if section(p, "property")["support_name"] not in (SUPPORT_NAME, COMPUTE_NAME, "test")]
-    users += [tower, compute]
-    data["config_support"]["active_support"] = COMPUTE_NAME
+    users[:] = [p for p in users if section(p, "property")["support_name"] not in (SUPPORT_NAME, COMPUTE_NAME, SOCLE_NAME, ALVEOLE_NAME, TOIT_NAME, "test")]
+    users += [tower, compute, socle, alveole, toit]
+    data["config_support"]["active_support"] = SOCLE_NAME
     SUPPORT.write_text(json.dumps(data, indent=4, ensure_ascii=False))
-    return tower, compute
+    return tower, compute, socle, alveole, toit
 
 
 def install_resin():
@@ -151,13 +232,22 @@ if __name__ == "__main__":
         sys.exit("Photon Workshop is running: quit it first (it rewrites its profiles on exit).")
     for f in (MACHINE, SUPPORT):
         print("backup:", backup(f))
-    tower, compute = install_support()
+    tower, compute, socle, alveole, toit = install_support()
     base, foot = section(tower, "base"), section(tower, "plateform_connection")
     print(f"support '{SUPPORT_NAME}': raft {base['baseHeight']} mm, holes {base['baseEnableHoles']}, "
           f"foot {foot['pltEnabled']} r={foot['pltRadius']} mm")
     top, anchors = section(compute, "top_connection"), section(compute, "anchors")
     print(f"support '{COMPUTE_NAME}': same + tips {top['topContactWidth']} mm sunk {top['topDistanceInPart']} mm, "
-          f"anchors every {anchors['anchorDistance']:.0f} mm, critical angle {anchors['criticalAngle']:.0f} deg  (active)")
+          f"anchors every {anchors['anchorDistance']:.0f} mm, critical angle {anchors['criticalAngle']:.0f} deg")
+    bar, foot, cross = (section(socle, k) for k in ("bar_shape_connection", "plateform_connection", "bar_cross_connection"))
+    print(f"support '{SOCLE_NAME}': same + max {bar['shpBrunchMaxNum']} branches/trunk, trunks "
+          f"{bar['shpTrunkTopWidth']}-{bar['shpTrunkBottWidth']} mm, foot r={foot['pltRadius']} h={foot['pltHeight']} mm, "
+          f"cross bars from {cross['crsStartHeight']} mm every {cross['crsInterval']} mm, {cross['crsWidth']} mm, raft offset {section(socle, 'base')['baseOffset']} mm  (active)")
+    base = section(alveole, "base")
+    print(f"support '{ALVEOLE_NAME}': same on a honeycomb raft {base['baseHeight']} mm, "
+          f"holes r={base['baseHoleRadius']} mm  (installed, not active)")
+    print(f"support '{TOIT_NAME}': Heavy socle with anchors every "
+          f"{section(toit, 'anchors')['anchorDistance']} mm  (installed, not active)")
     name, sp, ex = install_resin()
     st = ex["multi_state_paras"]
     print(f"resin '{name}': {sp['exposure_time']:.1f} s, bottom {sp['bott_layers']} x {sp['bott_time']:.0f} s, "

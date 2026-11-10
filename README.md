@@ -26,6 +26,7 @@ Options, each one off until you turn it on:
 | [Watchdog](#watchdog) | Brings the apps back after a USB drive drop and alerts you on Discord. | `sudo ./watchdog/install.sh` |
 | [Wifi fallback hotspot](#wifi-fallback-hotspot) | The Pi opens its own wifi when the home network is gone, so the films stay watchable. | `sudo ./hotspot/install.sh` |
 | [One Piece scans](#%EF%B8%8F-one-piece-scans-optional) | A home page card and a Discord post for each new chapter. | 2 lines in `.env` |
+| [Resin printer](#%EF%B8%8F-resin-printer-optional) | A home page card that shows while the Anycubic printer is on, with the print going on. | 2 lines in `.env` |
 | [No login at home](#-passwords) | Radarr, Sonarr and Prowlarr open without a password on the home network. | 1 line in `.env` |
 
 Every setting goes in one `.env` file next to `docker-compose.yml`: copy [`.env.example`](.env.example), which lists them all.
@@ -47,6 +48,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 | **[Prowlarr](https://prowlarr.com/)** | Indexer manager/proxy built to integrate with Sonarr/Radarr. | `9696` |
 | **[FlareSolverr](https://github.com/FlareSolverr/)**| Proxy server to bypass Cloudflare protection for indexers. | `8191` |
 | **[Gluetun](https://github.com/qdm12/gluetun)** | Optional VPN client that Transmission goes through (see VPN). | |
+| **Ohara** | Optional manga library: finds volumes through Prowlarr, downloads and reads them (see Anime and Manga). | `8585` |
 
 ---
 
@@ -64,10 +66,12 @@ Each USB drive is mounted on its own under `/mnt/disks/`, and mergerfs merges th
     ├── complete/        # Finished downloads
     ├── incomplete/      # Active downloads
     ├── movies/          # Sorted movies
-    └── shows/           # Sorted TV shows
+    ├── shows/           # Sorted TV shows
+    ├── anime/           # Sorted anime series
+    └── manga/           # Manga volumes, one folder per series (optional, see Ohara)
 ```
 
-Inside every container the pool is mounted at `/data` (`/data/movies`, `/data/shows`, `/data/complete`, `/data/incomplete`).
+Inside every container the pool is mounted at `/data` (`/data/movies`, `/data/shows`, `/data/anime`, `/data/complete`, `/data/incomplete`).
 
 Good to know:
 
@@ -220,8 +224,8 @@ Every line is optional. Without a `.env` the stack uses the Pi defaults: `/mnt/s
 | :--- | :--- | :--- |
 | Transmission | Download / incomplete directory | `/data/complete`, `/data/incomplete` |
 | Radarr | Root folder | `/data/movies` |
-| Sonarr | Root folder | `/data/shows` |
-| Jellyfin | Libraries | `/data/movies`, `/data/shows` |
+| Sonarr | Root folders | `/data/shows`, `/data/anime` |
+| Jellyfin | Libraries | `/data/movies`, `/data/shows`, `/data/anime` (type *Shows*) |
 
 ---
 
@@ -402,7 +406,7 @@ services:
 docker compose up -d
 ```
 
-Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191 and 51413. `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
+Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191, 51413 and 8585 (with Ohara). `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
 
 ### 2. Give it the hub's look
 
@@ -413,8 +417,8 @@ Your pages can take the *Reactor*, *Cyberpunk* or *Hogwarts* look and follow the
 The home page can show a live summary of your app, which opens the app when clicked.
 
 1. **Serve a status file.** Your app answers `GET /api/status.json` on its port, with the header `Access-Control-Allow-Origin: *` (the home page reads it from another port). The content is up to you: the figures you want on the card and an `updated_at` date.
-2. **Add the card to all three looks**, [`reactor.html`](home/site/reactor.html), [`cyberpunk.html`](home/site/cyberpunk.html) and [`hogwarts.html`](home/site/hogwarts.html). Copy the card that points at port `8081` (`id="sapling-sunrise"`), give it your own `id`, title and port, and keep `hidden`: the card only shows once your app answers. In `reactor.html`, also give it a place in the three `grid-template-areas` lists (wide screen, tablet, phone): copy the `sap` line. In `hogwarts.html` the cards sit inside the Marauder's Map (`<div class="rooms">`), which has no named areas: just paste the card there; add its `id` to the `#trading-bot, .sapling, .bifrost` rule if it should take the full width.
-3. **Fill it with a script.** Copy [`sapling-sunrise.js`](home/site/sapling-sunrise.js): it fetches `http://<host>:8081/api/status.json`, writes the values into the card's `data-*` elements and removes `hidden`. When the app does not answer, it does nothing and the card stays hidden. Load your script at the bottom of the three pages, next to the other ones.
+2. **Add the card to all three looks**, [`reactor.html`](home/site/reactor.html), [`cyberpunk.html`](home/site/cyberpunk.html) and [`hogwarts.html`](home/site/hogwarts.html). Copy the card that points at port `8081` (`id="mandrake"`), give it your own `id`, title and port, and keep `hidden`: the card only shows once your app answers. In `reactor.html`, also give it a place in the three `grid-template-areas` lists (wide screen, tablet, phone): copy the `mand` line. In `hogwarts.html` the cards sit inside the Marauder's Map (`<div class="rooms">`), which has no named areas: just paste the card there; add its `id` to the `#trading-bot, .mandrake, .bifrost` rule if it should take the full width.
+3. **Fill it with a script.** Copy [`mandrake.js`](home/site/mandrake.js): it fetches `http://<host>:8081/api/status.json`, writes the values into the card's `data-*` elements and removes `hidden`. When the app does not answer, it does nothing and the card stays hidden. Load your script at the bottom of the three pages, next to the other ones.
 4. **Deploy:** `git pull` on the Pi. The site folder is mounted into the `home` container, so a reload of the page is enough.
 
 The page already holds two such cards, on ports 8080 and 8081, for projects of the author. On a machine where nothing answers on those ports they stay hidden: replace them with yours or leave them.
@@ -434,11 +438,68 @@ KPIECE_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 `KPIECE_WEBHOOK_URL` is optional: it is the webhook URL Discord gives you, as is (no `/slack` here). Without it the card still works. `docker compose logs kpiece` shows each scan it found.
 
+## 📚 Anime and Manga
+
+### Anime in VF or VOSTFR
+
+Anime go through Sonarr like any series, in their own folder and with their own indexers and profile:
+
+- **Indexers** (Prowlarr): [Nyaa.si](https://nyaa.si/) (with *Sonarr compatibility* on and *No remakes*) and Anime Tosho, next to YggReborn for the French releases. Prowlarr sends them to Sonarr's anime categories.
+- **Root folder** `/data/anime`, and a Jellyfin library *Animes* (type *Shows*) on it.
+- **Quality profile** *Anime VF / VOSTFR* (720p/1080p, minimum score 500), with these custom formats:
+
+| Custom format | Release title | Score |
+| :--- | :--- | ---: |
+| MULTi | `MULTi`, but not `Multi-Subs` or `Multi-Audio` | 1500 |
+| VOSTFR | `VOSTFR` | 1200 |
+| Subs FR (tag) | `[FRE]` in the list of subtitles (Erai-raws) | 1100 |
+| French (title) / French audio | `FRENCH`, `VF`… | 1000 |
+| Multi-Subs | `Multi-Subs`, `Multiple Subtitle` (Crunchyroll subtitles, French included most of the time) | 600 |
+
+A release with only English subtitles scores 0 and is never grabbed. When you add an anime, pick the series type *Anime*, the root folder `/data/anime` and this profile.
+
+### Manga: Ohara (optional)
+
+Ohara is a manga library made for this stack, on `http://<pi>:8585`: one page to find volumes, download them and read them.
+
+- **Search:** type a title. Ohara asks Prowlarr for books (the *Books* category) on YggReborn, Nyaa.si and Knaben (`OHARA_INDEXERS` to change them) and keeps only manga volumes: no videos, music or adult releases. French releases come first; a release of a French tracker counts as French unless its title says otherwise.
+- **Add:** pick the series name (guessed from the title, editable; the names of the series already there are suggested) and Ohara sends the torrent to Transmission, so it goes through the VPN. When the download is done, the volumes are filed in `manga/<Series>/` and the torrent is removed (no seeding). `.zip` becomes `.cbz`, `.cbr`/`.cb7` are converted to `.cbz` with 7-Zip, a release of plain images becomes one `.cbz` per folder; PDF and EPUB are kept as they are and open in the browser.
+- **Read:** the shelf shows each series with its cover, then its volumes with where you are in each. The reader goes left to right: a click on the right half of the screen turns to the next page, on the left half back to the previous one (the arrow keys too). It shows one page or two side by side, fitted to the height or the width; its bars show while the mouse moves, or with the ☰ button in the corner. It preloads the next pages, offers the next volume at the end, and saves the page reached on the Pi, so the phone picks up where the computer stopped.
+
+Ohara keeps its state (downloads under way, reading progress, covers) in `manga/.ohara/`. It reads Prowlarr's API key from `config/prowlarr/config.xml`. The home page shows an *Ohara* card (*Flourish and Blotts* in Hogwarts): series, volumes, downloads under way and the volume being read.
+
+Add the file to `COMPOSE_FILE` in your `.env`, then run `docker compose up -d --build` (the image adds Pillow and 7-Zip to Python):
+
+```text
+COMPOSE_FILE=docker-compose.yml:docker-compose.ohara.yml
+```
+
+Its tests: `python3 -m unittest ohara/test_ohara.py` and `node --test ohara/tests/`.
+
+## 🖨️ Resin Printer (optional)
+
+A small `printer` container follows an Anycubic resin printer (made for the Photon Mono M7). While the printer is on, the home page shows a card with the print going on: the file, the progress and the layer, the time left and when it will be done, the resin used, and the slicer's picture of the part, dimmed where it is still to print. Next to it the printer turns in 3D, its build plate at the height of the layer being printed and the part coming out of the resin under it; drag it to turn it. The card opens a full view (`/printer.html`) to turn and zoom it. The card hides again when the printer is switched off.
+
+The 3D printer is drawn to scale, but the part in it is the slicer's picture, not its real shape: the cloud does not give the sliced file of a print sent from Photon Workshop.
+
+The M7 has no local API: on the home network it only answers a few ports that say it is there. So the container checks every 20 s that the printer answers on the network (every minute while it is off), and only while it does, reads the print from the Anycubic cloud, as the Anycubic web app does. Nothing is sent to the printer: it cannot start, pause or stop a print.
+
+Add these lines to your `.env`, then run `docker compose up -d` (list every option file you use, e.g. `docker-compose.yml:docker-compose.vpn.yml:docker-compose.kpiece.yml:docker-compose.printer.yml`):
+
+```text
+COMPOSE_FILE=docker-compose.yml:docker-compose.printer.yml
+ANYCUBIC_TOKEN=...
+```
+
+`ANYCUBIC_TOKEN` is the token of the Anycubic web app. To get it, sign in at [cloud-universe.anycubic.com](https://cloud-universe.anycubic.com/file), open the browser console (F12) and type `localStorage["XX-Token"]`, then copy the value without its quotes. It lasts about 90 days; when it has expired, the card says so: set the new one and run `docker compose up -d printer` again. Without a token the card only says that the printer is on.
+
+`PRINTER_HOST` is the printer's name or IP on the home network, `M7.lan` by default. With several printers on the account, `PRINTER_NAME` picks the one whose name or model contains it (the first M7 by default). `docker compose logs printer` shows when the printer goes on and off, and any cloud error.
+
 ## 📺 Living-room Screen
 
-The Pi's small HDMI screen shows what happens on the server and in the house, with [Errol](https://github.com/L00rdD/errol). It shows what plays on Jellyfin, a lamp that switches, the projection screen coming down, a download that finished, a film or an episode that entered the library, the next One Piece scan and Draupnir. When something happens, it takes the screen for a minute; while a film plays, it shows a cinema marquee.
+The Pi's small HDMI screen shows what happens on the server and in the house, with [Errol](https://github.com/L00rdD/errol). It shows what plays on Jellyfin, a lamp that switches, the projection screen coming down, a download that finished, a film or an episode that entered the library, the next One Piece scan, Draupnir and, while the resin printer is on, its print (progress, layers, time left, preview). It also shows the weather, the next episodes to watch (Jellyfin's *Next up*), those airing today or tomorrow (Sonarr's calendar), the services that are down, and what happened since midnight (imports, downloads, videos started, lamps switched on, prints done, sessions that asked for an answer). When something happens, a print that starts, finishes or is cancelled included, it takes the screen for a minute; while a film plays, it shows a cinema marquee.
 
-The `screen` service of the stack does the reading: [`screen/feed.py`](screen/feed.py) reads Jellyfin, Bifrost and Transmission every 3 s, Radarr and Sonarr every 30 s, and the files of the other cards. It writes `screen.json`, which the home page serves at `/screen.json`. Errol itself is a separate project that runs on the Pi as a systemd service. It draws straight on the screen with the GPU, without a browser.
+The `screen` service of the stack does the reading: [`screen/feed.py`](screen/feed.py) reads Jellyfin, Bifrost and Transmission every 3 s, Radarr, Sonarr and Jellyfin's next up every 30 s, the weather every 15 min, and the files of the other cards (`printer.json` too, when the optional `printer` service runs). It writes `screen.json`, which the home page serves at `/screen.json`. Errol itself is a separate project that runs on the Pi as a systemd service. It draws straight on the screen with the GPU, without a browser.
 
 The cinema mode needs a Jellyfin API key (Jellyfin: *Dashboard → API Keys*), in `.env`:
 
@@ -446,12 +507,30 @@ The cinema mode needs a Jellyfin API key (Jellyfin: *Dashboard → API Keys*), i
 JELLYFIN_API_KEY=...
 ```
 
+The weather comes from [Open-Meteo](https://open-meteo.com) (no account) for the house's place, in `.env` (decimal degrees); without it the screen shows no weather:
+
+```text
+WEATHER_LAT=<latitude>
+WEATHER_LON=<longitude>
+```
+
+A torrent sent by Radarr or Sonarr is not news when it finishes, its import is: the feed knows them by their category in Transmission (`radarr`, `sonarr` or `tv-sonarr`, the apps' defaults). The day's counts are kept in `screen-today.json` (in the `disk-status` volume), so a restart does not lose them.
+
 Then install Errol on the Pi:
 
 ```bash
 git clone https://github.com/L00rdD/errol ~/errol
 sh ~/errol/deploy/install.sh friday        # or cyberpunk
 ```
+
+**Claude Code sessions (optional).** With [Cerebro](https://github.com/L00rdD/cerebro) running on a Mac, the screen and the home page show its Claude Code sessions as Cerebro draws them, each in its room of the X-Mansion with its X-Men, inside the card of the look, and on the screen a notice whenever a session waits for your answer. The home page draws them with Cerebro's own scene engine, built from its source into [`home/site/cerebro-scene.js`](home/site/cerebro-scene.js) by `sh home/cerebro/build.sh` (run it again when Cerebro's scenes change); its pictures come from the Mac through the home page (`/cerebro/`, never its API). In Cerebro's panel, turn on the network the Pi can reach (ZeroTier if the Pi has joined it, its address does not change; otherwise the local network) and copy its link, `http://<address>:4243/?key=<key>`. Put both halves in `.env`, then run `docker compose up -d`:
+
+```text
+CEREBRO_URL=http://10.147.17.5:4243
+CEREBRO_KEY=...
+```
+
+While the Mac sleeps or is away, the feed has no `cerebro` and the card stays hidden; it asks the Mac again every 30 s. The card opens Cerebro's phone page: its link, key included, is in `screen.json`, so anyone on the home network can follow the sessions (the key only lets one read them).
 
 `curl -s localhost/screen.json` shows what the screen gets. Its `errors` field lists the sources the feed could not read.
 

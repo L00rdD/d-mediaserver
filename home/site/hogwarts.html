@@ -248,6 +248,7 @@
     a.note:hover, a.note:focus-visible { transform: translateY(-3px); border-color: rgba(160, 240, 255, 0.7); outline: none; }
     .nh { display: grid; gap: 2px; }
     .nh b { font: 700 0.98rem var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+    .nh .app-logo { height: 1.8em; width: auto; margin-right: 0.4em; vertical-align: middle; }
     .nh small { font: italic 500 0.98rem var(--serif); color: var(--muted); }
     .nh small span { font-style: normal; font-weight: 600; }
     .nfoot { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(229, 193, 114, 0.14); font: italic 500 0.92rem var(--serif); color: var(--muted); }
@@ -273,6 +274,19 @@
     .st-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; font: 600 1.2rem var(--num); font-variant-numeric: lining-nums tabular-nums; }
     .st-row small { font: italic 500 0.95rem var(--serif); color: var(--muted); }
     .st-bar { display: block; height: 8px; margin-top: 8px; }
+    /* Anycubic printer card: shown while the printer is on (see printer.js) */
+    .pr-row { display: flex; gap: 16px; align-items: center; }
+    .pr-row .bot-stats { flex: 1; }
+    .pr-view { flex: none; width: 300px; height: 220px; cursor: grab; }
+    .pr-view:active { cursor: grabbing; }
+    @media (max-width: 640px) { .pr-row { flex-wrap: wrap; } .pr-view { width: 100%; } .pr-picture { display: none; } }
+    /* the slicer's picture, dimmed from the top where the part is still to print */
+    .pr-picture { position: relative; flex: none; width: 150px; margin: 0; overflow: hidden; border-radius: 3px; }
+    .pr-picture img { display: block; width: 100%; }
+    .pr-picture img[hidden] + i { display: none; }
+    .pr-picture i { position: absolute; left: 0; right: 0; top: 0; height: 100%; background: rgba(5, 8, 14, 0.2); backdrop-filter: grayscale(1) brightness(0.45); border-bottom: 2px solid var(--t-accent); transition: height 1s; }
+    .printer dd { overflow-wrap: anywhere; }
+    .printer .st-bar i { transition: width 1s; }
     .st-bar i.full { background: linear-gradient(90deg, #a3213a, var(--t-down)); box-shadow: 0 0 10px var(--t-down); }
     .st-scale { display: flex; justify-content: space-between; margin-top: 4px; font: 500 0.8rem var(--num); color: var(--muted); font-variant-numeric: lining-nums; }
     .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
@@ -459,6 +473,34 @@
           </dl>
           <span class="nfoot"><span data-kp="date"></span><span data-kp="pages"></span><span class="nmore">Read on KPIECE →</span></span>
         </a>
+        <a class="note t-panel ohara" id="ohara" href="http://{{$host}}:8585" target="_blank" rel="noopener" hidden aria-label="Ohara, open the manga library">
+          <div class="nh">
+            <b>Flourish and Blotts</b><small>Ohara · <span data-oh="state"></span></small>
+          </div>
+          <dl class="bot-stats t-stats">
+            <div><dt>Volumes</dt><dd data-oh="volumes">–</dd></div>
+            <div><dt>Downloading</dt><dd data-oh="downloads">–</dd></div>
+            <div><dt>Reading</dt><dd data-oh="reading">–</dd></div>
+          </dl>
+          <ul class="ss-list" data-oh="list"></ul>
+          <span class="nfoot"><span>Manga library</span><span class="nmore">Read :8585 →</span></span>
+        </a>
+        <a class="note t-panel printer" id="printer" href="/printer.html" data-accent="#e5c172" hidden aria-label="Anycubic printer, open the full view">
+          <div class="nh">
+            <b>The Philosopher's vat</b><small><span data-pr="name">Anycubic</span> · <span data-pr="state"></span></small>
+          </div>
+          <div class="pr-row">
+            <canvas class="pr-view" data-pr="view" hidden aria-label="The printer in 3D: drag to turn it"></canvas>
+            <dl class="bot-stats t-stats">
+              <div><dt>File</dt><dd data-pr="file">–</dd></div>
+              <div><dt>Progress</dt><dd><span data-pr="pct">–</span> <small data-pr="layers"></small></dd></div>
+              <div><dt>Time left</dt><dd><span data-pr="left">–</span> <small data-pr="end"></small></dd></div>
+            </dl>
+            <figure class="pr-picture"><img data-pr="image" alt="The part as sliced" hidden><i data-pr="ghost"></i></figure>
+          </div>
+          <span class="st-bar t-bar"><i data-pr="fill"></i></span>
+          <span class="nfoot"><span data-pr="note"></span><span data-pr="resin"></span><span class="nmore">Full view →</span></span>
+        </a>
       </div>
       <span class="deeper" aria-hidden="true">Deeper into the case</span>
     </section>
@@ -487,10 +529,10 @@
     <section class="u u-project" data-universe="forest">
       <div class="world">
         <span class="realm-kicker">The Bowtruckle's tree</span>
-        <b class="world-name">Sapling Sunrise</b>
-        <a data-creature="bowtruckle" class="note t-panel sapling" id="sapling-sunrise" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Sapling Sunrise, open its dashboard">
+        <b class="world-name">Mandrake</b>
+        <a data-creature="bowtruckle" class="note t-panel mandrake" id="mandrake" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Mandrake, open its dashboard">
           <div class="nh">
-            <b>The seedlings</b><small> <span data-ss="state"></span></small>
+            <b><img class="app-logo" src="http://{{$host}}:8081/mandrake.svg" alt="" width="28" height="28">The mandrakes</b><small> <span data-ss="state"></span></small>
           </div>
           <ul class="ss-list" data-ss="list"></ul>
           <span class="nfoot"><span data-ss="updated"></span><span class="nmore">Dashboard :8081 →</span></span>
@@ -524,6 +566,13 @@
           <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
           <label class="errol-follow"><input type="checkbox" data-errol="follow"> The screens follow this page's look</label>
         </div>
+        <a class="note t-panel cerebro" id="cerebro" href="#" target="_blank" rel="noopener" hidden aria-label="Cerebro, open the Claude Code sessions of the Mac">
+          <div class="nh">
+            <b>Cerebro</b><small>the Mac's Claude Code sessions · <span data-cb="state"></span></small>
+          </div>
+          <div class="cb-cards" data-cb="list"></div>
+          <span class="nfoot"><span data-cb="counts"></span><span class="nmore">X-Mansion :4243 →</span></span>
+        </a>
       </div>
     </section>
   </main>
@@ -584,8 +633,9 @@
         if (shown("storage")) l.push(`The case is ${text('[data-st="pct"]')} full; ${text('[data-st="free"]')} of room left inside.`);
         if (shown("trading-bot")) l.push(`The Niffler's hoard stands at ${text('[data-tb="pnl"]')} so far.`);
         if (shown("bifrost")) l.push(`The meadow: ${text('[data-bf="state"]')}.`);
+        if (shown("printer")) l.push(`The Philosopher’s vat: ${text('[data-pr="state"]')}, ${text('[data-pr="pct"]')} brewed.`);
         if (shown("kpiece")) l.push(`An owl is due: One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
-        if (shown("sapling-sunrise")) l.push(`The Bowtruckle's tree: ${text('[data-ss="state"]')}.`);
+        if (shown("mandrake")) l.push(`The Bowtruckle's tree: ${text('[data-ss="state"]')}.`);
         l.push("Write a title above and say Accio; it will come to you.", "Transmission's Swooping Evil only flies behind the VPN, as agreed.", "The Demiguise saw this coming. It always does.", "Say Revelio, or touch the title, and the case shows what it hides.");
         return l;
       };
@@ -655,11 +705,14 @@
   <script src="/theme/magic.js" defer></script>
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
-  <script src="/sapling-sunrise.js" defer></script>
+  <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
+  <script src="/ohara.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
+  <script src="/cerebro.js" defer></script>
+  <script src="/printer.js" defer></script>
   <!-- the 3D vivarium; after magic.js, whose runes it uses -->
   <script type="module" src="/vivarium.js"></script>
 </body>

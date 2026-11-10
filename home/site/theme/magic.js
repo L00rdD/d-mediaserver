@@ -36,8 +36,7 @@
 //   Magic.onFrame(fn)                 fn(time, dt, pointer, view) runs in the same animation frame;
 //                                     view = { px, py, scroll }: the smoothed mouse (-0.5..0.5) and scrollY
 //   document "magic:revelio" event    the wave went out ({ detail: { x, y } })
-(() => {
-  if (window.Magic) return;
+if (!window.Magic) {
   const root = document.documentElement;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)");
   const fine = matchMedia("(pointer: fine)");
@@ -193,7 +192,7 @@
   const firefly = () => ({
     x: rand(0, W), y: rand(0, H), vx: 0, vy: 0,
     ph: rand(0, TAU), f1: rand(0.1, 0.3), f2: rand(0.1, 0.3), blink: rand(0.6, 1.6),
-    r: rand(0.6, 1.8), a: rand(0.35, 0.8), img: Math.random() < 0.35 ? "blue" : Math.random() < 0.15 ? "violet" : "gold",
+    r: rand(0.6, 1.8), a: rand(0.35, 0.8), img: (Math.random() < 0.35) ? "blue" : (Math.random() < 0.15) ? "violet" : "gold",
   });
 
   // a ribbon of ancient magic: a bright head winding through the air, now and then looping,
@@ -205,7 +204,7 @@
     return {
       x, y, ang: Math.atan2(H / 2 - y, W / 2 - x) + rand(-0.8, 0.8), sp: rand(55, 95), turn: 0,
       loop: 0, loopDir: 1, nextLoop: rand(2, 7), trail: [], ph: rand(0, TAU),
-      color: Math.random() < 0.6 ? "blue" : "gold", len: Math.round(rand(38, 60)),
+      color: (Math.random() < 0.6) ? "blue" : "gold", len: Math.round(rand(38, 60)),
     };
   };
 
@@ -236,7 +235,7 @@
     if (!running) return;
     const targets = [...document.querySelectorAll(".t-panel, [data-reveal]")].map((el) => {
       const r = el.getBoundingClientRect();
-      return { el, d: Math.hypot(r.left + r.width / 2 - x, r.top + r.height / 2 - y), r, on: r.bottom > 0 && r.top < H };
+      return { el, d: Math.hypot(r.left + r.width / 2 - x, r.top + r.height / 2 - y), r, on: (r.bottom > 0 && r.top < H) };
     }).filter((t) => t.on);
     waves.push({ x, y, t: 0, max: Math.hypot(Math.max(x, W - x), Math.max(y, H - y)) + 80, targets });
     document.dispatchEvent(new CustomEvent("magic:revelio", { detail: { x, y } }));
@@ -310,43 +309,45 @@
     const s = W < 600 ? 0.65 : rand(0.85, 1.1);
     occ = { pts, t: 0, dur: rand(9, 12) * (W < 600 ? 0.75 : 1), body: [], s, x: pts[0].x, y: pts[0].y, loop: null, flap: 0 };
   };
-  const stepOccamy = (o, dt, time) => {
-    // during a loop the head circles, the rest of the path waits
-    if (o.loop) {
-      o.loop.a += o.loop.dir * dt * 3.6;
-      o.x = o.loop.cx + Math.cos(o.loop.a) * o.loop.r;
-      o.y = o.loop.cy + Math.sin(o.loop.a) * o.loop.r;
-      if (Math.abs(o.loop.a - o.loop.a0) >= TAU) o.loop = null;
-    } else {
-      o.t += dt / o.dur;
-      if (o.t >= 1) return false;
-      const p = along(o.pts, o.t, true);
-      const vx = p.x - o.x, vy = p.y - o.y;
-      o.x = p.x;
-      o.y = p.y;
-      // now and then it coils once in the air
-      if (!o.looped && o.t > 0.35 && o.t < 0.6 && Math.random() < dt * 0.9) {
-        o.looped = true;
-        const ang = Math.atan2(vy, vx), dir = Math.random() < 0.5 ? 1 : -1, r = 46 * o.s;
-        const a0 = ang - (dir * Math.PI) / 2 + Math.PI;
-        o.loop = { cx: o.x - Math.cos(a0) * r, cy: o.y - Math.sin(a0) * r, r, a: a0, a0, dir };
-      }
+  // during a loop the head circles, the rest of the path waits
+  const coil = (o, dt) => {
+    o.loop.a += o.loop.dir * dt * 3.6;
+    o.x = o.loop.cx + Math.cos(o.loop.a) * o.loop.r;
+    o.y = o.loop.cy + Math.sin(o.loop.a) * o.loop.r;
+    if (Math.abs(o.loop.a - o.loop.a0) >= TAU) o.loop = null;
+  };
+  // the head along the path; false once across
+  const glide = (o, dt) => {
+    o.t += dt / o.dur;
+    if (o.t >= 1) return false;
+    const p = along(o.pts, o.t, true);
+    const vx = p.x - o.x, vy = p.y - o.y;
+    o.x = p.x;
+    o.y = p.y;
+    // now and then it coils once in the air
+    if (!o.looped && o.t > 0.35 && o.t < 0.6 && Math.random() < dt * 0.9) {
+      o.looped = true;
+      const ang = Math.atan2(vy, vx), dir = Math.random() < 0.5 ? 1 : -1, r = 46 * o.s;
+      const a0 = ang - (dir * Math.PI) / 2 + Math.PI;
+      o.loop = { cx: o.x - Math.cos(a0) * r, cy: o.y - Math.sin(a0) * r, r, a: a0, a0, dir };
     }
+    return true;
+  };
+  const stepOccamy = (o, dt, time) => {
+    if (o.loop) coil(o, dt);
+    else if (!glide(o, dt)) return false;
     // the body follows the head's path, one point every 4 px
     const b = o.body;
     if (!b.length || Math.hypot(o.x - b[0].x, o.y - b[0].y) > 4 * o.s) b.unshift({ x: o.x, y: o.y });
     const N = Math.round(64 * (W < 600 ? 0.8 : 1));
     if (b.length > N) b.length = N;
     o.flap += dt * 7;
-    if (Math.random() < 0.6) { const q = pick(b); emit(q.x, q.y, { n: 1, color: Math.random() < 0.5 ? "blue" : "gold", speed: 14, life: 1.1, size: 6, gravity: 8 }); }
+    if (Math.random() < 0.6) { const q = pick(b); emit(q.x, q.y, { n: 1, color: (Math.random() < 0.5) ? "blue" : "gold", speed: 14, life: 1.1, size: 6, gravity: 8 }); }
     return true;
   };
-  const drawOccamy = (o) => {
-    const b = o.body;
-    if (b.length < 4) return;
-    const s = o.s;
+  // the glow around the body
+  const drawOccamyGlow = (b, s) => {
     ctx.globalCompositeOperation = "lighter";
-    // the glow around the body
     for (let i = 0; i < b.length; i += 3) {
       const u = i / b.length;
       ctx.globalAlpha = 0.28 * (1 - u);
@@ -355,7 +356,9 @@
     }
     ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = 1;
-    // the body, tail first: scales shading from violet at the tail to blue, the belly gold
+  };
+  // the body, tail first: scales shading from violet at the tail to blue, the belly gold
+  const drawOccamyBody = (b, s) => {
     for (let i = b.length - 1; i >= 0; i--) {
       const u = i / (b.length - 1);
       const r = s * (1.2 + 6.6 * Math.pow(1 - u, 0.7) * Math.min(1, (1 - u) * 6 + 0.25));
@@ -371,7 +374,9 @@
         ctx.fill();
       }
     }
-    // wings, a little behind the head: fans of feathers, beating
+  };
+  // wings, a little behind the head: fans of feathers, beating
+  const drawOccamyWings = (o, b, s) => {
     const wi = Math.min(b.length - 2, 9);
     const p = b[wi], q = b[wi + 1];
     const ang = Math.atan2(p.y - q.y, p.x - q.x);
@@ -395,7 +400,9 @@
       }
       ctx.restore();
     }
-    // the head: a bird's, with a crest of gold feathers and a beak
+  };
+  // the head: a bird's, with a crest of gold feathers and a beak
+  const drawOccamyHead = (b, s) => {
     const h = b[0], hn = b[2];
     const ha = Math.atan2(h.y - hn.y, h.x - hn.x);
     ctx.save();
@@ -428,6 +435,14 @@
     ctx.fillStyle = "#fff";
     ctx.fill();
     ctx.restore();
+  };
+  const drawOccamy = (o) => {
+    const b = o.body;
+    if (b.length < 4) return;
+    drawOccamyGlow(b, o.s);
+    drawOccamyBody(b, o.s);
+    drawOccamyWings(o, b, o.s);
+    drawOccamyHead(b, o.s);
   };
 
   // ---------- things that fly through: DOM sprites moved in the frame loop ----------
@@ -513,7 +528,7 @@
     const el = flyer("t-patronus", STAG);
     const size = W < 600 ? 150 : 210, y0 = H * rand(0.3, 0.5) - size / 2;
     el.style.width = el.style.height = size + "px";
-    flyers.push({ kind: "patronus", el, t: 0, dur: W < 600 ? 4.5 : 6.5, step(f, dt) {
+    flyers.push({ kind: "patronus", el, t: 0, dur: (W < 600) ? 4.5 : 6.5, step(f, dt) {
       f.t += dt / f.dur;
       const k = f.t;
       const x = -size - 20 + (W + size + 60) * k, y = y0 - Math.abs(Math.sin(k * Math.PI * 7)) * 22;
@@ -547,18 +562,15 @@
   };
 
   // ---------- the loop ----------
-  const frame = (now) => {
-    raf = requestAnimationFrame(frame);
-    const time = now / 1000;
-    const dt = Math.min(0.05, last ? time - last : 0.016);
-    last = time;
-
-    // ambient life
+  // ambient life: each thing comes at its time, then comes back later
+  const ambient = (time) => {
     if (next.owl === undefined) schedule(time, true);
     const c = CADENCE[rich() ? "rich" : "light"];
     for (const k in next) if (time > next[k]) { EVENTS[k](); next[k] = time + rand(c[k][1], c[k][2]); }
+  };
 
-    // parallax: the mouse (fine pointers only) and the scroll; near things move more than far ones
+  // parallax: the mouse (fine pointers only) and the scroll; near things move more than far ones
+  const parallax = (dt) => {
     if (fine.matches && pointer.active) {
       view.px += ((pointer.x / W - 0.5) - view.px) * Math.min(1, dt * 2.5);
       view.py += ((pointer.y / H - 0.5) - view.py) * Math.min(1, dt * 2.5);
@@ -572,21 +584,10 @@
       l.y = y;
       l.el.style.translate = `${x.toFixed(2)}px ${y.toFixed(2)}px`;
     }
+  };
 
-    // nothing to draw (a page with its own air, between two events): leave the canvas alone
-    const busy = flies.length || wisps.length || sparks.length || rings.length || circles.length || waves.length || snitch || occ;
-    if (!busy && cleared) {
-      for (let i = flyers.length - 1; i >= 0; i--) { const f = flyers[i]; if (!f.step(f, dt)) { f.el.remove(); flyers.splice(i, 1); } }
-      for (const fn of frameFns) { try { fn(time, dt, pointer, view); } catch (e) { console.error(e); } }
-      pointer.moved = 0;
-      return;
-    }
-    ctx.clearRect(0, 0, W, H);
-    cleared = !busy;
-    ctx.globalCompositeOperation = "lighter";
-    const S = sprites();
-
-    // fireflies wandering, their light coming and going
+  // fireflies wandering, their light coming and going
+  const drawFireflies = (S, time, dt) => {
     for (const f of flies) {
       f.vx += (Math.sin(time * f.f1 + f.ph) * 9 - f.vx) * dt;
       f.vy += (Math.cos(time * f.f2 + f.ph * 1.7) * 7 - 2 - f.vy) * dt;
@@ -599,55 +600,66 @@
       const s = f.r * 7 * (0.8 + 0.4 * b);
       ctx.drawImage(S[f.img], f.x - s / 2, f.y - s / 2, s, s);
     }
+  };
 
-    // ribbons of ancient magic
+  // ribbons of ancient magic: a loop now and then, else a gentle meander, drawn back towards the
+  // middle of the screen when far out
+  const steerWisp = (w, time, dt) => {
+    w.nextLoop -= dt;
+    if (w.loop > 0) {
+      w.loop -= dt;
+      w.ang += w.loopDir * 4.2 * dt;
+      return;
+    }
+    const home = Math.atan2(H / 2 - w.y, W / 2 - w.x);
+    let diff = home - w.ang;
+    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    const out = Math.max(0, Math.hypot(w.x - W / 2, w.y - H / 2) / Math.hypot(W / 2, H / 2) - 0.55);
+    w.ang += (Math.sin(time * 0.9 + w.ph) * 1.1 + diff * out * 2.5) * dt;
+    if (w.nextLoop < 0) { w.loop = TAU / 4.2; w.loopDir = Math.random() < 0.5 ? 1 : -1; w.nextLoop = rand(4, 9); }
+  };
+  // a soft band, then a bright thread
+  const drawTrail = (S, w) => {
+    const t = w.trail;
+    for (let k = 0; k < t.length; k += 2) {
+      const u = 1 - k / t.length;
+      ctx.globalAlpha = 0.22 * u * u;
+      const s = 26 * u + 4;
+      ctx.drawImage(S[w.color], t[k].x - s / 2, t[k].y - s / 2, s, s);
+    }
+    if (t.length <= 3) return;
+    ctx.globalAlpha = 0.55;
+    ctx.lineCap = "round";
+    for (let k = 1; k < t.length; k++) {
+      const u = 1 - k / t.length;
+      ctx.beginPath();
+      ctx.moveTo(t[k - 1].x, t[k - 1].y);
+      ctx.lineTo(t[k].x, t[k].y);
+      ctx.strokeStyle = `rgba(${STROKE[w.color]}, ${(u * 0.9).toFixed(2)})`;
+      ctx.lineWidth = 2.2 * u + 0.3;
+      ctx.stroke();
+    }
+  };
+  const offscreen = (p, m) => p.x < -m || p.x > W + m || p.y < -m || p.y > H + m;
+  const drawWisps = (S, time, dt) => {
     for (let i = 0; i < wisps.length; i++) {
       const w = wisps[i];
-      w.nextLoop -= dt;
-      if (w.loop > 0) {
-        w.loop -= dt;
-        w.ang += w.loopDir * 4.2 * dt;
-      } else {
-        // a gentle meander, drawn back towards the middle of the screen when far out
-        const home = Math.atan2(H / 2 - w.y, W / 2 - w.x);
-        let diff = home - w.ang;
-        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-        const out = Math.max(0, Math.hypot(w.x - W / 2, w.y - H / 2) / Math.hypot(W / 2, H / 2) - 0.55);
-        w.ang += (Math.sin(time * 0.9 + w.ph) * 1.1 + diff * out * 2.5) * dt;
-        if (w.nextLoop < 0) { w.loop = TAU / 4.2; w.loopDir = Math.random() < 0.5 ? 1 : -1; w.nextLoop = rand(4, 9); }
-      }
+      steerWisp(w, time, dt);
       w.x += Math.cos(w.ang) * w.sp * dt;
       w.y += Math.sin(w.ang) * w.sp * dt;
       w.trail.unshift({ x: w.x, y: w.y });
       if (w.trail.length > w.len) w.trail.length = w.len;
-      const t = w.trail;
-      // a soft band, then a bright thread, then the head
-      for (let k = 0; k < t.length; k += 2) {
-        const u = 1 - k / t.length;
-        ctx.globalAlpha = 0.22 * u * u;
-        const s = 26 * u + 4;
-        ctx.drawImage(S[w.color], t[k].x - s / 2, t[k].y - s / 2, s, s);
-      }
-      if (t.length > 3) {
-        ctx.globalAlpha = 0.55;
-        ctx.lineCap = "round";
-        for (let k = 1; k < t.length; k++) {
-          const u = 1 - k / t.length;
-          ctx.beginPath();
-          ctx.moveTo(t[k - 1].x, t[k - 1].y);
-          ctx.lineTo(t[k].x, t[k].y);
-          ctx.strokeStyle = `rgba(${STROKE[w.color]}, ${(u * 0.9).toFixed(2)})`;
-          ctx.lineWidth = 2.2 * u + 0.3;
-          ctx.stroke();
-        }
-      }
+      drawTrail(S, w);
+      // then the head
       ctx.globalAlpha = 0.9;
       ctx.drawImage(S[w.color], w.x - 9, w.y - 9, 18, 18);
       if (Math.random() < dt * 8) emit(w.x, w.y, { n: 1, color: w.color, speed: 10, life: 1, size: 5, gravity: 6 });
-      if (w.x < -200 || w.x > W + 200 || w.y < -200 || w.y > H + 200) wisps[i] = wisp(false);
+      if (offscreen(w, 200)) wisps[i] = wisp(false);
     }
+  };
 
-    // sparks: the wand trail, bursts, whatever the page emits
+  // sparks: the wand trail, bursts, whatever the page emits
+  const drawSparks = (S, dt) => {
     for (let i = sparks.length - 1; i >= 0; i--) {
       const p = sparks[i];
       p.life -= dt;
@@ -661,8 +673,10 @@
       const s = p.size * (0.4 + 0.6 * k);
       ctx.drawImage(S[p.img], p.x - s / 2, p.y - s / 2, s, s);
     }
+  };
 
-    // Lumos: a ring of light spreading from the click
+  // Lumos: a ring of light spreading from the click
+  const drawRings = (S, dt) => {
     for (let i = rings.length - 1; i >= 0; i--) {
       const r = rings[i];
       r.t += dt;
@@ -678,89 +692,109 @@
       const s = 60 * (1 - k * 0.5);
       ctx.drawImage(S[r.color] || S.white, r.x - s / 2, r.y - s / 2, s, s);
     }
+  };
 
-    // circles of runes: drawn in, turning, then fading
+  // circles of runes: drawn in, turning, then fading
+  const drawCircle = (o, k) => {
+    const grow = 1 - Math.pow(1 - Math.min(1, k * 2.5), 3);
+    const r = o.r * (0.55 + 0.45 * grow);
+    const col = STROKE[o.color] || STROKE.gold;
+    ctx.save();
+    ctx.translate(o.x, o.y);
+    ctx.rotate(o.rot + o.spin * o.t);
+    ctx.globalAlpha = Math.min(1, k * 6) * (1 - Math.pow(k, 2));
+    ctx.strokeStyle = `rgb(${col})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, TAU * grow);
+    ctx.stroke();
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.7, 0, TAU * grow);
+    ctx.stroke();
+    const n = 10, h = r * 0.2;
+    for (let j = 0; j < n * grow; j++) {
+      ctx.save();
+      ctx.rotate((j / n) * TAU);
+      ctx.translate(0, -r * 0.85);
+      drawRune(o.seed + j * 5, h);
+      ctx.restore();
+    }
+    ctx.restore();
+  };
+  const drawCircles = (dt) => {
     for (let i = circles.length - 1; i >= 0; i--) {
       const o = circles[i];
       o.t += dt;
       if (o.t > o.life) { circles.splice(i, 1); continue; }
-      const k = o.t / o.life;
-      const grow = 1 - Math.pow(1 - Math.min(1, k * 2.5), 3);
-      const r = o.r * (0.55 + 0.45 * grow);
-      const col = STROKE[o.color] || STROKE.gold;
-      ctx.save();
-      ctx.translate(o.x, o.y);
-      ctx.rotate(o.rot + o.spin * o.t);
-      ctx.globalAlpha = Math.min(1, k * 6) * (1 - Math.pow(k, 2));
-      ctx.strokeStyle = `rgb(${col})`;
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.arc(0, 0, r, 0, TAU * grow);
-      ctx.stroke();
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 0.7, 0, TAU * grow);
-      ctx.stroke();
-      const n = 10, h = r * 0.2;
-      for (let j = 0; j < n * grow; j++) {
-        ctx.save();
-        ctx.rotate((j / n) * TAU);
-        ctx.translate(0, -r * 0.85);
-        drawRune(o.seed + j * 5, h);
-        ctx.restore();
-      }
-      ctx.restore();
+      drawCircle(o, o.t / o.life);
     }
+  };
 
-    // Revelio: a wide soft band and a bright edge, sweeping out; panels light up as it passes
+  // Revelio: a wide soft band and a bright edge, sweeping out; panels light up as it passes
+  const drawWave = (w, r) => {
+    const fade = (1 - r / w.max) * Math.min(1, r / 160); // born thin at the middle, not as a blot
+    ctx.globalAlpha = 0.16 * fade;
+    ctx.lineWidth = Math.min(46, r * 0.5 + 1);
+    ctx.strokeStyle = "rgba(95, 216, 236, 1)";
+    ctx.beginPath();
+    ctx.arc(w.x, w.y, Math.max(1, r - 20), 0, TAU);
+    ctx.stroke();
+    ctx.globalAlpha = 0.75 * fade;
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = "rgba(200, 248, 255, 1)";
+    ctx.beginPath();
+    ctx.arc(w.x, w.y, r, 0, TAU);
+    ctx.stroke();
+    for (let k = 0; k < 6; k++) {
+      const a = rand(0, TAU);
+      emit(w.x + Math.cos(a) * r, w.y + Math.sin(a) * r, { n: 1, color: "blue", speed: 10, life: 0.8, size: 7, gravity: 0 });
+    }
+  };
+  const reveal = (w, r) => {
+    for (const t of w.targets) {
+      if (t.done || t.d > r) continue;
+      t.done = true;
+      t.el.classList.remove("t-revealed");
+      void t.el.offsetWidth; // restart the animation
+      t.el.classList.add("t-revealed");
+      setTimeout(() => t.el.classList.remove("t-revealed"), 1700);
+      emit(t.r.left, t.r.top, { n: 4, color: "blue", speed: 30, life: 0.8, size: 8, gravity: 0 });
+      emit(t.r.right, t.r.bottom, { n: 4, color: "blue", speed: 30, life: 0.8, size: 8, gravity: 0 });
+    }
+  };
+  const drawWaves = (dt) => {
     for (let i = waves.length - 1; i >= 0; i--) {
       const w = waves[i];
       w.t += dt;
       const r = w.t * WAVE_SPEED;
       if (r > w.max) { waves.splice(i, 1); continue; }
-      const fade = (1 - r / w.max) * Math.min(1, r / 160); // born thin at the middle, not as a blot
-      ctx.globalAlpha = 0.16 * fade;
-      ctx.lineWidth = Math.min(46, r * 0.5 + 1);
-      ctx.strokeStyle = "rgba(95, 216, 236, 1)";
-      ctx.beginPath();
-      ctx.arc(w.x, w.y, Math.max(1, r - 20), 0, TAU);
-      ctx.stroke();
-      ctx.globalAlpha = 0.75 * fade;
-      ctx.lineWidth = 1.6;
-      ctx.strokeStyle = "rgba(200, 248, 255, 1)";
-      ctx.beginPath();
-      ctx.arc(w.x, w.y, r, 0, TAU);
-      ctx.stroke();
-      for (let k = 0; k < 6; k++) {
-        const a = rand(0, TAU);
-        emit(w.x + Math.cos(a) * r, w.y + Math.sin(a) * r, { n: 1, color: "blue", speed: 10, life: 0.8, size: 7, gravity: 0 });
-      }
-      for (const t of w.targets) {
-        if (t.done || t.d > r) continue;
-        t.done = true;
-        t.el.classList.remove("t-revealed");
-        void t.el.offsetWidth; // restart the animation
-        t.el.classList.add("t-revealed");
-        setTimeout(() => t.el.classList.remove("t-revealed"), 1700);
-        emit(t.r.left, t.r.top, { n: 4, color: "blue", speed: 30, life: 0.8, size: 8, gravity: 0 });
-        emit(t.r.right, t.r.bottom, { n: 4, color: "blue", speed: 30, life: 0.8, size: 8, gravity: 0 });
-      }
+      drawWave(w, r);
+      reveal(w, r);
     }
+  };
 
-    // the Snitch
-    if (snitch) {
-      snitch.t += dt / snitch.dur;
-      if (snitch.t >= 1) snitch = null;
-      else {
-        const p = along(snitch.pts, snitch.t);
-        snitch.ang = Math.atan2(p.y - snitch.y, p.x - snitch.x);
-        snitch.x = p.x;
-        snitch.y = p.y;
-        if (Math.random() < 0.5) emit(p.x, p.y, { n: 1, speed: 12, life: 0.6, size: 5, gravity: 6 });
-        drawSnitch(snitch, time);
-      }
-    }
+  // the Snitch
+  const flySnitch = (time, dt) => {
+    snitch.t += dt / snitch.dur;
+    if (snitch.t >= 1) { snitch = null; return; }
+    const p = along(snitch.pts, snitch.t);
+    snitch.ang = Math.atan2(p.y - snitch.y, p.x - snitch.x);
+    snitch.x = p.x;
+    snitch.y = p.y;
+    if (Math.random() < 0.5) emit(p.x, p.y, { n: 1, speed: 12, life: 0.6, size: 5, gravity: 6 });
+    drawSnitch(snitch, time);
+  };
 
+  const draw = (time, dt) => {
+    const S = sprites();
+    drawFireflies(S, time, dt);
+    drawWisps(S, time, dt);
+    drawSparks(S, dt);
+    drawRings(S, dt);
+    drawCircles(dt);
+    drawWaves(dt);
+    if (snitch) flySnitch(time, dt);
     // the Occamy
     if (occ) {
       if (stepOccamy(occ, dt, time)) drawOccamy(occ);
@@ -768,17 +802,37 @@
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "source-over";
+  };
 
-    // owls, letters, Patronuses
+  // owls, letters, Patronuses; then whatever the page runs in the frame
+  const stepFlyers = (time, dt) => {
     for (let i = flyers.length - 1; i >= 0; i--) {
       const f = flyers[i];
       if (!f.step(f, dt)) { f.el.remove(); flyers.splice(i, 1); }
     }
-
     for (const fn of frameFns) {
       try { fn(time, dt, pointer, view); } catch (e) { console.error(e); }
     }
     pointer.moved = 0;
+  };
+
+  const anything = () => flies.length || wisps.length || sparks.length || rings.length || circles.length || waves.length || snitch || occ;
+  const frame = (now) => {
+    raf = requestAnimationFrame(frame);
+    const time = now / 1000;
+    const dt = Math.min(0.05, last ? time - last : 0.016);
+    last = time;
+    ambient(time);
+    parallax(dt);
+    // nothing to draw (a page with its own air, between two events): leave the canvas alone
+    const busy = anything();
+    if (busy || !cleared) {
+      ctx.clearRect(0, 0, W, H);
+      cleared = !busy;
+      ctx.globalCompositeOperation = "lighter";
+      draw(time, dt);
+    }
+    stepFlyers(time, dt);
   };
 
   // ---------- pointer ----------
@@ -846,7 +900,7 @@
       const out = side === 0 ? -Math.PI / 2 : side === 1 ? Math.PI / 2 : side === 2 ? Math.PI : 0;
       // start a little outside, fly in towards the edge
       const d = rand(18, 40);
-      emit(x + Math.cos(out) * d, y + Math.sin(out) * d, { n: 1, dir: out + Math.PI, spread: 0.2, speed: d * 3.2, life: 0.55, size: 7, gravity: 0, color: Math.random() < 0.5 ? "blue" : "gold" });
+      emit(x + Math.cos(out) * d, y + Math.sin(out) * d, { n: 1, dir: out + Math.PI, spread: 0.2, speed: d * 3.2, life: 0.55, size: 7, gravity: 0, color: (Math.random() < 0.5) ? "blue" : "gold" });
     }
   };
   const held = () => root.classList.contains("t-hold");
@@ -965,4 +1019,4 @@
     onFrame: (fn) => { frameFns.push(fn); return () => frameFns.splice(frameFns.indexOf(fn), 1); },
   };
   if (root.dataset.theme === "hogwarts") start();
-})();
+}

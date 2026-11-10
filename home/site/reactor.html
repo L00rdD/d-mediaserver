@@ -255,10 +255,13 @@
         "p3 reactor p4"
         "sto sto sto"
         "bot bot bot"
-        "sap sap sap"
+        "mand mand mand"
         "kp kp kp"
+        "mg mg mg"
         "bf bf bf"
-        "er er er";
+        "er er er"
+        "cb cb cb"
+        "pr pr pr";
       gap: 28px 56px;
       width: 100%;
       max-width: 1080px;
@@ -496,10 +499,12 @@
     }
     .panel:hover .name, .panel:focus-visible .name { text-shadow: 0 0 12px rgba(255, 200, 87, 0.5); }
 
-    /* Sapling Sunrise card: hidden until the tracker answers on :8081 (see sapling-sunrise.js) */
+    /* Mandrake card: hidden until the tracker answers on :8081 (see mandrake.js) */
     .ss-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; font: 0.8rem var(--mono); }
     .ss-list li { display: grid; grid-template-columns: 1.2fr 1.4fr 1.6fr 0.8fr; gap: 12px; align-items: center; }
     .ss-list li span:last-child { text-align: right; }
+    .app-name { display: inline-flex; align-items: center; gap: 6px; }
+    .app-logo { height: 2.2em; width: auto; margin: -0.6em 0; }
     .ss-bar { display: block; height: 6px; background: var(--cyan-faint); }
     .ss-bar i { display: block; height: 100%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
     @media (max-width: 640px) { .ss-list li { grid-template-columns: 1fr 1fr; } .ss-bar { grid-column: 1 / -1; } }
@@ -551,13 +556,32 @@
       color: var(--muted);
       background: repeating-linear-gradient(90deg, var(--cyan-soft) 0 1px, transparent 1px 10%) 0 0 / 100% 4px no-repeat;
     }
-    .sapling { grid-area: sap; animation-delay: 0.65s; }
+    .mandrake { grid-area: mand; animation-delay: 0.65s; }
     /* One Piece card: hidden until the kpiece service writes /kpiece.json (see kpiece.js) */
     .kpiece { grid-area: kp; animation-delay: 0.7s; }
     .kpiece dd { font-variant-numeric: tabular-nums; }
+    /* Ohara card: hidden until the manga library answers on port 8585 (see ohara.js) */
+    .ohara { grid-area: mg; animation-delay: 0.75s; }
+    .ohara dd { font-variant-numeric: tabular-nums; }
     /* Bifrost card: hidden until bifrost answers on :8582 (see bifrost.js) */
     .errol { grid-area: er; animation-delay: 0.8s; }
     .bifrost { grid-area: bf; animation-delay: 0.75s; }
+    /* Cerebro card: hidden while the feed has no "cerebro", the Mac asleep (see cerebro.js) */
+    .cerebro { grid-area: cb; animation-delay: 0.85s; }
+    /* Anycubic printer card: shown while the printer is on (see printer.js) */
+    .printer { grid-area: pr; animation-delay: 0.9s; }
+    .pr-row { display: flex; gap: 18px; align-items: center; }
+    .pr-row .bot-stats { flex: 1; }
+    .pr-view { flex: none; width: 300px; height: 220px; cursor: grab; }
+    .pr-view:active { cursor: grabbing; }
+    @media (max-width: 640px) { .pr-row { flex-wrap: wrap; } .pr-view { width: 100%; } .pr-picture { display: none; } }
+    /* the slicer's picture, dimmed from the top where the part is still to print */
+    .pr-picture { position: relative; flex: none; width: 150px; margin: 0; overflow: hidden; border-radius: 3px; }
+    .pr-picture img { display: block; width: 100%; }
+    .pr-picture img[hidden] + i { display: none; }
+    .pr-picture i { position: absolute; left: 0; right: 0; top: 0; height: 100%; background: rgba(5, 8, 14, 0.2); backdrop-filter: grayscale(1) brightness(0.45); border-bottom: 2px solid var(--t-accent); transition: height 1s; }
+    .printer dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .printer .st-bar i { transition: width 1s; }
     /* the card opens the Bifrost dashboard (:8582), its footer link Homebridge (:8581) */
     .bifrost .bf-open { position: absolute; inset: 0; z-index: 1; }
     .bifrost .bf-hb { position: relative; z-index: 2; margin-left: 0; }
@@ -611,10 +635,13 @@
           "p3 p4"
           "sto sto"
           "bot bot"
-          "sap sap"
+          "mand mand"
           "kp kp"
+          "mg mg"
           "bf bf"
-          "er er";
+          "er er"
+          "cb cb"
+          "pr pr";
         gap: 16px;
         padding: 20px 16px 36px;
       }
@@ -628,7 +655,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "sap" "kp" "bf" "er";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "mand" "kp" "mg" "bf" "er" "cb" "pr";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -772,8 +799,8 @@
       <span class="tag bot-foot"><span data-tb="strategy"></span><span data-tb="updated"></span><span class="bot-more">Dashboard :8080 →</span></span>
     </a>
 
-    <a class="panel bot sapling" id="sapling-sunrise" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Sapling Sunrise, open its dashboard">
-      <span class="tag"><i>06</i> // Sapling Sunrise <span data-ss="state"></span></span>
+    <a class="panel bot mandrake" id="mandrake" href="http://{{$host}}:8081" target="_blank" rel="noopener" hidden aria-label="Mandrake, open its dashboard">
+      <span class="tag"><i>06</i> <span class="app-name">// <img class="app-logo" src="http://{{$host}}:8081/mandrake.svg" alt="" width="22" height="22">Mandrake</span> <span data-ss="state"></span></span>
       <ul class="ss-list" data-ss="list"></ul>
       <span class="tag bot-foot"><span data-ss="updated"></span><span class="bot-more">Dashboard :8081 →</span></span>
     </a>
@@ -788,6 +815,17 @@
       <span class="tag bot-foot"><span data-kp="date"></span><span data-kp="pages"></span><span class="bot-more">Read on KPIECE →</span></span>
     </a>
 
+    <a class="panel bot ohara" id="ohara" href="http://{{$host}}:8585" target="_blank" rel="noopener" hidden aria-label="Ohara, open the manga library">
+      <span class="tag"><i>12</i> <span class="app-name">// <img class="app-logo" src="http://{{$host}}:8585/ohara.svg" alt="" width="22" height="22">Ohara</span> <span data-oh="state"></span></span>
+      <dl class="bot-stats">
+        <div><dt>Volumes</dt><dd data-oh="volumes">–</dd></div>
+        <div><dt>Downloading</dt><dd data-oh="downloads">–</dd></div>
+        <div><dt>Reading</dt><dd data-oh="reading">–</dd></div>
+      </dl>
+      <ul class="ss-list" data-oh="list"></ul>
+      <span class="tag bot-foot"><span>Manga library</span><span class="bot-more">Read :8585 →</span></span>
+    </a>
+
     <div class="panel bot bifrost" id="bifrost" hidden>
       <a class="bf-open" href="http://{{$host}}:8582" target="_blank" rel="noopener" aria-label="Bifrost, open its dashboard"></a>
       <span class="tag"><i>08</i> // Bifrost <span data-bf="state"></span></span>
@@ -799,6 +837,25 @@
       <div class="errol-row"><span data-errol="now">–</span><span class="errol-looks"><button type="button" data-errol-look="friday">Friday</button><button type="button" data-errol-look="cyberpunk">Cyberpunk</button><button type="button" data-errol-look="hogwarts">Hogwarts</button></span></div>
       <label class="errol-follow"><input type="checkbox" data-errol="follow"> The screens follow this page's look</label>
     </div>
+    <a class="panel bot cerebro" id="cerebro" href="#" target="_blank" rel="noopener" hidden aria-label="Cerebro, open the Claude Code sessions of the Mac">
+      <span class="tag"><i>10</i> // Cerebro <span data-cb="state"></span></span>
+      <div class="cb-cards" data-cb="list"></div>
+      <span class="tag bot-foot"><span data-cb="counts"></span><span class="bot-more">X-Mansion :4243 →</span></span>
+    </a>
+    <a class="panel bot printer" id="printer" href="/printer.html" data-accent="#6fe3ff" hidden aria-label="Anycubic printer, open the full view">
+      <span class="tag"><i>11</i> // <span data-pr="name">Anycubic</span> <span data-pr="state"></span></span>
+      <div class="pr-row">
+        <canvas class="pr-view" data-pr="view" hidden aria-label="The printer in 3D: drag to turn it"></canvas>
+        <dl class="bot-stats">
+          <div><dt>File</dt><dd data-pr="file">–</dd></div>
+          <div><dt>Progress</dt><dd><span data-pr="pct">–</span> <small data-pr="layers"></small></dd></div>
+          <div><dt>Time left</dt><dd><span data-pr="left">–</span> <small data-pr="end"></small></dd></div>
+        </dl>
+        <figure class="pr-picture"><img data-pr="image" alt="The part as sliced" hidden><i data-pr="ghost"></i></figure>
+      </div>
+      <span class="st-bar"><i data-pr="fill"></i></span>
+      <span class="tag bot-foot"><span data-pr="note"></span><span data-pr="resin"></span><span class="bot-more">Full view →</span></span>
+    </a>
   </main>
 
   <footer class="jarvis" id="jarvis" aria-live="polite">
@@ -828,6 +885,8 @@
         if (shown("storage")) l.push(`Storage at ${text('[data-st="pct"]')}, ${text('[data-st="free"]')} left.`);
         if (shown("trading-bot")) l.push(`The trading bot reports ${text('[data-tb="pnl"]')} so far.`);
         if (shown("bifrost")) l.push(`Bifrost reports ${text('[data-bf="state"]')}.`);
+        if (shown("printer")) l.push(`The printer reports ${text('[data-pr="state"]')}, ${text('[data-pr="pct"]')} done.`);
+        if (shown("ohara")) l.push(`The Ohara library holds ${text('[data-oh="state"]')}, ${text('[data-oh="volumes"]')} volumes.`);
         if (shown("kpiece")) l.push(`One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
         l.push("Type a title above and I will find it.", "Transmission stays behind the VPN, as instructed.", "Uplink {{$host}} is stable.");
         return l;
@@ -851,10 +910,13 @@
   </script>
   <script src="/storage.js" defer></script>
   <script src="/trading-bot.js" defer></script>
-  <script src="/sapling-sunrise.js" defer></script>
+  <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
+  <script src="/ohara.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
+  <script src="/cerebro.js" defer></script>
+  <script src="/printer.js" defer></script>
 </body>
 </html>

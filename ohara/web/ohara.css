@@ -1,0 +1,56 @@
+/* Ohara's library page. Colours and fonts come from the hub's theme kit (--t-*),
+   with fallbacks for when the hub does not answer. */
+:root {
+  --accent: var(--t-accent, #6fe3ff);
+  --muted: var(--t-muted, #8aa3b0);
+  --line: var(--t-line, rgba(111, 227, 255, 0.25));
+  --surface: var(--t-surface, rgba(10, 20, 30, 0.7));
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--t-bg, #05080d); color: var(--t-text, #e6f3f8); font-family: var(--t-font-body, system-ui, sans-serif); }
+main { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+section { margin-top: 34px; }
+[hidden] { display: none !important; }
+
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
+.top h1 { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 2rem; }
+.search { flex: 1 1 360px; display: flex; gap: 10px; }
+.search input, .add input {
+  flex: 1; min-width: 0; padding: 11px 14px; font: inherit; color: inherit;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+}
+.search input:focus, .add input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.t-btn { cursor: pointer; padding: 9px 16px; font: inherit; }
+.t-btn:disabled { opacity: 0.5; cursor: wait; }
+
+.filters { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--muted); }
+.results, .downloads { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.result { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "lang title add" "lang meta add" "form form form"; gap: 4px 14px; align-items: center; padding: 12px 16px; }
+.result .lang { grid-area: lang; min-width: 3em; text-align: center; }
+.result b { grid-area: title; font-weight: 600; word-break: break-word; }
+.result small { grid-area: meta; }
+.result > .t-btn { grid-area: add; }
+.add { grid-area: form; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
+
+.downloads li { display: grid; grid-template-columns: 1fr 1.6fr 1fr auto auto; gap: 14px; align-items: center; padding: 12px 16px; }
+.downloads small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-bar { display: block; height: 6px; background: var(--line); }
+.t-bar i { display: block; height: 100%; background: var(--t-progress, var(--accent)); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 18px; }
+.tile { display: flex; flex-direction: column; gap: 6px; padding: 10px; color: inherit; text-decoration: none; transition: transform 0.15s; }
+.tile:hover { transform: translateY(-3px); }
+.tile img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; background: var(--surface); border-radius: 2px; }
+.tile b { font-weight: 600; line-height: 1.2; }
+
+.continue { display: grid; grid-template-columns: 90px 1fr; grid-template-rows: auto auto; gap: 4px 18px; align-items: end; padding: 14px; color: inherit; text-decoration: none; max-width: 520px; }
+.continue img { grid-row: span 2; width: 90px; aspect-ratio: 2 / 3; object-fit: cover; }
+.continue span { font-size: 1.2rem; font-weight: 600; align-self: end; }
+.continue small { align-self: start; }
+.back { padding: 4px 12px; margin-right: 12px; }
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+  .downloads li { grid-template-columns: 1fr auto; }
+  .downloads small, .downloads .t-bar { grid-column: 1 / -1; }
+}
