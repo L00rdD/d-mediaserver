@@ -298,8 +298,10 @@ class Transmission(Library):
 
     def test_grab_and_follow(self):
         ohara.found_releases["t2"] = {"title": "Frieren T01-T14", "series": "Frieren", "range": (1, 14), "_url": "magnet:?f"}
-        with mock.patch.object(ohara, "rpc", return_value={"torrent-duplicate": {"hashString": "H2"}}), mock.patch.object(ohara, "lookup", return_value={"id": 5}):
+        with mock.patch.object(ohara, "rpc", return_value={"torrent-duplicate": {"hashString": "H2"}}), mock.patch.object(ohara, "lookup", return_value={"id": 5}), \
+                mock.patch.object(ohara, "complete_later") as later:
             ohara.grab("t2", "", follow=True, query="frieren")
+        later.assert_called_once_with("Frieren")
         state = ohara.load_state()
         self.assertEqual(state["series"]["Frieren"], {"follow": True, "query": "frieren", "anilist": 5})
         self.assertEqual(state["downloads"]["H2"]["range"], [1, 14])
@@ -517,6 +519,11 @@ class Http(Reading):
         search.assert_called_once_with("naruto")
         with mock.patch.object(ohara, "grab", return_value={"series": "N", "hash": "H"}):
             self.assertEqual(json.loads(self.call("POST", "/api/grab", {"token": "t", "series": "N"})[2])["hash"], "H")
+        with mock.patch.object(ohara, "complete", return_value={"sent": [], "nowhere": [3]}):
+            self.assertEqual(json.loads(self.call("POST", "/api/complete", {"series": "N"})[2])["nowhere"], [3])
+        with mock.patch.object(ohara, "set_follow") as follow:
+            self.assertEqual(self.call("POST", "/api/follow", {"series": "N", "follow": True})[0], 200)
+        follow.assert_called_once_with("N", True)
         with mock.patch.object(ohara, "cancel") as cancel:
             self.assertEqual(self.call("POST", "/api/cancel", {"hash": "H"})[0], 200)
         cancel.assert_called_once_with("H")
@@ -541,24 +548,97 @@ class Http(Reading):
 
 
 class Follow(Library):
-    def rel(self, title, seeders=5, lang="FR"):
-        return {"title": title, "series": ohara.guess_series(title), "range": ohara.tome_range(title), "lang": lang, "seeders": seeders, "token": title}
+    def rel(self, title, seeders=5, lang="FR", size=1e9):
+        return {"title": title, "series": ohara.guess_series(title), "range": ohara.tome_range(title), "lang": lang, "seeders": seeders, "size": size, "token": title}
 
-    def test_next_release_brings_the_next_tome(self):
-        for n in (1, 2, 3):
+    def test_plan_fills_every_missing_tome(self):
+        for n in (3, 4):
             cbz(self.root / "Frieren" / f"T{n:02d}.cbz", ["1.png"])
-        state = {"downloads": {"H": {"series": "Frieren", "range": [4, 4]}, "X": {"series": "Other", "range": [1, 9]}, "Y": {"series": "Frieren"}}}
+        state = {"downloads": {"H": {"series": "Frieren", "range": [5, 5]}, "X": {"series": "Other", "range": [1, 9]}, "Y": {"series": "Frieren"}}}
         releases = [
-            self.rel("Frieren T01 à T14 FR", seeders=20),
+            self.rel("Frieren T01 - T02 FR", seeders=3),
             self.rel("Frieren T06 - T14 FR", seeders=50),
-            self.rel("Frieren T05 FR", seeders=2),
-            self.rel("Frieren T05 - T06 FR", seeders=0),
-            self.rel("Frieren T15 eng", lang="EN"),
+            self.rel("Frieren T01 à T14 FR", seeders=20),
+            self.rel("Frieren T15 FR", seeders=0),
+            self.rel("Frieren T15 - T16 eng", lang="EN"),
             self.rel("Frieren Artbook FR"),
         ]
-        self.assertEqual(ohara.next_release("Frieren", releases, state)["title"], "Frieren T01 à T14 FR")
-        self.assertEqual(ohara.next_release("Frieren", releases[1:], state)["title"], "Frieren T05 FR")
-        self.assertIsNone(ohara.next_release("Frieren", releases[3:], state))
+        picks, nowhere = ohara.plan("Frieren", releases, state)
+        self.assertEqual([r["title"] for r in picks], ["Frieren T01 à T14 FR"])
+        self.assertEqual(nowhere, [15])
+        picks, nowhere = ohara.plan("Frieren", releases[:2], state, total=16)
+        self.assertEqual([r["title"] for r in picks], ["Frieren T06 - T14 FR", "Frieren T01 - T02 FR"])
+        self.assertEqual(nowhere, [15, 16])
+
+    def test_plan_prefers_the_lighter_edition(self):
+        releases = [
+            self.rel("One Piece en couleurs - T001-104 CBZ", seeders=8, size=102e9),
+            self.rel("[Compressé] One Piece - T001-104 CBZ", seeders=6, size=16e9),
+            self.rel("One Piece - T050 [CBZ] Fr", seeders=30, size=150e6),
+        ]
+        picks, nowhere = ohara.plan("One Piece", releases, {"downloads": {}})
+        self.assertEqual([r["title"][:14] for r in picks], ["[Compressé] On"])
+        self.assertEqual(nowhere, [])
+
+    def test_plan_drops_packs_a_later_one_covers(self):
+        cbz(self.root / "One Piece" / "One Piece T098.cbz", ["1.png"])
+        releases = [
+            self.rel("One Piece - T001 à T094 [CBR]", seeders=3, size=14.7e9),
+            self.rel("One Piece T01 à T103 - Fr", seeders=3, size=16.4e9),
+            self.rel("One Piece T103 [CBZ] Fr", seeders=2, size=0.2e9),
+            self.rel("One Piece - T105 [CBZ] Fr", seeders=3, size=0.1e9),
+            self.rel("One Piece T106-114 Scan CBZ", seeders=23, size=2.8e9),
+            self.rel("One piece - T109 [CBZ] Fr", seeders=4, size=0.05e9),
+        ]
+        picks, nowhere = ohara.plan("One Piece", releases, {"downloads": {}})
+        self.assertEqual(sorted(r["range"] for r in picks), [(1, 103), (105, 105), (106, 114)])
+        self.assertEqual(nowhere, [104])
+
+    def test_slow_releases_cost_more(self):
+        need = {1, 2}
+        fast = self.rel("X T01 - T02 FR", seeders=10, size=1e9)
+        slow = dict(fast, seeders=1)
+        self.assertLess(ohara.cost(fast, need), ohara.cost(slow, need))
+
+    def test_colour_editions_are_another_series(self):
+        entry = {"anilist": 21}
+        facts = {"One Piece en couleurs": {"id": 21}, "One Piece - Édition Originale": {"id": 21}}
+        colour = self.rel("One Piece en couleurs - T001-104 CBZ")
+        original = self.rel("One Piece - Édition Originale - Tome 98")
+        self.assertFalse(ohara.same_series(colour, "One Piece", entry, facts))
+        self.assertTrue(ohara.same_series(original, "One Piece", entry, facts))
+        self.assertTrue(ohara.same_series(colour, "One Piece en couleurs", entry, facts))
+        self.assertFalse(ohara.same_series(original, "One Piece", {}, facts))
+
+    def test_plan_with_nothing_to_find(self):
+        self.assertEqual(ohara.plan("Frieren", [], {"downloads": {}}), ([], []))
+        self.assertEqual(ohara.plan("Frieren", [], {"downloads": {}}, total=2), ([], [1, 2]))
+
+    def test_complete_grabs_the_plan(self):
+        ohara.save_state({"series": {"Frieren": {"query": "frieren", "anilist": 5}}, "lookups": {"frieren": {"id": 5, "volumes": 3}}})
+        found = [self.rel("Frieren T01 - T02 FR"), self.rel("Frieren Anthology T03 FR")]
+        facts = {"Frieren": {"id": 5}, "Frieren Anthology": {"id": 6}}
+        with mock.patch.object(ohara, "find_releases", return_value=found) as find, mock.patch.object(ohara, "lookups", return_value=facts), \
+                mock.patch.object(ohara, "grab") as grab:
+            done = ohara.complete("Frieren")
+        find.assert_called_once_with("frieren")
+        grab.assert_called_once_with("Frieren T01 - T02 FR", "Frieren")
+        self.assertEqual(done, {"sent": [{"title": "Frieren T01 - T02 FR", "range": (1, 2)}], "nowhere": [3]})
+
+    def test_complete_later_runs_in_the_background(self):
+        with mock.patch.object(ohara, "complete", side_effect=OSError("prowlarr down")) as complete:
+            ohara.complete_later("Frieren")
+            for _ in range(100):
+                if complete.called:
+                    break
+                ohara.time.sleep(0.01)
+        complete.assert_called_once_with("Frieren")
+
+    def test_following_completes_at_once(self):
+        with mock.patch.object(ohara, "complete_later") as later:
+            ohara.set_follow("Frieren", True)
+            ohara.set_follow("Frieren", False)
+        later.assert_called_once_with("Frieren")
 
     def test_check_follows_grabs_for_followed_series_only(self):
         cbz(self.root / "Frieren" / "T01.cbz", ["1.png"])
@@ -586,10 +666,11 @@ class Follow(Library):
             cbz(self.root / "Frieren" / f"Frieren T{n:02d}.cbz", ["1.png"])
         old = self.root / "Frieren" / "Frieren T01.cbz"
         os.utime(old, (0, 0))
-        ohara.save_state({"series": {"Frieren": {"follow": True}}, "lookups": {"frieren": {"id": 5, "cover": "c"}},
+        ohara.save_state({"series": {"Frieren": {"follow": True}}, "lookups": {"frieren": {"id": 5, "cover": "c", "volumes": 8}},
+                          "downloads": {"H": {"series": "Frieren", "range": [7, 7]}},
                           "progress": {"Frieren/Frieren T02.cbz": {"page": 3, "pages": 10, "at": 1}}})
         info = ohara.series_info(self.root / "Frieren", ohara.load_state())
-        self.assertEqual((info["follow"], info["meta"]["cover"], info["missing"]), (True, "c", [3, 4]))
+        self.assertEqual((info["follow"], info["meta"]["cover"], info["missing"], info["coming"]), (True, "c", [3, 4, 6, 8], [7]))
         self.assertEqual([v["new"] for v in info["volumes"]], [False, False, True])
         self.assertEqual(info["new"], 1)
 

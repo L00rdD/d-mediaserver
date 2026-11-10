@@ -139,10 +139,8 @@ section > h2 { margin-bottom: 18px; }
 .volumes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 30px 22px; }
 .volume.done .cover img { filter: saturate(0.55) brightness(0.8); }
 .volume .file { display: grid; place-items: center; height: 100%; color: var(--moss); font: 600 1.6rem var(--serif); }
-.volume.missing .cover { background: transparent; border: 1px dashed var(--bark); box-shadow: none; }
-.volume.missing .cover::before { display: none; }
-.volume.missing .title { color: var(--moss); }
-.volume.missing .link { justify-self: start; font-size: 0.9rem; }
+.gaps { display: grid; gap: 8px; justify-items: start; color: var(--moss); max-width: 60ch; }
+.gaps p { margin: 0; }
 
 /* ---- search results: one per series ---- */
 .searching { color: var(--moss); }

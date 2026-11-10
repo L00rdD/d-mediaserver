@@ -57,18 +57,33 @@ const Ohara = (() => {
     format: v.file.split(".").pop().toUpperCase(),
   });
 
+  // [1, 2, 3, 5, 7, 8] → "1 à 3, 5, 7 et 8"
+  function spans(numbers) {
+    const parts = [];
+    for (const n of numbers) {
+      const last = parts[parts.length - 1];
+      if (last && n === last[1] + 1) last[1] = n;
+      else parts.push([n, n]);
+    }
+    const words = parts.flatMap(([a, b]) => (a === b ? [`${a}`] : b === a + 1 ? [`${a}`, `${b}`] : [`${a} à ${b}`]));
+    return words.length > 1 ? words.slice(0, -1).join(", ") + " et " + words[words.length - 1] : words[0] || "";
+  }
+
+  const tomesWord = (numbers) => (numbers.length > 1 ? `les tomes ${spans(numbers)}` : `le tome ${numbers[0]}`);
+
+  // what a completion did, in one or two sentences
+  function completeText(result) {
+    const sent = result.sent.length;
+    const got = sent ? `${sent > 1 ? sent + " téléchargements lancés" : "Téléchargement lancé"} : ${result.sent.map((r) => tomes(r.range).toLowerCase()).join(", ")}.` : "Aucune version française disponible pour ces tomes.";
+    return result.nowhere.length ? `${got} Introuvables pour l'instant : ${spans(result.nowhere)}. Ohara réessaiera si tu suis la série.` : got;
+  }
+
   const readLabel = (v) => `${v.pages ? "Reprendre" : "Lire"} le ${v.label.toLowerCase()}`;
 
   // the series named by a "#serie/<name>" address, or null
   const seriesInHash = (hash) => (hash.startsWith("#serie/") ? decodeURIComponent(hash.slice(7)) : null);
 
-  // where a tile goes in a series: by its tome number, the unnumbered last
-  function tomeOrder(label) {
-    const m = label.match(/(\d+(?:\.\d+)?)/);
-    return m ? +m[1] : 1e9;
-  }
-
-  const helpers = { size, tomes, describe, readingState, eta, seriesFacts, openUrl, tint, percent, downloadState, tileLook, readLabel, seriesInHash, tomeOrder };
+  const helpers = { size, tomes, describe, readingState, eta, seriesFacts, openUrl, tint, percent, downloadState, tileLook, spans, tomesWord, completeText, readLabel, seriesInHash };
   if (typeof document === "undefined") return helpers;
 
   // ---- the page ----
@@ -188,12 +203,26 @@ const Ohara = (() => {
     return a;
   }
 
-  function missingTile(n, s) {
-    const tile = el("div", "volume missing");
-    const cover = el("span", "cover");
-    cover.append(el("span", "file", `T${n}`));
-    tile.append(cover, el("span", "title", `Tome ${n}`), button("Le chercher", "link", () => runSearch(s.name)));
-    return tile;
+  // the tomes missing, those on their way, and the button that fetches the rest
+  function gaps(s) {
+    const box = el("div", "gaps");
+    if (s.coming.length) box.append(el("p", "", `En route : ${tomesWord(s.coming)}.`));
+    if (!s.missing.length) return box;
+    box.append(el("p", "", `Il te manque ${tomesWord(s.missing)}.`));
+    const get = button("Récupérer les tomes manquants", "", async () => {
+      get.disabled = true;
+      get.textContent = "Recherche des tomes…";
+      try {
+        get.replaceWith(el("p", "done", completeText(await api("/api/complete", { series: s.name }))));
+        load();
+      } catch (err) {
+        get.disabled = false;
+        get.textContent = "Récupérer les tomes manquants";
+        box.append(el("p", "error", "La recherche n'a pas abouti : " + err.message + "."));
+      }
+    });
+    box.append(get);
+    return box;
   }
 
   function followSwitch(s) {
@@ -201,7 +230,8 @@ const Ohara = (() => {
     sw.type = "button";
     sw.setAttribute("role", "switch");
     sw.setAttribute("aria-checked", String(s.follow));
-    sw.append(el("span", "knob"), el("span", "", "Suivre les nouveaux tomes"));
+    sw.append(el("span", "knob"), el("span", "", "Suivre la série"));
+    sw.title = "Récupère les tomes manquants puis les prochains, toutes les 12 heures";
     sw.onclick = async () => {
       s.follow = !s.follow;
       sw.setAttribute("aria-checked", String(s.follow));
@@ -228,13 +258,10 @@ const Ohara = (() => {
     read.href = openUrl(v);
     const head = el("div", "series-head");
     const text = el("div");
-    text.append(back, el("h2", "", s.name), facts(seriesFacts(s, s.meta)), read, followSwitch(s));
+    text.append(back, el("h2", "", s.name), facts(seriesFacts(s, s.meta)), read, followSwitch(s), gaps(s));
     head.append(img(seriesCover(s), "series-cover"), text);
     const grid = el("div", "volumes");
-    const tiles = s.volumes.map(volumeTile).concat(s.missing.map((n) => missingTile(n, s)));
-    const order = (tile) => tomeOrder(tile.querySelector(".title").textContent);
-    tiles.sort((a, b) => order(a) - order(b));
-    grid.append(...tiles);
+    grid.append(...s.volumes.map(volumeTile));
     box.replaceChildren(head, grid);
   }
 
@@ -295,7 +322,7 @@ const Ohara = (() => {
     const box = el("input");
     box.type = "checkbox";
     box.checked = true;
-    follow.append(box, document.createTextNode(" Suivre les nouveaux tomes"));
+    follow.append(box, document.createTextNode(" Suivre la série (tomes manquants et prochains)"));
     const actions = el("div", "actions");
     actions.append(button(owned ? "Compléter" : "Tout récupérer", "primary", (e) => getIt(best, g, box.checked, e.target)), follow);
     body.append(actions);

@@ -104,9 +104,21 @@ test("a series from the address", () => {
   assert.equal(Ohara.seriesInHash(""), null);
 });
 
-test("tiles in tome order, unnumbered last", () => {
-  assert.equal(Ohara.tomeOrder("Tome 12.5"), 12.5);
-  assert.equal(Ohara.tomeOrder("Artbook"), 1e9);
+test("tomes in spans", () => {
+  assert.equal(Ohara.spans([1, 2, 3, 5, 7, 8]), "1 à 3, 5, 7 et 8");
+  assert.equal(Ohara.spans([4, 9]), "4 et 9");
+  assert.equal(Ohara.spans([12]), "12");
+  assert.equal(Ohara.spans([]), "");
+  assert.equal(Ohara.tomesWord([1, 2, 3]), "les tomes 1 à 3");
+  assert.equal(Ohara.tomesWord([7]), "le tome 7");
+});
+
+test("what a completion did", () => {
+  const two = { sent: [{ range: [1, 72] }, { range: [98, 98] }], nowhere: [] };
+  assert.equal(Ohara.completeText(two), "2 téléchargements lancés : tomes 1 à 72, tome 98.");
+  const one = { sent: [{ range: [1, 14] }], nowhere: [15, 16] };
+  assert.equal(Ohara.completeText(one), "Téléchargement lancé : tomes 1 à 14. Introuvables pour l'instant : 15 et 16. Ohara réessaiera si tu suis la série.");
+  assert.equal(Ohara.completeText({ sent: [], nowhere: [] }), "Aucune version française disponible pour ces tomes.");
 });
 
 test("the look of a volume's tile", () => {

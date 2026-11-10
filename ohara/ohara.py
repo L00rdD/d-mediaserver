@@ -311,6 +311,8 @@ def grab(token, series, follow=False, query=""):
         if follow:
             entry.update(follow=True, query=query or entry.get("query") or series)
     update_state(note)
+    if follow:
+        complete_later(series)
     return {"series": series, "hash": t["hashString"]}
 
 
@@ -318,6 +320,8 @@ def set_follow(series, on):
     def change(state):
         series_entry(state, series)["follow"] = bool(on)
     update_state(change)
+    if on:
+        complete_later(series)
 
 
 def cancel(torrent_hash):
@@ -411,47 +415,107 @@ def check_downloads():
 
 # ---------- following: new volumes of a series, fetched by themselves ----------
 
-def wanted(r, have, coming):
-    """The tomes of release r not in the library nor on their way."""
-    if not r["range"]:
-        return set()
-    lo, hi = r["range"]
-    return set(range(lo, hi + 1)) - have - coming
+def tomes_of(r):
+    lo, hi = r["range"] or (0, -1)
+    return set(range(lo, hi + 1))
 
 
-def next_release(series, releases, state):
-    """The release that brings the most new tomes after the last one owned, French
-    and with seeders; None when there is nothing new."""
-    have = {int(n) for n in owned_numbers(MANGA / series)}
+def coming_tomes(series, state):
+    """The tomes of a series already on their way."""
     coming = set()
     for d in state["downloads"].values():
         if d["series"] == series and d.get("range"):
             coming |= set(range(d["range"][0], d["range"][1] + 1))
-    last = max(have | coming, default=0)
-    useful = [r for r in releases if r["lang"] == "FR" and r["seeders"] > 0 and any(n > last for n in wanted(r, have, coming))]
-    useful.sort(key=lambda r: (min(wanted(r, have, coming)) != last + 1, -len(wanted(r, have, coming)), -r["seeders"]))
-    return useful[0] if useful else None
+    return coming
+
+
+def cost(r, need):
+    """What one missing tome costs through release r: its share of the size, plus a
+    fixed price per torrent (fewer, bigger packs) and more for slow ones."""
+    per_tome = (r["size"] + 300e6) / len(tomes_of(r) & need)
+    return per_tome * (1.5 if r["seeders"] < 3 else 1)
+
+
+def plan(series, releases, state, total=None):
+    """The releases to download so that the series has every tome from 1 to the last
+    one out (the most AniList counts or a French release holds): each pick is the
+    cheapest per missing tome (see cost), until nothing more helps.
+    Returns (releases, tomes still nowhere to be found)."""
+    french = [r for r in releases if r["lang"] == "FR" and r["range"]]
+    usable = [r for r in french if r["seeders"] > 0]
+    # a tome out with nobody sharing it yet still counts as out
+    last = max([total or 0] + [r["range"][1] for r in french])
+    have = {int(n) for n in owned_numbers(MANGA / series)} | coming_tomes(series, state)
+    need = set(range(1, last + 1)) - have
+    picks = []
+    while need:
+        helpful = [r for r in usable if tomes_of(r) & need]
+        if not helpful:
+            break
+        best = min(helpful, key=lambda r: cost(r, need))
+        picks.append(best)
+        need -= tomes_of(best)
+        usable.remove(best)
+    return prune(picks, set(range(1, last + 1)) - have), sorted(need)
+
+
+def prune(picks, wanted):
+    """Drops the picks whose missing tomes the others bring anyway, the heaviest
+    first: a cheap first pick can be made useless by a bigger later one."""
+    kept = list(picks)
+    for p in sorted(picks, key=lambda r: -r["size"]):
+        others = set().union(*(tomes_of(r) for r in kept if r is not p))
+        if tomes_of(p) & wanted <= others:
+            kept.remove(p)
+    return kept
+
+
+COLOUR = re.compile(r"(?i)\b(en )?couleurs?\b|\bcolou?r(ed)?\b|カラー")
 
 
 def same_series(r, series, entry, facts):
+    """Whether a release belongs to a series: same name, or same AniList entry but
+    not a colour edition of it (unless the series is the colour one)."""
+    if norm(r["series"]) == norm(series):
+        return True
     meta = facts.get(r["series"]) or {}
-    return norm(r["series"]) == norm(series) or (entry.get("anilist") and meta.get("id") == entry.get("anilist"))
+    if not entry.get("anilist") or meta.get("id") != entry.get("anilist"):
+        return False
+    return bool(COLOUR.search(series)) or not COLOUR.search(r["title"])
+
+
+def complete(series):
+    """Downloads every missing tome of a series that can be found. Returns the
+    releases sent and the tomes nobody has."""
+    state = load_state()
+    entry = state["series"].get(series, {})
+    releases = find_releases(entry.get("query") or series)
+    facts = lookups(sorted({r["series"] for r in releases}))
+    mine = [r for r in releases if same_series(r, series, entry, facts)]
+    total = (state["lookups"].get(norm(series)) or {}).get("volumes")
+    picks, nowhere = plan(series, mine, state, total)
+    for r in picks:
+        print(f"complete: {series} ← {r['title']}", flush=True)
+        grab(r["token"], series)
+    return {"sent": [{"title": r["title"], "range": r["range"]} for r in picks], "nowhere": nowhere}
+
+
+def complete_later(series):
+    threading.Thread(target=safe_complete, args=(series,), daemon=True).start()
+
+
+def safe_complete(series):
+    try:
+        complete(series)
+    except Exception as e:
+        print(f"complete {series}:", e, flush=True)
 
 
 def check_follows():
-    """Looks for the new volumes of every followed series and downloads them."""
-    state = load_state()
-    for series, entry in state["series"].items():
-        if not entry.get("follow"):
-            continue
-        releases = find_releases(entry.get("query") or series)
-        facts = lookups(sorted({r["series"] for r in releases}))
-        mine = [r for r in releases if same_series(r, series, entry, facts)]
-        r = next_release(series, mine, state)
-        if r:
-            print(f"follow: {series} ← {r['title']}", flush=True)
-            grab(r["token"], series)
-            state = load_state()
+    """Keeps every followed series complete: missing tomes and new ones."""
+    for series, entry in load_state()["series"].items():
+        if entry.get("follow"):
+            safe_complete(series)
 
     def stamp(s):
         s["followed_at"] = time.time()
@@ -506,9 +570,9 @@ def series_info(d, state):
     vols = [volume_info(v, state["progress"]) for v in volumes(d)]
     entry = state["series"].get(d.name, {})
     meta = state["lookups"].get(norm(d.name)) or {}
-    numbers = sorted({int(v["number"]) for v in vols if v["number"]})
-    # the holes between the first and the last tome owned, not everything before
-    gaps = [n for n in range(numbers[0], numbers[-1]) if n not in numbers] if numbers else []
+    numbers = {int(v["number"]) for v in vols if v["number"]}
+    last = max([meta.get("volumes") or 0] + list(numbers))
+    coming = coming_tomes(d.name, state)
     return {
         "name": d.name,
         "volumes": vols,
@@ -516,7 +580,8 @@ def series_info(d, state):
         "new": sum(v["new"] for v in vols),
         "follow": entry.get("follow", False),
         "meta": meta,
-        "missing": gaps,
+        "missing": [n for n in range(1, last + 1) if n not in numbers and n not in coming],
+        "coming": sorted(coming),
     }
 
 
@@ -754,6 +819,10 @@ def post_progress(h):
     h.send(200, {"ok": True})
 
 
+def post_complete(h):
+    h.send(200, complete(h.body()["series"]))
+
+
 def post_cancel(h):
     cancel(h.body()["hash"])
     h.send(200, {"ok": True})
@@ -768,7 +837,7 @@ GET_ROUTES = {
     "/api/cover": get_cover,
     "/api/status.json": lambda h: h.send(200, status(), extra={"Access-Control-Allow-Origin": "*"}),
 }
-POST_ROUTES = {"/api/grab": post_grab, "/api/follow": post_follow, "/api/progress": post_progress, "/api/cancel": post_cancel}
+POST_ROUTES = {"/api/grab": post_grab, "/api/follow": post_follow, "/api/complete": post_complete, "/api/progress": post_progress, "/api/cancel": post_cancel}
 
 
 def main():
