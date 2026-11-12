@@ -1,0 +1,10 @@
+# Ohara's door to the internet (see docker-compose.tunnel.yml): the Cloudflare tunnel
+# comes here, and only those who give TUNNEL_USER's password get through to Ohara
+:8080 {
+	basic_auth {
+		{$GATE_USER} {$GATE_HASH}
+	}
+	reverse_proxy ohara:8585 {
+		flush_interval -1
+	}
+}

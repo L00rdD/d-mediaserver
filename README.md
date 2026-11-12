@@ -472,6 +472,22 @@ COMPOSE_FILE=docker-compose.yml:docker-compose.ohara.yml
 
 Update it with `docker compose build ohara && docker compose up -d ohara`.
 
+#### Ohara from the internet, behind a password (optional)
+
+`docker-compose.tunnel.yml` opens Ohara outside the home network without a domain nor a Cloudflare account: a Cloudflare quick tunnel gives an address on `trycloudflare.com`, which leads to `ohara-gate`, a Caddy that asks for a user and a password before letting through to Ohara. The address changes every day at `TUNNEL_HOUR` (8 by default), and each new one is said on the Discord channel linked in Ohara's settings; should the tunnel fall during the day, it comes back under a new address, said as well. The password never goes to Discord: whoever sees a link cannot get in without it.
+
+Make the password's hash, then add the file after Ohara's in your `.env` and run `docker compose up -d --build` (single quotes around the hash: it is full of `$`):
+
+```text
+docker run --rm caddy:latest caddy hash-password -p '<password>'
+
+COMPOSE_FILE=docker-compose.yml:docker-compose.ohara.yml:docker-compose.tunnel.yml
+TUNNEL_USER=ohara
+TUNNEL_HASH='<hash>'
+```
+
+`docker logs ohara-tunnel` shows the address of the day.
+
 ## 🖨️ Resin Printer (optional)
 
 A small `printer` container follows an Anycubic resin printer (made for the Photon Mono M7). While the printer is on, the home page shows a card with the print going on: the file, the progress and the layer, the time left and when it will be done, the resin used, and the slicer's picture of the part, dimmed where it is still to print. Next to it the printer turns in 3D, its build plate at the height of the layer being printed and the part coming out of the resin under it; drag it to turn it. The card opens a full view (`/printer.html`) to turn and zoom it. The card hides again when the printer is switched off.

@@ -1,0 +1,44 @@
+# Optional: Ohara reachable from the internet, behind a password. A Cloudflare quick
+# tunnel (an address on trycloudflare.com, no account nor domain needed) leads to
+# ohara-gate, which asks for TUNNEL_USER and its password before letting through to
+# Ohara. The address changes every day at TUNNEL_HOUR (8 by default) and the new one
+# is said on the Discord channel linked in Ohara's settings (see tunnel/run.sh).
+# Switch it on in .env, after Ohara's file:
+#   COMPOSE_FILE=...:docker-compose.ohara.yml:docker-compose.tunnel.yml
+#   TUNNEL_USER=ohara
+#   TUNNEL_HASH='<bcrypt hash>'   # single quotes: the hash is full of $
+# the hash of a password: docker run --rm caddy:latest caddy hash-password -p '<password>'
+services:
+  ohara-gate:
+    image: caddy:latest
+    container_name: ohara-gate
+    environment:
+      - GATE_USER=${TUNNEL_USER:-ohara}
+      - GATE_HASH=${TUNNEL_HASH:?TUNNEL_HASH in .env, see docker-compose.tunnel.yml}
+    volumes:
+      - ./tunnel/Caddyfile:/etc/caddy/Caddyfile:ro
+    restart: unless-stopped
+
+  ohara-tunnel:
+    build:
+      dockerfile_inline: |
+        FROM cloudflare/cloudflared:latest AS cloudflared
+        FROM alpine:latest
+        RUN apk add --no-cache curl jq tzdata
+        COPY --from=cloudflared /usr/local/bin/cloudflared /usr/local/bin/cloudflared
+    image: ohara-tunnel:local
+    container_name: ohara-tunnel
+    init: true
+    user: ${PUID:-1000}:${PGID:-1000}
+    command: ["sh", "/tunnel/run.sh"]
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      - TUNNEL_HOUR=${TUNNEL_HOUR:-8}
+    volumes:
+      - ./tunnel/run.sh:/tunnel/run.sh:ro
+      # where Ohara keeps the Discord channel linked in its settings (the folder: Ohara
+      # replaces state.json on each change, a mounted file would stay the old one)
+      - ${DATA_ROOT:-/mnt/storage}/manga/.ohara:/manga/.ohara:ro
+    depends_on:
+      - ohara-gate
+    restart: unless-stopped
