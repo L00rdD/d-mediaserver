@@ -15,6 +15,10 @@ services:
       - TZ=${TZ:-Europe/Paris}
       # Prowlarr indexers to search, by their name in Prowlarr
       - OHARA_INDEXERS=${OHARA_INDEXERS:-YggReborn,Nyaa.si,Knaben}
+      # optional: a Discord channel's webhook, told when tomes come in and when a
+      # followed series gets new ones; Ohara's address, for the links of its messages
+      - OHARA_DISCORD_WEBHOOK=${OHARA_DISCORD_WEBHOOK:-}
+      - OHARA_URL=${OHARA_URL:-}
     volumes:
       - ${DATA_ROOT:-/mnt/storage}/manga:/manga
       # Ohara reads Prowlarr's API key here
