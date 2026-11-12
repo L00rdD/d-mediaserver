@@ -24,6 +24,7 @@ Options, each one off until you turn it on:
 | :--- | :--- | :--- |
 | [VPN](#%EF%B8%8F-vpn-optional) | Transmission, and only Transmission, goes through a VPN. | 4 lines in `.env` |
 | [Watchdog](#watchdog) | Brings the apps back after a USB drive drop and alerts you on Discord. | `sudo ./watchdog/install.sh` |
+| [Fake releases](#fake-releases) | Sonarr and Radarr turn down the "episodes" that are programs (`.exe`), and any that slips through is removed and searched again. | `sudo ./fakes/install.sh` |
 | [Wifi fallback hotspot](#wifi-fallback-hotspot) | The Pi opens its own wifi when the home network is gone, so the films stay watchable. | `sudo ./hotspot/install.sh` |
 | [One Piece scans](#%EF%B8%8F-one-piece-scans-optional) | A home page card and a Discord post for each new chapter. | 2 lines in `.env` |
 | [Resin printer](#%EF%B8%8F-resin-printer-optional) | A home page card that shows while the Anycubic printer is on, with the print going on. | 2 lines in `.env` |
@@ -293,7 +294,7 @@ How long a VPN drop lasts, with the default settings:
 
 ## 🩺 Keep the Pi Up
 
-Two small services run on the Pi itself, outside Docker, for the failures that Docker cannot fix: a USB drive that drops off, and a home network that goes away. Both are optional, both install with one command and both report on the same Discord channel.
+Small services run on the Pi itself, outside Docker, for the failures that Docker cannot fix: a USB drive that drops off, a fake download, and a home network that goes away. All are optional, each installs with one command and all report on the same Discord channel.
 
 ### Watchdog
 
@@ -360,6 +361,20 @@ Good to know:
 - The hotspot is on **5 GHz** (channel 36): the current Pi 4 firmware sends nothing on 2.4 GHz in hotspot mode. Very old devices that only do 2.4 GHz will not see it.
 - It needs NetworkManager (the default on Raspberry Pi OS since Bookworm). It works the same on a Pi on Ethernet or on wifi: the wifi chip is only needed for the hotspot itself.
 - See what it did: `journalctl -u wifi-fallback -n 20`. Stop it: `sudo systemctl disable --now wifi-fallback`.
+
+### Fake Releases
+
+Popular episodes attract fakes: a torrent named like the episode that holds a program (`... H264-CAKES.exe`) instead of a video. Sonarr notices it after the download, warns *Found executable file* and leaves it in its queue, and nothing searches for a real one. [`fakes/fakes.py`](fakes/fakes.py) runs every 10 minutes and:
+
+- **turns them down before the download**: a release profile in Sonarr and a custom format scored -10000 in every Radarr quality profile, both named *No programs (fakes)*, reject any release whose title ends with `.exe`, `.scr`, `.lnk`, `.msi`, `.bat`, `.cmd`, `.vbs`, `.ps1`, `.jar`, `.apk` or `.pif`. It sets them up by itself on its first run, and puts them back if they are deleted;
+- **removes those that slip through**: a queued download with such a title, or in which Sonarr or Radarr found a program, is deleted from Transmission with its files, blocklisted, and searched again;
+- posts what it removed to Discord (`FAKES_WEBHOOK_URL`, or the watchdog's webhook).
+
+```bash
+sudo ./fakes/install.sh
+```
+
+See what it did: `journalctl -u mediaserver-fakes -n 20`. Stop it: `sudo systemctl disable --now mediaserver-fakes.timer`.
 
 ---
 

@@ -1,0 +1,9 @@
+[Unit]
+Description=Media server fakes: turn down and remove releases that are programs (.exe...)
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 @PROJECT@/fakes/fakes.py
+TimeoutStartSec=5min
