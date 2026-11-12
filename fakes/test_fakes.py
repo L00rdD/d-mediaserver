@@ -88,11 +88,21 @@ class Fakes(unittest.TestCase):
         self.assertEqual(puts["qualityprofile/1"]["formatItems"][0], {"format": 1, "score": 0})
 
     def test_radarr_left_alone_when_already_guarded(self):
-        api = Api({("GET", "customformat"): [{"id": 4, "name": fakes.NAME}],
+        right = [{"fields": [{"name": "value", "value": fakes.PROGRAM.pattern}]}]
+        api = Api({("GET", "customformat"): [{"id": 4, "name": fakes.NAME, "specifications": right}],
                    ("GET", "qualityprofile"): [{"id": 1, "formatItems": [{"format": 4, "score": fakes.SCORE}]}]})
         with mock.patch.object(fakes, "call", api):
             self.assertFalse(fakes.guard_radarr("k"))
         self.assertEqual([c[0] for c in api.calls], ["GET", "GET"])
+
+    def test_radarr_format_mended_when_its_pattern_is_not_bare(self):
+        wrong = [{"fields": [{"name": "value", "value": fakes.TERM}]}]
+        api = Api({("GET", "customformat"): [{"id": 4, "name": fakes.NAME, "specifications": wrong}]})
+        with mock.patch.object(fakes, "call", api):
+            self.assertEqual(fakes.radarr_format("k"), (4, True))
+        method, path, body = api.calls[1]
+        self.assertEqual((method, path, body["id"]), ("PUT", "customformat/4", 4))
+        self.assertEqual(body["specifications"][0]["fields"][0]["value"], fakes.PROGRAM.pattern)
 
     def test_run_app_reports_each_fake(self):
         with mock.patch.dict(fakes.GUARDS, {"sonarr": lambda k: True}), \

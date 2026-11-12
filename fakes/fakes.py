@@ -32,8 +32,8 @@ APPS = {"sonarr": 8989, "radarr": 7878}
 
 EXTENSIONS = "exe|scr|lnk|msi|bat|cmd|vbs|ps1|jar|apk|pif"
 PROGRAM = re.compile(rf"\.({EXTENSIONS})$", re.I)
-# the same, as Sonarr and Radarr write a regular expression
-TERM = rf"/\.({EXTENSIONS})$/i"
+# the same, as a Sonarr release profile writes a regular expression
+TERM = rf"/{PROGRAM.pattern}/i"
 # what Sonarr and Radarr say when they find one in a download
 FOUND = ("executable file", "dangerous file")
 
@@ -109,16 +109,19 @@ def guard_sonarr(key):
 
 
 def radarr_format(key):
-    """The id of the custom format matching the fakes, made when missing."""
-    for fmt in call("radarr", key, "GET", "customformat"):
-        if fmt.get("name") == NAME:
-            return fmt["id"], False
-    fmt = call("radarr", key, "POST", "customformat", {
-        "name": NAME, "includeCustomFormatWhenRenaming": False,
-        "specifications": [{
-            "name": "Program", "implementation": "ReleaseTitleSpecification",
-            "negate": False, "required": True, "fields": [{"name": "value", "value": TERM}]}]})
-    return fmt["id"], True
+    """The id of the custom format matching the fakes, made (or mended) when it is not right;
+    and whether it had to be. A custom format takes a bare pattern, always case-insensitive."""
+    wanted = {"name": NAME, "includeCustomFormatWhenRenaming": False, "specifications": [{
+        "name": "Program", "implementation": "ReleaseTitleSpecification",
+        "negate": False, "required": True, "fields": [{"name": "value", "value": PROGRAM.pattern}]}]}
+    fmt = next((f for f in call("radarr", key, "GET", "customformat") if f.get("name") == NAME), None)
+    if fmt is None:
+        return call("radarr", key, "POST", "customformat", wanted)["id"], True
+    values = [f.get("value") for s in fmt.get("specifications") or [] for f in s.get("fields") or []]
+    if values != [PROGRAM.pattern]:
+        call("radarr", key, "PUT", f"customformat/{fmt['id']}", dict(wanted, id=fmt["id"]))
+        return fmt["id"], True
+    return fmt["id"], False
 
 
 def guard_radarr(key):
