@@ -80,6 +80,7 @@ Good to know:
 - **Adding a drive** = mount it under `/mnt/disks/diskN` and remount the pool. Nothing to change in Docker.
 - **Prefer `ext4`** for every drive. `exFAT` works but has no permissions, no hardlinks and no journal.
 - **Power:** a Pi 4 can only feed about 1.2 A across all its USB ports. With more than one drive, use a powered USB hub or self-powered enclosures, plugged into the blue USB 3 ports.
+- **JMicron enclosures** (`lsusb` shows `152d:a578`, sold as SABRENT among others) misbehave in UAS mode on the Pi 4: under load they reset again and again until the USB controller dies (`xHCI host controller not responding, assume dead` in `dmesg`) and every drive drops. Turn UAS off for them by adding `usb-storage.quirks=152d:a578:u` at the end of the single line of `/boot/firmware/cmdline.txt` (it takes effect at the next boot; `echo 152d:a578:u | sudo tee /sys/module/usb_storage/parameters/quirks` applies it now, for drives plugged in afterwards).
 
 ---
 
@@ -131,6 +132,24 @@ The flip side: when a drive drops off the USB bus, even for a second, systemd un
 ```bash
 sudo ./watchdog/install.sh
 ```
+
+Optionally, move Docker's own data (images, containers, volumes: 15 GB and more) off the SD card, onto an `ext4` partition of a drive. It must be `ext4`, as Docker cannot keep its layers on exFAT, and it is mounted at `/mnt/docker`, outside `/mnt/disks` so it never joins the pool. On the Pi it is the last 64 GB of the NAS SSD (`sda3`). With Docker and containerd stopped:
+```bash
+sudo mkfs.ext4 -E nodiscard -L docker /dev/sdX3
+sudo mkdir -p /mnt/docker
+echo 'UUID=YOUR-UUID-HERE /mnt/docker ext4 defaults,noatime,nofail,x-systemd.device-timeout=10 0 2' | sudo tee -a /etc/fstab
+sudo systemctl daemon-reload && sudo systemctl start mnt-docker.mount
+sudo rsync -aHAXS --numeric-ids /var/lib/containerd/ /mnt/docker/containerd/
+sudo rsync -aHAXS --numeric-ids /var/lib/docker/ /mnt/docker/docker/
+```
+Then point containerd at it (`root = "/mnt/docker/containerd"` in `/etc/containerd/config.toml`) and Docker too (`"data-root": "/mnt/docker/docker"` in `/etc/docker/daemon.json`), and make both wait for the drive:
+```bash
+sudo mkdir -p /etc/systemd/system/containerd.service.d
+printf '[Unit]\nRequiresMountsFor=/mnt/docker\n' | sudo tee /etc/systemd/system/containerd.service.d/wait-for-docker-disk.conf
+printf '[Unit]\nRequiresMountsFor=/mnt/storage /mnt/docker\n' | sudo tee /etc/systemd/system/docker.service.d/wait-for-storage.conf
+sudo systemctl daemon-reload && sudo systemctl start docker
+```
+The watchdog finds `/mnt/docker` in fstab and remounts it like the other drives before it starts Docker. `mkfs` without `-E nodiscard` sends a TRIM over USB, which some USB controllers do not survive.
 
 Cap the container logs, so an app that loops on an error can never fill the SD card (30 MB per container at most):
 ```bash

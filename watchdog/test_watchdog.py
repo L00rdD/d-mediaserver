@@ -69,12 +69,14 @@ class Files(unittest.TestCase):
             "short",
             "UUID=aaa /mnt/disks/disk1 ext4 defaults 0 0",
             "/dev/sdb1 /mnt/disks/disk2 ext4 defaults 0 0",
+            "UUID=ddd /mnt/docker ext4 defaults 0 2",
+            "UUID=eee /mnt/other ext4 defaults 0 2",
             "/mnt/disks/* /mnt/storage fuse.mergerfs defaults 0 0",
             "proc /proc proc defaults 0 0",
         ])
         with mock.patch.object(Path, "read_text", return_value=fstab):
             self.assertEqual(watchdog.fstab_drives(),
-                             [("/mnt/disks/disk1", "aaa"), ("/mnt/disks/disk2", None)])
+                             [("/mnt/disks/disk1", "aaa"), ("/mnt/disks/disk2", None), ("/mnt/docker", "ddd")])
 
 
 class Stale(unittest.TestCase):
@@ -164,7 +166,7 @@ class Repair(unittest.TestCase):
         with world:
             watchdog.detach_stale(drives, problems, actions)
         self.assertEqual(world.calls[-4:], [
-            ("systemctl", "stop", "docker.socket", "docker.service"),
+            ("systemctl", "stop", "docker.socket", "docker.service", "containerd.service"),
             ("umount", "-l", "/mnt/storage"),
             ("umount", "-l", "/mnt/disks/disk1"),
             ("umount", "-l", "/mnt/disks/disk3"),
@@ -227,6 +229,20 @@ class Repair(unittest.TestCase):
             started = ("systemctl", "start", "docker.socket", "docker.service") in world.calls
             self.assertEqual(started, "/mnt/storage" in kwargs.get("mounted", []), kwargs)
 
+    def test_docker_waits_for_its_data_drive(self):
+        needs = ["/mnt/storage", "/mnt/docker"]
+        world = World(docker=False, mounted=["/mnt/storage"], starts=["docker"])
+        problems = {}
+        with world:
+            watchdog.start_docker(problems, [], needs)
+        self.assertNotIn(("systemctl", "start", "docker.socket", "docker.service"), world.calls)
+        self.assertEqual(set(problems), {"docker"})
+        world = World(docker=False, mounted=needs, starts=["docker"])
+        actions = []
+        with world:
+            watchdog.start_docker({}, actions, needs)
+        self.assertEqual(actions, ["started Docker"])
+
     def test_check_containers(self):
         ps = "\n".join([
             "web\trunning\tUp 3 hours\tms\t",
@@ -263,6 +279,15 @@ class Repair(unittest.TestCase):
         self.assertEqual(actions, [])
         urlopen.assert_not_called()
         self.assertFalse(any(c[0] == "docker" for c in world.calls))
+
+    def test_repair_and_check_remounts_the_docker_drive_before_docker(self):
+        world = World(docker=False, mounted=["/mnt/storage"], plugged=["ddd"],
+                      starts=["/mnt/docker", "docker"])
+        with world, mock.patch.object(watchdog, "fstab_drives", return_value=[("/mnt/docker", "ddd")]), \
+                mock.patch("urllib.request.urlopen"):
+            problems, actions = watchdog.repair_and_check({})
+        self.assertEqual(actions, ["remounted docker", "started Docker"])
+        self.assertEqual(problems, {})
 
     def test_repair_and_check_all_well(self):
         world = World(mounted=["/mnt/disks/disk1", "/mnt/storage"], plugged=["aaa"],

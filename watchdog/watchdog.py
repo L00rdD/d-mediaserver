@@ -7,7 +7,9 @@ Run every minute by mediaserver-watchdog.timer, as root. Each run:
    mounted again, then the pool, then Docker (which stops with the pool). A
    drive that came back under a new device name while its old mount stayed
    (every read fails with an I/O error) has its mount and the pool detached
-   first, with Docker stopped meanwhile;
+   first, with Docker stopped meanwhile. The drive holding Docker's own data
+   (/mnt/docker, when fstab has it) is watched the same way, and Docker only
+   starts once it is mounted;
 2. lists what is still wrong: missing drive, pool or Docker down, a container
    stopped or unhealthy, the home page not answering;
 3. posts to Discord when a problem has lasted long enough, again every few
@@ -36,6 +38,8 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parent.parent
 STATE_FILE = Path("/var/lib/mediaserver-watchdog/state.json")
 POOL = "/mnt/storage"
+# images, containers and volumes, off the SD card (outside the pool)
+DOCKER_DISK = "/mnt/docker"
 
 # a problem is reported once it has lasted this long (seconds), so a restart
 # in progress or autoheal doing its job does not page anyone
@@ -66,14 +70,15 @@ def read_env():
 
 
 def fstab_drives():
-    """(mount point, UUID) of every drive under /mnt/disks in /etc/fstab."""
+    """(mount point, UUID) of every drive under /mnt/disks in /etc/fstab, and
+    of the Docker data drive."""
     drives = []
     for line in Path("/etc/fstab").read_text().splitlines():
         fields = line.split()
         if len(fields) < 2 or line.lstrip().startswith("#"):
             continue
         source, target = fields[0], fields[1]
-        if target.startswith("/mnt/disks/") and "*" not in source:
+        if (target.startswith("/mnt/disks/") or target == DOCKER_DISK) and "*" not in source:
             uuid = source[5:] if source.startswith("UUID=") else None
             drives.append((target, uuid))
     return drives
@@ -112,7 +117,7 @@ def detach_stale(drives, problems, actions):
     # pool and Docker (which hold it), the loop below mounts everything back
     back = [(t, u) for t, u in dead if not u or Path("/dev/disk/by-uuid", u).exists()]
     if back:
-        run("systemctl", "stop", "docker.socket", "docker.service", timeout=180)
+        run("systemctl", "stop", "docker.socket", "docker.service", "containerd.service", timeout=180)
         run("umount", "-l", POOL)
         for target, _ in back:
             run("umount", "-l", target)
@@ -151,9 +156,10 @@ def mount_pool(problems, actions):
             problems["pool"] = (f"The pool {POOL} is not mounted.", GRACE)
 
 
-def start_docker(problems, actions):
+def start_docker(problems, actions, needs=(POOL,)):
+    """Start Docker when it is stopped and every mount in needs is there."""
     if not active("docker.service"):
-        if mounted(POOL):
+        if all(mounted(path) for path in needs):
             run("systemctl", "start", "docker.socket", "docker.service", timeout=180)
         if active("docker.service"):
             actions.append("started Docker")
@@ -195,7 +201,7 @@ def repair_and_check(env):
     detach_stale(drives, problems, actions)
     mount_drives(drives, problems, actions)
     mount_pool(problems, actions)
-    start_docker(problems, actions)
+    start_docker(problems, actions, [POOL] + [t for t, _ in drives if t == DOCKER_DISK])
 
     if active("docker.service"):
         check_containers(problems)
