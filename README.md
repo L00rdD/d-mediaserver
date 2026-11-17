@@ -309,7 +309,13 @@ VPN_PORT_FORWARDING=on
 
 The key comes from *Downloads → WireGuard configuration* in your Proton account, with *NAT-PMP (Port Forwarding)* ticked. Over OpenVPN instead, use the OpenVPN user name with `+pmp` added to its end. `docker exec transmission transmission-remote -pt` then answers `Port is open: Yes`.
 
-Good to know: And as long as the VPN lines are wrong or empty, Transmission does not start at all: read `docker compose logs --tail 30 gluetun` to see why.
+**One seeding rule, Transmission's:** every torrent seeds until its ratio reaches Transmission's own limit, whatever app asked for it; Radarr, Sonarr and Ohara wait for Transmission to stop it before they remove it. So no app sets a ratio of its own: leave *Seed Ratio* empty on the indexers in Prowlarr. Set the limit once (0.85 here, above YggReborn's 0.75):
+
+```bash
+docker exec transmission transmission-remote -sr 0.85
+```
+
+Good to know: as long as the VPN lines are wrong or empty, Transmission does not start at all: read `docker compose logs --tail 30 gluetun` to see why.
 
 How long a VPN drop lasts, with the default settings:
 
