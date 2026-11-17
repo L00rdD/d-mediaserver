@@ -298,7 +298,18 @@ docker exec transmission curl -s https://ipinfo.io/ip       # the VPN's address
 
 To be told about these restarts, add `AUTOHEAL_WEBHOOK_URL=` to `.env` with a webhook URL (for a Discord channel, append `/slack` to the webhook URL Discord gives you).
 
-Good to know: NordVPN has no port forwarding, so Transmission downloads normally but uploads less. And as long as the VPN lines are wrong or empty, Transmission does not start at all: read `docker compose logs --tail 30 gluetun` to see why.
+**Upload (ratio):** without a forwarded port, peers cannot connect to Transmission, so it downloads normally but uploads very little, which private trackers punish. NordVPN and Mullvad have none; ProtonVPN (paid plans) and PIA do. With one of those, add `VPN_PORT_FORWARDING=on`: Gluetun then only picks servers that forward, and a small `transmission-port` container sets Transmission's peer port to the forwarded one, again after each reconnection. ProtonVPN example, over WireGuard (lighter on the Pi):
+
+```text
+VPN_PROVIDER=protonvpn
+VPN_TYPE=wireguard
+VPN_WIREGUARD_KEY=the-PrivateKey-line
+VPN_PORT_FORWARDING=on
+```
+
+The key comes from *Downloads → WireGuard configuration* in your Proton account, with *NAT-PMP (Port Forwarding)* ticked. Over OpenVPN instead, use the OpenVPN user name with `+pmp` added to its end. `docker exec transmission transmission-remote -pt` then answers `Port is open: Yes`.
+
+Good to know: And as long as the VPN lines are wrong or empty, Transmission does not start at all: read `docker compose logs --tail 30 gluetun` to see why.
 
 How long a VPN drop lasts, with the default settings:
 

@@ -4,7 +4,8 @@
 # instead of downloading in the clear. Gluetun reconnects by itself.
 # Switch it on in .env (needs Docker Compose 2.24 or newer):
 #   COMPOSE_FILE=docker-compose.yml:docker-compose.vpn.yml
-#   VPN_USER=...  VPN_PASSWORD=...  VPN_COUNTRY=...
+#   VPN_USER=...  VPN_PASSWORD=...  VPN_COUNTRY=...  (see the README for
+#   WireGuard and port forwarding)
 # Self-healing: Gluetun retries the SAME server forever when that server refuses
 # the login, and Transmission loses its network whenever Gluetun restarts. The
 # autoheal container restarts any container that stays unhealthy: Gluetun then
@@ -21,16 +22,24 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - VPN_SERVICE_PROVIDER=${VPN_PROVIDER:-nordvpn}
-      - VPN_TYPE=openvpn
+      - VPN_TYPE=${VPN_TYPE:-openvpn}
       - OPENVPN_PROTOCOL=${VPN_PROTOCOL:-udp}
       - OPENVPN_USER=${VPN_USER:-}
       - OPENVPN_PASSWORD=${VPN_PASSWORD:-}
+      - WIREGUARD_PRIVATE_KEY=${VPN_WIREGUARD_KEY:-}
       - SERVER_COUNTRIES=${VPN_COUNTRY:-}
+      # A forwarded port lets peers connect to Transmission, so it uploads
+      # (ProtonVPN, PIA). Only servers that forward are picked, and each new
+      # port goes to a file that transmission-port hands to Transmission.
+      - VPN_PORT_FORWARDING=${VPN_PORT_FORWARDING:-off}
+      - PORT_FORWARD_ONLY=${VPN_PORT_FORWARDING:-off}
+      - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c "echo {{PORT}} > /vpn-port/port"
       # the server list shipped in the image goes stale: refresh it daily
       - UPDATER_PERIOD=24h
       - TZ=${TZ:-Europe/Paris}
     volumes:
       - ./config/gluetun:/gluetun
+      - ./config/vpn-port:/vpn-port
     ports:
       # Transmission's web page, now reached through Gluetun
       - 9091:9091
@@ -59,6 +68,30 @@ services:
       timeout: 15s
       retries: 3
       start_period: 2m
+
+  # Keeps Transmission's peer port on the VPN's forwarded port (idle without one)
+  transmission-port:
+    image: curlimages/curl:latest
+    container_name: transmission-port
+    network_mode: service:gluetun
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    entrypoint: ["/bin/sh", "/transmission-port.sh"]
+    volumes:
+      - ./vpn/transmission-port.sh:/transmission-port.sh:ro
+      - ./config/vpn-port:/vpn-port:ro
+    labels:
+      - autoheal=true
+    healthcheck:
+      # Gluetun restarted = this network is gone = restarted by autoheal
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:9091/transmission/rpc"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 2m
+    restart: unless-stopped
 
   autoheal:
     image: willfarrell/autoheal:latest
