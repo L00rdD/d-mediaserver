@@ -258,6 +258,7 @@
         "mand mand mand"
         "kp kp kp"
         "mg mg mg"
+        "kb kb kb"
         "bf bf bf"
         "er er er"
         "cb cb cb"
@@ -563,6 +564,9 @@
     /* Ohara card: hidden until the manga library answers on port 8585 (see ohara.js) */
     .ohara { grid-area: mg; animation-delay: 0.75s; }
     .ohara dd { font-variant-numeric: tabular-nums; }
+    /* Kirby card: hidden until the Switch games library answers on port 8587 (see kirby.js) */
+    .kirby { grid-area: kb; animation-delay: 0.8s; }
+    .kirby dd { font-variant-numeric: tabular-nums; }
     /* Bifrost card: hidden until bifrost answers on :8582 (see bifrost.js) */
     .errol { grid-area: er; animation-delay: 0.8s; }
     .bifrost { grid-area: bf; animation-delay: 0.75s; }
@@ -638,6 +642,7 @@
           "mand mand"
           "kp kp"
           "mg mg"
+          "kb kb"
           "bf bf"
           "er er"
           "cb cb"
@@ -655,7 +660,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "mand" "kp" "mg" "bf" "er" "cb" "pr";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "mand" "kp" "mg" "kb" "bf" "er" "cb" "pr";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -826,6 +831,17 @@
       <span class="tag bot-foot"><span>Manga library</span><span class="bot-more">Read :8585 →</span></span>
     </a>
 
+    <a class="panel bot kirby" id="kirby" href="http://{{$host}}:8587" target="_blank" rel="noopener" hidden aria-label="Kirby, open the Switch games library">
+      <span class="tag"><i>13</i> <span class="app-name">// <img class="app-logo" src="http://{{$host}}:8587/kirby.svg" alt="" width="22" height="22">Kirby</span> <span data-kb="state"></span></span>
+      <dl class="bot-stats">
+        <div><dt>Games</dt><dd data-kb="games">–</dd></div>
+        <div><dt>Space</dt><dd data-kb="size">–</dd></div>
+        <div><dt>Downloading</dt><dd data-kb="downloads">–</dd></div>
+      </dl>
+      <ul class="ss-list" data-kb="list"></ul>
+      <span class="tag bot-foot"><span>Switch games</span><span class="bot-more">Play :8587 →</span></span>
+    </a>
+
     <div class="panel bot bifrost" id="bifrost" hidden>
       <a class="bf-open" href="http://{{$host}}:8582" target="_blank" rel="noopener" aria-label="Bifrost, open its dashboard"></a>
       <span class="tag"><i>08</i> // Bifrost <span data-bf="state"></span></span>
@@ -887,6 +903,7 @@
         if (shown("bifrost")) l.push(`Bifrost reports ${text('[data-bf="state"]')}.`);
         if (shown("printer")) l.push(`The printer reports ${text('[data-pr="state"]')}, ${text('[data-pr="pct"]')} done.`);
         if (shown("ohara")) l.push(`The Ohara library holds ${text('[data-oh="state"]')}, ${text('[data-oh="volumes"]')} volumes.`);
+        if (shown("kirby")) l.push(`Kirby has swallowed ${text('[data-kb="state"]')} so far.`);
         if (shown("kpiece")) l.push(`One Piece chapter ${text('[data-kp="next"]')} lands in ${text('[data-kp="timer"]')}.`);
         l.push("Type a title above and I will find it.", "Transmission stays behind the VPN, as instructed.", "Uplink {{$host}} is stable.");
         return l;
@@ -913,6 +930,7 @@
   <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
   <script src="/ohara.js" defer></script>
+  <script src="/kirby.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>

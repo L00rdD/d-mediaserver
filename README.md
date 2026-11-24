@@ -548,7 +548,7 @@ TUNNEL_HASH='<hash>'
 
 `games-share`, on port 8586, shows the `games/` folder read-only as a plain directory index. On a Switch with custom firmware, DBI, Tinfoil or Sphaira install from it over wifi (HTTP source `http://<pi IP>:8586/Switch/`, the address Kirby shows at the top of its library); the same address downloads the files in a browser, for an emulator.
 
-Here Kirby reads Prowlarr's API key from `config/prowlarr/config.xml` and keeps its state in `games/.kirby/`. Add the file to `COMPOSE_FILE` in your `.env`, with the share's address as the console reaches it (an IP), then run `docker compose up -d --build`:
+Here Kirby reads Prowlarr's API key from `config/prowlarr/config.xml` and keeps its state in `games/.kirby/`. The home page shows a *Kirby* card (*Exploding Snap* in Hogwarts): games, space used, downloads under way or else the latest games. Add the file to `COMPOSE_FILE` in your `.env`, with the share's address as the console reaches it (an IP), then run `docker compose up -d --build`:
 
 ```text
 COMPOSE_FILE=docker-compose.yml:docker-compose.games.yml

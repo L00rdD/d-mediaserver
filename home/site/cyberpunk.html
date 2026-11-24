@@ -627,6 +627,8 @@
     .kpiece dd { font-variant-numeric: tabular-nums; }
     .ohara { animation-delay: 0.55s; }
     .ohara dd { font-variant-numeric: tabular-nums; }
+    .kirby { animation-delay: 0.58s; }
+    .kirby dd { font-variant-numeric: tabular-nums; }
     /* Anycubic printer card: shown while the printer is on (see printer.js) */
     .printer { animation-delay: 0.6s; }
     .pr-row { display: flex; gap: 18px; align-items: center; }
@@ -877,6 +879,17 @@
       <div class="bot-head bot-foot"><span>Manga library</span><span class="bot-more">Read :8585 →</span></div>
     </a>
 
+    <a class="bot kirby" id="kirby" href="http://{{$host}}:8587" target="_blank" rel="noopener" hidden aria-label="Kirby, open the Switch games library">
+      <div class="bot-head"><span>13</span><span class="name"><img class="app-logo" src="http://{{$host}}:8587/kirby.svg" alt="" width="32" height="32">Kirby</span><span data-kb="state"></span></div>
+      <dl class="bot-stats">
+        <div><dt>Games</dt><dd data-kb="games">–</dd></div>
+        <div><dt>Space</dt><dd data-kb="size">–</dd></div>
+        <div><dt>Downloading</dt><dd data-kb="downloads">–</dd></div>
+      </dl>
+      <ul class="ss-list" data-kb="list"></ul>
+      <div class="bot-head bot-foot"><span>Switch games</span><span class="bot-more">Play :8587 →</span></div>
+    </a>
+
     <div class="bot bifrost" id="bifrost" hidden>
       <a class="bf-open" href="http://{{$host}}:8582" target="_blank" rel="noopener" aria-label="Bifrost, open its dashboard"></a>
       <div class="bot-head"><span>08</span><span class="name">Bifrost</span><span data-bf="state"></span></div>
@@ -942,6 +955,7 @@
   <script src="/mandrake.js" defer></script>
   <script src="/kpiece.js" defer></script>
   <script src="/ohara.js" defer></script>
+  <script src="/kirby.js" defer></script>
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
