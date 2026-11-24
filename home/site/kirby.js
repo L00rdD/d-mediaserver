@@ -1,4 +1,4 @@
-// Fills the Kirby card and shows it. Kirby (the optional Switch games library) serves
+// Fills the Kirby card and shows it. Kirby (the optional video games library) serves
 // its state on port 8587 of the same host (CORS open); when it does not answer, the
 // card stays hidden. The list shows the downloads under way, or else the latest games.
 (async () => {
@@ -46,7 +46,7 @@
   const list = card.querySelector('[data-kb="list"]');
   list.textContent = "";
   for (const d of s.downloads) list.append(row(el("span", d.name), el("span", d.state === "error" ? "error" : "downloading"), bar(d.pct), el("span", d.pct + " %")));
-  if (!s.downloads.length) for (const g of s.recent) list.append(row(el("span", g.name), el("span", "ready"), el("span"), el("span", gb(g.size))));
+  if (!s.downloads.length) for (const g of s.recent) list.append(row(el("span", g.name), el("span", g.console || "ready"), el("span"), el("span", gb(g.size))));
   if (!s.games && !s.downloads.length) {
     const hint = el("span", "Search a game in Kirby's catalogue to start the library.");
     hint.style.gridColumn = "1 / -1";

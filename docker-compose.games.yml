@@ -1,11 +1,12 @@
-# Optional: Switch games.
-# - Kirby, port 8587: the Radarr of Switch games. Its catalogue is titledb (every
-#   eShop game, French names and icons, no key nor account); it searches the games
-#   through Prowlarr's indexers and downloads them with Transmission (so through the
-#   VPN) straight into games/Switch/<Game [title id]>/.
+# Optional: video games, one section per console (Switch, Nintendo, PlayStation, Xbox,
+# Sega, retro, PC).
+# - Kirby, port 8587: the Radarr of games. Its catalogues need no key nor account
+#   (titledb for the Switch, libretro's box arts for the older consoles, Steam for the
+#   PC); it searches the games through Prowlarr's indexers and downloads them with
+#   Transmission (so through the VPN) straight into games/<console>/<Game>/.
 # - games-share, port 8586: the games/ folder, read-only, as a plain file index that
 #   DBI, Tinfoil or Sphaira install from over wifi on a modded Switch, and that a
-#   browser downloads from for an emulator (Ryujinx, Eden).
+#   browser or an emulator front-end downloads from.
 # Switch it on in .env:
 #   COMPOSE_FILE=docker-compose.yml:docker-compose.games.yml
 services:

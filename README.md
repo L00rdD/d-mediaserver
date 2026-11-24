@@ -27,7 +27,7 @@ Options, each one off until you turn it on:
 | [Fake releases](#fake-releases) | Sonarr and Radarr turn down the "episodes" that are programs (`.exe`), and any that slips through is removed and searched again. | `sudo ./fakes/install.sh` |
 | [Wifi fallback hotspot](#wifi-fallback-hotspot) | The Pi opens its own wifi when the home network is gone, so the films stay watchable. | `sudo ./hotspot/install.sh` |
 | [One Piece scans](#%EF%B8%8F-one-piece-scans-optional) | A home page card and a Discord post for each new chapter. | 2 lines in `.env` |
-| [Switch games](#-switch-games-optional) | Kirby: a catalogue of every Switch game, searched and downloaded like films, installed from the console over wifi. | 2 lines in `.env` |
+| [Video games](#-video-games-optional) | Kirby: a catalogue per console (Switch, Nintendo, PlayStation, Xbox, Sega, retro, PC), searched and downloaded like films. | 2 lines in `.env` |
 | [Resin printer](#%EF%B8%8F-resin-printer-optional) | A home page card that shows while the Anycubic printer is on, with the print going on. | 2 lines in `.env` |
 | [No login at home](#-passwords) | Radarr, Sonarr and Prowlarr open without a password on the home network. | 1 line in `.env` |
 
@@ -51,7 +51,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 | **[FlareSolverr](https://github.com/FlareSolverr/)**| Proxy server to bypass Cloudflare protection for indexers. | `8191` |
 | **[Gluetun](https://github.com/qdm12/gluetun)** | Optional VPN client that Transmission goes through (see VPN). | |
 | **Ohara** | Optional manga library: finds volumes through Prowlarr, downloads and reads them (see Anime and Manga). | `8585` |
-| **Kirby** | Optional Switch games: a catalogue searched through Prowlarr, downloaded by Transmission, installed from the console (see Switch Games). | `8587`, `8586` |
+| **Kirby** | Optional video games, console by console: catalogues searched through Prowlarr, downloaded by Transmission, installed from the console (see Video Games). | `8587`, `8586` |
 
 ---
 
@@ -72,7 +72,7 @@ Each USB drive is mounted on its own under `/mnt/disks/`, and mergerfs merges th
     ├── shows/           # Sorted TV shows
     ├── anime/           # Sorted anime series
     ├── manga/           # Manga volumes, one folder per series (optional, see Ohara)
-    └── games/Switch/    # Switch games, one folder per game (optional, see Kirby)
+    └── games/           # Games, one folder per console then per game (optional, see Kirby)
 ```
 
 Inside every container the pool is mounted at `/data` (`/data/movies`, `/data/shows`, `/data/anime`, `/data/complete`, `/data/incomplete`).
@@ -542,11 +542,13 @@ TUNNEL_HASH='<hash>'
 
 `docker logs ohara-tunnel` shows the address of the day.
 
-## 🎮 Switch Games (optional)
+## 🎮 Video Games (optional)
 
-[Kirby](https://github.com/L00rdD/kirby) does for Switch games what Radarr does for films, on `http://<pi>:8587`. Its catalogue is [titledb](https://github.com/blawar/titledb), the open list of every eShop game (French names, icons, no key nor account), fetched again every week. A game's page searches every Prowlarr indexer that has console games (YggReborn, The Pirate Bay, LimeTorrents, 1337x, Knaben, World-torrent here), keeps the Switch releases (never the PC repacks bundling an emulator) and puts first the whole game, for a Switch 1, in French, with the most seeders. A game titledb does not list yet (Switch 2) is searched for directly on the indexers. Transmission downloads it, through the VPN, into `games/Switch/<Game [title id]>/`, and seeds it to its own ratio like everything else.
+[Kirby](https://github.com/L00rdD/kirby) does for games what Radarr does for films, on `http://<pi>:8587`, one section per console: Switch, NES to Wii U, Game Boy to 3DS, PlayStation 1 to 5, PSP and Vita, Xbox, Sega, Neo Geo, PC Engine and PC. Its catalogues need no key nor account: [titledb](https://github.com/blawar/titledb) for the Switch (French names, eShop icons), [libretro's box arts](https://github.com/libretro-thumbnails) for the older consoles up to the PS3, Wii U and first Xbox, Steam for the PC. The PS4, PS5, Vita, Xbox 360 and One have no open catalogue: they are searched directly on the indexers.
 
-`games-share`, on port 8586, shows the `games/` folder read-only as a plain directory index. On a Switch with custom firmware, DBI, Tinfoil or Sphaira install from it over wifi (HTTP source `http://<pi IP>:8586/Switch/`, the address Kirby shows at the top of its library); the same address downloads the files in a browser, for an emulator.
+A game's page searches every Prowlarr indexer that has console games (or PC games), keeps the releases made for that console (never a PC build bundling an emulator; for cartridge consoles, also the small unlabelled ROMs) and puts first the whole game, with sources, in French, with the most seeders. Here RuTracker (see below) brings the best-seeded console releases. Transmission downloads them, through the VPN, into `games/<console>/<Game>/` (the folder names EmulationStation and ES-DE use: `switch`, `snes`, `ps2`, `pc`…), unpacks the scene RARs and the zipped discs, and seeds to its own ratio like everything else.
+
+`games-share`, on port 8586, shows the `games/` folder read-only as a plain directory index. On a Switch with custom firmware, DBI, Tinfoil or Sphaira install from it over wifi (HTTP source `http://<pi IP>:8586/switch/`, the address Kirby shows above each console of its library); the same addresses download the files in a browser or an emulator front-end.
 
 Here Kirby reads Prowlarr's API key from `config/prowlarr/config.xml` and keeps its state in `games/.kirby/`. The home page shows a *Kirby* card (*Exploding Snap* in Hogwarts): games, space used, downloads under way or else the latest games. Add the file to `COMPOSE_FILE` in your `.env`, with the share's address as the console reaches it (an IP), then run `docker compose up -d --build`:
 
@@ -556,6 +558,8 @@ KIRBY_SHARE_URL=http://192.168.1.229:8586
 ```
 
 Update it with `docker compose build kirby && docker compose up -d kirby`.
+
+**RuTracker** (optional, free account): the biggest console tracker, often 500 to 1000 seeders on the big games, with multi-language releases. In Prowlarr, add *RuTracker.org* with your login, the `flare` tag (Cloudflare checks its login page: FlareSolverr answers it) and a sync profile with RSS, automatic and interactive search off, so that Radarr and Sonarr never use it: Kirby asks Prowlarr directly.
 
 ## 🖨️ Resin Printer (optional)
 

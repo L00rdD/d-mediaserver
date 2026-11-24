@@ -5,7 +5,7 @@ const { page, run } = require("./cards-page.cjs");
 
 const URL = "http://dpi.lan:8587/api/status.json";
 const cells = (li) => li.children.map((c) => c.textContent);
-const recent = [{ name: "Mario Kart 8 Deluxe", size: 7.4e9 }, { name: "Celeste", size: 600e6 }];
+const recent = [{ name: "Mario Kart 8 Deluxe", size: 7.4e9, console: "Switch" }, { name: "Celeste", size: 600e6 }];
 
 test("the downloads under way", async () => {
   const downloads = [{ name: "Zelda", pct: 42, state: "downloading" }, { name: "Metroid", pct: 3, state: "error" }];
@@ -29,7 +29,7 @@ test("the latest games when nothing downloads", async () => {
   assert.equal(text("state"), "1 game");
   assert.equal(text("size"), "600 MB");
   assert.equal(text("downloads"), "none");
-  assert.deepEqual(cells(part("list").children[0]), ["Mario Kart 8 Deluxe", "ready", "", "7.4 GB"]);
+  assert.deepEqual(cells(part("list").children[0]), ["Mario Kart 8 Deluxe", "Switch", "", "7.4 GB"]);
   assert.deepEqual(cells(part("list").children[1]), ["Celeste", "ready", "", "600 MB"]);
 });
 
