@@ -1,26 +1,31 @@
-# Optional: video games, Switch first.
-# - Questarr (github.com/Doezer/Questarr), the Radarr of games on port 5000: a
-#   catalogue from IGDB (any platform), searched through Prowlarr's indexers and
-#   downloaded with Transmission (so through the VPN), filed in games/<Platform>/.
-#   Its first page asks for an admin account and the IGDB keys (a free Twitch
-#   developer app, see the README).
+# Optional: Switch games.
+# - Kirby, port 8587: the Radarr of Switch games. Its catalogue is titledb (every
+#   eShop game, French names and icons, no key nor account); it searches the games
+#   through Prowlarr's indexers and downloads them with Transmission (so through the
+#   VPN) straight into games/Switch/<Game [title id]>/.
 # - games-share, port 8586: the games/ folder, read-only, as a plain file index that
 #   DBI, Tinfoil or Sphaira install from over wifi on a modded Switch, and that a
 #   browser downloads from for an emulator (Ryujinx, Eden).
 # Switch it on in .env:
 #   COMPOSE_FILE=docker-compose.yml:docker-compose.games.yml
 services:
-  questarr:
-    image: ghcr.io/doezer/questarr:latest
-    container_name: questarr
+  kirby:
+    build: ${KIRBY_BUILD:-https://github.com/L00rdD/kirby.git#main}
+    image: kirby:local
+    container_name: kirby
+    init: true
+    user: ${PUID:-1000}:${PGID:-1000}
     environment:
       - TZ=${TZ:-Europe/Paris}
+      # the share's address as the console reaches it, shown in Kirby (an IP: the
+      # Switch rarely resolves local names); else this host's name, port 8586
+      - KIRBY_SHARE_URL=${KIRBY_SHARE_URL:-}
     volumes:
-      - ./config/questarr:/app/data
-      # same /data as Transmission, so finished downloads move into games/
-      - ${DATA_ROOT:-/mnt/storage}:/data
+      - ${DATA_ROOT:-/mnt/storage}/games:/games
+      # Kirby reads Prowlarr's API key here
+      - ./config/prowlarr/config.xml:/config/prowlarr/config.xml:ro
     ports:
-      - ${QUESTARR_PORT:-5000}:5000
+      - 8587:8587
     restart: unless-stopped
 
   games-share:

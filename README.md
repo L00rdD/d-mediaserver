@@ -27,6 +27,7 @@ Options, each one off until you turn it on:
 | [Fake releases](#fake-releases) | Sonarr and Radarr turn down the "episodes" that are programs (`.exe`), and any that slips through is removed and searched again. | `sudo ./fakes/install.sh` |
 | [Wifi fallback hotspot](#wifi-fallback-hotspot) | The Pi opens its own wifi when the home network is gone, so the films stay watchable. | `sudo ./hotspot/install.sh` |
 | [One Piece scans](#%EF%B8%8F-one-piece-scans-optional) | A home page card and a Discord post for each new chapter. | 2 lines in `.env` |
+| [Switch games](#-switch-games-optional) | Kirby: a catalogue of every Switch game, searched and downloaded like films, installed from the console over wifi. | 2 lines in `.env` |
 | [Resin printer](#%EF%B8%8F-resin-printer-optional) | A home page card that shows while the Anycubic printer is on, with the print going on. | 2 lines in `.env` |
 | [No login at home](#-passwords) | Radarr, Sonarr and Prowlarr open without a password on the home network. | 1 line in `.env` |
 
@@ -50,6 +51,7 @@ This environment is powered by the *Arr* suite and Jellyfin:
 | **[FlareSolverr](https://github.com/FlareSolverr/)**| Proxy server to bypass Cloudflare protection for indexers. | `8191` |
 | **[Gluetun](https://github.com/qdm12/gluetun)** | Optional VPN client that Transmission goes through (see VPN). | |
 | **Ohara** | Optional manga library: finds volumes through Prowlarr, downloads and reads them (see Anime and Manga). | `8585` |
+| **Kirby** | Optional Switch games: a catalogue searched through Prowlarr, downloaded by Transmission, installed from the console (see Switch Games). | `8587`, `8586` |
 
 ---
 
@@ -69,7 +71,8 @@ Each USB drive is mounted on its own under `/mnt/disks/`, and mergerfs merges th
     ├── movies/          # Sorted movies
     ├── shows/           # Sorted TV shows
     ├── anime/           # Sorted anime series
-    └── manga/           # Manga volumes, one folder per series (optional, see Ohara)
+    ├── manga/           # Manga volumes, one folder per series (optional, see Ohara)
+    └── games/Switch/    # Switch games, one folder per game (optional, see Kirby)
 ```
 
 Inside every container the pool is mounted at `/data` (`/data/movies`, `/data/shows`, `/data/anime`, `/data/complete`, `/data/incomplete`).
@@ -457,7 +460,7 @@ services:
 docker compose up -d
 ```
 
-Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191, 51413 and 8585 (with Ohara). `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
+Ports already taken by the stack: 80 (home page), 8096, 7878, 8989, 6767, 9696, 9091, 8191, 51413, 8585 (with Ohara), 8586 and 8587 (with Kirby). `restart: unless-stopped` brings the app back after a reboot or after the [watchdog](#watchdog) restarts Docker, and the watchdog reports it on Discord if it stays stopped, like any container of a Compose project.
 
 ### 2. Give it the hub's look
 
@@ -538,6 +541,21 @@ TUNNEL_HASH='<hash>'
 ```
 
 `docker logs ohara-tunnel` shows the address of the day.
+
+## 🎮 Switch Games (optional)
+
+[Kirby](https://github.com/L00rdD/kirby) does for Switch games what Radarr does for films, on `http://<pi>:8587`. Its catalogue is [titledb](https://github.com/blawar/titledb), the open list of every eShop game (French names, icons, no key nor account), fetched again every week. A game's page searches every Prowlarr indexer that has console games (YggReborn, The Pirate Bay, LimeTorrents, 1337x, Knaben, World-torrent here), keeps the Switch releases (never the PC repacks bundling an emulator) and puts first the whole game, for a Switch 1, in French, with the most seeders. A game titledb does not list yet (Switch 2) is searched for directly on the indexers. Transmission downloads it, through the VPN, into `games/Switch/<Game [title id]>/`, and seeds it to its own ratio like everything else.
+
+`games-share`, on port 8586, shows the `games/` folder read-only as a plain directory index. On a Switch with custom firmware, DBI, Tinfoil or Sphaira install from it over wifi (HTTP source `http://<pi IP>:8586/Switch/`, the address Kirby shows at the top of its library); the same address downloads the files in a browser, for an emulator.
+
+Here Kirby reads Prowlarr's API key from `config/prowlarr/config.xml` and keeps its state in `games/.kirby/`. Add the file to `COMPOSE_FILE` in your `.env`, with the share's address as the console reaches it (an IP), then run `docker compose up -d --build`:
+
+```text
+COMPOSE_FILE=docker-compose.yml:docker-compose.games.yml
+KIRBY_SHARE_URL=http://192.168.1.229:8586
+```
+
+Update it with `docker compose build kirby && docker compose up -d kirby`.
 
 ## 🖨️ Resin Printer (optional)
 
