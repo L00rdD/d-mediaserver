@@ -557,7 +557,7 @@ COMPOSE_FILE=docker-compose.yml:docker-compose.games.yml
 KIRBY_SHARE_URL=http://192.168.1.229:8586
 ```
 
-Update it with `docker compose build kirby && docker compose up -d kirby`.
+Kirby's repository is private for now: clone it on the machine and add `KIRBY_BUILD=/path/to/kirby` to the `.env`, so Docker builds from that copy. Update it with `docker compose build kirby && docker compose up -d kirby`.
 
 **RuTracker** (optional, free account): the biggest console tracker, often 500 to 1000 seeders on the big games, with multi-language releases. In Prowlarr, add *RuTracker.org* with your login, the `flare` tag (Cloudflare checks its login page: FlareSolverr answers it) and a sync profile with RSS, automatic and interactive search off, so that Radarr and Sonarr never use it: Kirby asks Prowlarr directly.
 

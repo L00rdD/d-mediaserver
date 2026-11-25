@@ -9,6 +9,8 @@
 #   browser or an emulator front-end downloads from.
 # Switch it on in .env:
 #   COMPOSE_FILE=docker-compose.yml:docker-compose.games.yml
+# Kirby's repository is private for now: clone it, then point KIRBY_BUILD at the copy
+# (KIRBY_BUILD=/home/<you>/kirby in .env).
 services:
   kirby:
     build: ${KIRBY_BUILD:-https://github.com/L00rdD/kirby.git#main}
