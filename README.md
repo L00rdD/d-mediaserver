@@ -371,6 +371,10 @@ See what it did: `journalctl -u mediaserver-watchdog -n 20`. Run it now: `sudo s
 
 > Stopping a container on purpose (`docker compose stop transmission`) also gets reported, once. Use `docker compose down` on a project you no longer run, so its containers are removed.
 
+### Quiet While Someone Plays
+
+`quiet` (in `docker-compose.yml`) lets the home network breathe while it is in use: every 20 s it looks for a PlayStation that is on (found by the same discovery Remote Play and chiaki-ng use) and for a video Jellyfin is playing. Then Transmission goes into its turtle mode (the *alternative speed limits* set in Transmission, 2 MB/s down and 300 kB/s up here); five minutes after the last of them, full speed again, so the Pi downloads all it wants while nobody is home. It only lifts the turtle mode it turned on itself. `docker logs quiet` says when and why; it reads `JELLYFIN_API_KEY` from the `.env`, like the screen's feed.
+
 ### Wifi Fallback Hotspot
 
 When the home network goes away (router reset, power cut, new wifi password), the Pi drops off it and nobody can reach it, even though it still runs fine. With this service, after **3 minutes** without a working home network (neither the Ethernet cable nor the wifi reaches the router) the Pi opens **its own wifi** with its wifi chip: join it from a phone, a TV or a laptop and the home page, Jellyfin and the films are there as usual. There is no internet on it, only the Pi.
