@@ -69,10 +69,12 @@ services:
     restart: unless-stopped
 
   # Lets the home network breathe while someone uses it (quiet/quiet.py): while a
-  # PlayStation is on (playing, or streamed with Remote Play / chiaki-ng) or Jellyfin
-  # plays something, Transmission goes into turtle mode (its alt-speed limits, set in
-  # Transmission); five minutes after, full speed again. It lifts only the turtle mode
-  # it turned on. Host network: the consoles are found by broadcast.
+  # PlayStation is on (playing, or streamed with Remote Play / chiaki-ng), Jellyfin
+  # plays something or, with LIVEBOX_PASSWORD, the other devices use 3 Mb/s or more of
+  # the Internet link (the box's counters minus the Pi's own), Transmission goes into
+  # turtle mode (its alt-speed limits, set in Transmission); five minutes after, full
+  # speed again. It lifts only the turtle mode it turned on. Host network: the consoles
+  # are found by broadcast, and the Pi's own counters are the host's.
   quiet:
     image: python:3-alpine
     container_name: quiet
@@ -82,6 +84,8 @@ services:
     environment:
       - TZ=${TZ:-Europe/Paris}
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:-}
+      - LIVEBOX_PASSWORD=${LIVEBOX_PASSWORD:-}
+      - QUIET_OTHERS_MBPS=${QUIET_OTHERS_MBPS:-3}
     volumes:
       - ./quiet:/app:ro
       - disk-status:/status

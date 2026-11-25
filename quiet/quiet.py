@@ -1,14 +1,17 @@
 """quiet: the Pi lets the home network breathe while someone uses it. Every 20 s it
-looks whether a PlayStation is on (playing, or streamed with Remote Play / chiaki-ng)
-and whether Jellyfin is playing something; then it puts Transmission in turtle mode
-(its alt-speed limits). Five minutes after the last of them, the Pi gets the whole
-network back: at work or at night, it downloads at full speed.
+looks whether a PlayStation is on (playing, or streamed with Remote Play / chiaki-ng),
+whether Jellyfin is playing something, and, with the Livebox's password, how much of
+the Internet link the other devices use (the box's fibre counters minus the Pi's own:
+Netflix on the TV, a video call, a download on a laptop…); then it puts Transmission in
+turtle mode (its alt-speed limits). Five minutes after the last of them, the Pi gets
+the whole network back: at work or at night, it downloads at full speed.
 
 It only lifts the turtle mode it turned on itself: one turned on by hand stays.
 Standard library only; runs with the host's network, to reach the consoles' discovery
 by broadcast. Writes what it sees to /status/quiet.json for the home page."""
 
 import base64
+import http.cookiejar
 import json
 import os
 import socket
@@ -20,6 +23,10 @@ TRANSMISSION = os.environ.get("TRANSMISSION_URL", "http://localhost:9091/transmi
 TRANSMISSION_AUTH = os.environ.get("TRANSMISSION_AUTH", "")  # "user:password", if Transmission asks
 JELLYFIN = os.environ.get("JELLYFIN_URL", "http://localhost:8096")
 JELLYFIN_KEY = os.environ.get("JELLYFIN_API_KEY", "")
+LIVEBOX = os.environ.get("LIVEBOX_URL", "http://192.168.1.1")
+LIVEBOX_PASSWORD = os.environ.get("LIVEBOX_PASSWORD", "")
+WAN = os.environ.get("LIVEBOX_WAN", "veip0")  # the box's fibre interface
+OTHERS_MBPS = float(os.environ.get("QUIET_OTHERS_MBPS", "3"))  # the others' use that counts
 EVERY = int(os.environ.get("QUIET_EVERY", "20"))
 HOLD = int(os.environ.get("QUIET_HOLD", "300"))  # seconds of calm before full speed again
 STATUS = os.environ.get("QUIET_STATUS", "/status/quiet.json")
@@ -80,6 +87,76 @@ def playing():
             if s.get("NowPlayingItem") and not (s.get("PlayState") or {}).get("IsPaused")]
 
 
+# ---------- the Livebox: what the others use ----------
+
+class Livebox:
+    """A session on the Livebox's web API (the one its pages use): a context made with
+    the admin password, then calls to its services."""
+
+    def __init__(self, url=None, password=None):
+        self.url, self.password, self.ctx = url or LIVEBOX, password if password is not None else LIVEBOX_PASSWORD, None
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
+    def post(self, body, auth):
+        req = urllib.request.Request(f"{self.url}/ws", data=json.dumps(body).encode(),
+                                     headers={"Content-Type": "application/x-sah-ws-4-call+json", **auth})
+        with self.opener.open(req, timeout=10) as r:
+            return json.load(r)
+
+    def login(self):
+        r = self.post({"service": "sah.Device.Information", "method": "createContext",
+                       "parameters": {"applicationName": "webui", "username": "admin", "password": self.password}}, {"Authorization": "X-Sah-Login"})
+        self.ctx = (r.get("data") or {}).get("contextID")
+        if not self.ctx:
+            raise RuntimeError("the Livebox refuses the password")
+
+    def call(self, service, method):
+        """A service's answer, logged in again once if the session expired."""
+        for _ in range(2):
+            if not self.ctx:
+                self.login()
+            r = self.post({"service": service, "method": method, "parameters": {}}, {"Authorization": f"X-Sah {self.ctx}", "X-Context": self.ctx})
+            if r.get("status") is not None:
+                return r["status"]
+            self.ctx = None
+        raise RuntimeError(f"the Livebox does not answer {service}.{method}")
+
+    def wan_bytes(self):
+        s = self.call(f"NeMo.Intf.{WAN}", "getNetDevStats")
+        return s["RxBytes"] + s["TxBytes"]
+
+
+def default_interface(route_file="/proc/net/route"):
+    """The interface of the default route: the one the Pi's Internet traffic goes through."""
+    with open(route_file) as f:
+        for line in f.readlines()[1:]:
+            fields = line.split()
+            if len(fields) > 2 and fields[1] == "00000000":
+                return fields[0]
+    return ""
+
+
+def own_bytes(net="/sys/class/net"):
+    iface = default_interface()
+    total = 0
+    for name in ("rx_bytes", "tx_bytes"):
+        with open(f"{net}/{iface}/statistics/{name}") as f:
+            total += int(f.read())
+    return total
+
+
+def others_mbps(box, state, now):
+    """The Internet link's use by everything but the Pi since the last look, in Mb/s
+    (0 the first time, or when a counter went back)."""
+    wan, own = box.wan_bytes(), own_bytes()
+    before = state.get("counters")
+    state["counters"] = (now, wan, own)
+    if not before or now <= before[0]:
+        return 0.0
+    others = (wan - before[1]) - (own - before[2])
+    return max(0.0, others * 8 / (now - before[0]) / 1e6)
+
+
 # ---------- Transmission ----------
 
 def rpc(method, arguments=None):
@@ -113,13 +190,25 @@ def decide(busy, state, now):
     when the network was last busy."""
     if busy:
         state["last_busy"] = now
-    return now - state.get("last_busy", 0) < HOLD
+    return "last_busy" in state and now - state["last_busy"] < HOLD
+
+
+def others(state, now):
+    """The others' use of the Internet link, or None without the Livebox's password."""
+    if not LIVEBOX_PASSWORD:
+        return None
+    box = state.setdefault("box", Livebox())
+    return round(safe(lambda: others_mbps(box, state, now), 0.0), 1)
+
+
+def busy(seen):
+    return bool(seen["consoles"] or seen["playing"] or (seen["others_mbps"] or 0) >= OTHERS_MBPS)
 
 
 def step(state, now):
     """One look: who uses the network, then Transmission set accordingly."""
-    seen = {"consoles": [c for c in consoles() if c["on"]], "playing": safe(playing, [])}
-    want = decide(bool(seen["consoles"] or seen["playing"]), state, now)
+    seen = {"consoles": [c for c in consoles() if c["on"]], "playing": safe(playing, []), "others_mbps": others(state, now)}
+    want = decide(busy(seen), state, now)
     on = turtle()
     if want and not on:
         set_turtle(True)
@@ -141,7 +230,8 @@ def safe(fn, default):
 
 
 def why(seen):
-    return ", ".join([c["name"] for c in seen["consoles"]] + seen["playing"]) or "?"
+    use = [f"{seen['others_mbps']} Mb/s used by the others"] if (seen.get("others_mbps") or 0) >= OTHERS_MBPS else []
+    return ", ".join([c["name"] for c in seen["consoles"]] + seen["playing"] + use) or "?"
 
 
 def write_status(status):

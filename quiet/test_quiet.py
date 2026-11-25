@@ -107,9 +107,10 @@ class Deciding(unittest.TestCase):
         self.assertTrue(quiet.decide(False, state, 1000 + quiet.HOLD - 1))
         self.assertFalse(quiet.decide(False, state, 1000 + quiet.HOLD))
 
-    def run_step(self, state, now, consoles=(), playing=(), turtle=False):
+    def run_step(self, state, now, consoles=(), playing=(), turtle=False, others=None):
         with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")), \
                 mock.patch.object(quiet, "consoles", return_value=list(consoles)), mock.patch.object(quiet, "playing", return_value=list(playing)), \
+                mock.patch.object(quiet, "others", return_value=others), \
                 mock.patch.object(quiet, "turtle", return_value=turtle), mock.patch.object(quiet, "set_turtle") as st:
             quiet.step(state, now)
             with open(quiet.STATUS) as f:
@@ -131,10 +132,16 @@ class Deciding(unittest.TestCase):
         self.assertTrue(status["turtle"])
         st, _ = self.run_step({}, 10, playing=["Dune"])
         st.assert_called_once_with(True)
+        st, status = self.run_step({}, 10, others=8.5)  # Netflix on the TV
+        st.assert_called_once_with(True)
+        self.assertEqual(status["others_mbps"], 8.5)
+        st, _ = self.run_step({}, 10, others=1.0)  # a phone syncing: not enough
+        st.assert_not_called()
 
     def test_helpers(self):
         self.assertEqual(quiet.why({"consoles": [{"name": "PS5"}], "playing": ["Dune"]}), "PS5, Dune")
         self.assertEqual(quiet.why({"consoles": [], "playing": []}), "?")
+        self.assertEqual(quiet.why({"consoles": [], "playing": [], "others_mbps": 9.0}), "9.0 Mb/s used by the others")
         self.assertEqual(quiet.safe(lambda: 1 / 0, "d"), "d")
         with mock.patch.object(quiet, "STATUS", "/nonexistent/dir/q.json"):
             quiet.write_status({})  # no volume: only logged
@@ -147,6 +154,78 @@ class Deciding(unittest.TestCase):
     def test_get_json(self):
         with mock.patch.object(quiet.urllib.request, "urlopen", return_value=Answer(b"[1]")):
             self.assertEqual(quiet.get_json("http://x"), [1])
+
+
+class Box(unittest.TestCase):
+    def fake(self, replies):
+        box = quiet.Livebox("http://box", "pw")
+        sent = []
+
+        def post(body, auth):
+            sent.append((body, auth))
+            return replies.pop(0)
+        box.post = post
+        return box, sent
+
+    def test_login_and_counters(self):
+        box, sent = self.fake([{"data": {"contextID": "c1"}}, {"status": {"RxBytes": 100, "TxBytes": 20}}])
+        self.assertEqual(box.wan_bytes(), 120)
+        self.assertEqual(sent[0][0]["parameters"]["password"], "pw")
+        self.assertEqual(sent[1][1]["X-Context"], "c1")
+        self.assertEqual(sent[1][0]["service"], "NeMo.Intf.veip0")
+
+    def test_session_expired_then_refused(self):
+        box, sent = self.fake([{"data": {"contextID": "c1"}}, {"errors": [{"error": 13}]}, {"data": {"contextID": "c2"}}, {"status": {"ok": 1}}])
+        self.assertEqual(box.call("S", "m"), {"ok": 1})
+        self.assertEqual(sent[3][1]["X-Context"], "c2")
+        box, _ = self.fake([{"data": {}}])
+        with self.assertRaises(RuntimeError):
+            box.login()
+        box, _ = self.fake([{"data": {"contextID": "c"}}, {"errors": []}, {"data": {"contextID": "c"}}, {"errors": []}])
+        with self.assertRaises(RuntimeError):
+            box.call("S", "m")
+
+    def test_post(self):
+        box = quiet.Livebox("http://box", "pw")
+        box.opener = mock.Mock()
+        box.opener.open.return_value = Answer(b'{"status": true}')
+        self.assertEqual(box.post({"a": 1}, {"Authorization": "x"}), {"status": True})
+        req = box.opener.open.call_args[0][0]
+        self.assertEqual((req.full_url, req.headers["Content-type"]), ("http://box/ws", "application/x-sah-ws-4-call+json"))
+
+    def test_own_counters(self):
+        with tempfile.TemporaryDirectory() as d:
+            route = os.path.join(d, "route")
+            with open(route, "w") as f:
+                f.write("Iface\tDestination\tGateway\nwlan0\t0001A8C0\t00000000\nwlan0\t00000000\t0101A8C0\n")
+            self.assertEqual(quiet.default_interface(route), "wlan0")
+            os.makedirs(os.path.join(d, "wlan0", "statistics"))
+            for name, n in (("rx_bytes", 30), ("tx_bytes", 12)):
+                with open(os.path.join(d, "wlan0", "statistics", name), "w") as f:
+                    f.write(str(n))
+            with mock.patch.object(quiet, "default_interface", return_value="wlan0"):
+                self.assertEqual(quiet.own_bytes(d), 42)
+            with open(route, "w") as f:
+                f.write("Iface\tDestination\tGateway\n")
+            self.assertEqual(quiet.default_interface(route), "")
+
+    def test_others(self):
+        box = mock.Mock()
+        state = {}
+        box.wan_bytes.side_effect = [1_000_000, 1_000_000 + 30_000_000, 5]
+        with mock.patch.object(quiet, "own_bytes", side_effect=[500, 500 + 5_000_000, 600]):
+            self.assertEqual(quiet.others_mbps(box, state, 100), 0.0)  # first look
+            self.assertAlmostEqual(quiet.others_mbps(box, state, 120), 25_000_000 * 8 / 20 / 1e6)
+            self.assertEqual(quiet.others_mbps(box, state, 140), 0.0)  # the box restarted: counters back to 0
+
+    def test_others_needs_the_password(self):
+        with mock.patch.object(quiet, "LIVEBOX_PASSWORD", ""):
+            self.assertIsNone(quiet.others({}, 1))
+        state = {"box": mock.Mock()}
+        with mock.patch.object(quiet, "LIVEBOX_PASSWORD", "pw"), mock.patch.object(quiet, "others_mbps", return_value=3.14159):
+            self.assertEqual(quiet.others(state, 1), 3.1)
+        with mock.patch.object(quiet, "LIVEBOX_PASSWORD", "pw"), mock.patch.object(quiet, "others_mbps", side_effect=OSError("box away")):
+            self.assertEqual(quiet.others(state, 1), 0.0)
 
 
 if __name__ == "__main__":

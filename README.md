@@ -373,7 +373,7 @@ See what it did: `journalctl -u mediaserver-watchdog -n 20`. Run it now: `sudo s
 
 ### Quiet While Someone Plays
 
-`quiet` (in `docker-compose.yml`) lets the home network breathe while it is in use: every 20 s it looks for a PlayStation that is on (found by the same discovery Remote Play and chiaki-ng use) and for a video Jellyfin is playing. Then Transmission goes into its turtle mode (the *alternative speed limits* set in Transmission, 2 MB/s down and 300 kB/s up here); five minutes after the last of them, full speed again, so the Pi downloads all it wants while nobody is home. It only lifts the turtle mode it turned on itself. `docker logs quiet` says when and why; it reads `JELLYFIN_API_KEY` from the `.env`, like the screen's feed.
+`quiet` (in `docker-compose.yml`) lets the home network breathe while it is in use: every 20 s it looks for a PlayStation that is on (found by the same discovery Remote Play and chiaki-ng use), for a video Jellyfin is playing and, given `LIVEBOX_PASSWORD` (the box's admin password, by default the first 8 characters of its original wifi key), for the other devices' use of the Internet link: the Livebox's fibre counters minus the Pi's own, so Netflix on the TV or a video call counts whatever the device (3 Mb/s or more, `QUIET_OTHERS_MBPS`). Then Transmission goes into its turtle mode (the *alternative speed limits* set in Transmission, 2 MB/s down and 300 kB/s up here); five minutes after the last of them, full speed again, so the Pi downloads all it wants while nobody is home. It only lifts the turtle mode it turned on itself. `docker logs quiet` says when and why; it reads `JELLYFIN_API_KEY` from the `.env`, like the screen's feed.
 
 ### Wifi Fallback Hotspot
 
