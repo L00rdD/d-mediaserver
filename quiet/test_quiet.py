@@ -180,7 +180,7 @@ class Deciding(unittest.TestCase):
             quiet.write_status({})  # no volume: only logged
 
     def test_main_survives(self):
-        with mock.patch.object(quiet, "serve"), mock.patch.object(quiet, "step", side_effect=RuntimeError("away")), mock.patch.object(quiet.time, "sleep", side_effect=StopIteration):
+        with mock.patch.object(quiet, "serve"), mock.patch.object(quiet, "restore", return_value={}), mock.patch.object(quiet, "step", side_effect=RuntimeError("away")), mock.patch.object(quiet.time, "sleep", side_effect=StopIteration):
             with self.assertRaises(StopIteration):
                 quiet.main()
 
@@ -300,3 +300,25 @@ class Switch(unittest.TestCase):
         self.assertEqual(self.ask("/other", {"turtle": True})[0], 404)
         with mock.patch.object(quiet, "switch", side_effect=RuntimeError("Transmission away")):
             self.assertEqual(self.ask("/quiet", {"turtle": True}), (502, {"error": "Transmission away"}))
+
+
+class Restore(unittest.TestCase):
+    def restore(self, text):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")):
+            if text is not None:
+                with open(quiet.STATUS, "w") as f:
+                    f.write(text)
+            return quiet.restore({})
+
+    def test_restore(self):
+        self.assertEqual(self.restore(None), {})
+        self.assertEqual(self.restore("junk"), {})
+        self.assertEqual(self.restore('{"turtle": true, "hand": true}'), {"ours": True})  # before the switch
+        self.assertEqual(self.restore('{"turtle": true, "ours": false, "held": null}'), {"ours": False})
+        self.assertEqual(self.restore('{"turtle": false, "ours": false, "held": true}'), {"ours": False, "hand": True})
+
+    def test_round_trip(self):
+        state = {"ours": False, "hand": True, "want": True}
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")):
+            quiet.publish(state, False)
+            self.assertEqual(quiet.restore({}), {"ours": False, "hand": True})

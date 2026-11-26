@@ -262,7 +262,8 @@ def publish(state, on):
     hand: the turtle mode is as someone set it, not as quiet would."""
     seen = state.get("seen") or {"consoles": [], "playing": [], "others_mbps": None}
     hand = "hand" in state or (on and not state.get("ours"))
-    state["status"] = dict(seen, turtle=on, hand=hand, since=state.get("last_busy", 0))
+    state["status"] = dict(seen, turtle=on, hand=hand, since=state.get("last_busy", 0),
+                           ours=bool(state.get("ours")), held=state.get("hand"))
     write_status(state["status"])
     return state["status"]
 
@@ -334,8 +335,23 @@ def serve(state, port=None):
     return server
 
 
+def restore(state):
+    """What the last run knew, from its status file: whether the turtle mode is quiet's
+    own, and a choice made by hand that still holds. A file of before the switch has no
+    "ours": a turtle mode then on was quiet's."""
+    try:
+        with open(STATUS) as f:
+            last = json.load(f)
+    except (OSError, ValueError):
+        return state
+    state["ours"] = bool(last.get("ours", last.get("turtle")))
+    if isinstance(last.get("held"), bool):
+        state["hand"] = last["held"]
+    return state
+
+
 def main():
-    state = {}
+    state = restore({})
     print(f"quiet: every {EVERY}s, full speed {HOLD}s after the last use, switch on :{PORT}", flush=True)
     serve(state)
     while True:
