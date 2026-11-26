@@ -301,7 +301,6 @@
     .errol-follow input { accent-color: var(--magic); }
     /* Turtle card: hidden until the quiet service answers /quiet (see quiet.js) */
     .quiet-why { display: block; margin-top: 8px; color: var(--muted); font-style: italic; }
-    .quiet .quiet-switch { margin-top: 0; }
     /* ---------- the field notes at the bottom: written as you watch ---------- */
     .quill-line {
       position: relative;
@@ -469,7 +468,7 @@
           <div class="nh">
             <b>The niffler's pace</b><small>Transmission · turtle mode</small>
           </div>
-          <div class="errol-row"><span data-qt="state">–</span><label class="errol-follow quiet-switch"><input type="checkbox" role="switch" data-qt="switch"> Turtle mode</label></div>
+          <div class="errol-row"><span data-qt="state">–</span><span class="errol-looks" role="group" aria-label="Turtle mode"><button type="button" data-qt-mode="auto">Auto</button><button type="button" data-qt-mode="on">On</button><button type="button" data-qt-mode="off">Off</button></span></div>
           <span class="quiet-why" data-qt="why"></span>
         </div>
         <a class="note t-panel kpiece" id="kpiece" href="https://www.kpiece.fr/" target="_blank" rel="noopener" hidden aria-label="One Piece, read the latest scan on KPIECE">

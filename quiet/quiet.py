@@ -6,10 +6,10 @@ Netflix on the TV, a video call, a download on a laptop…); then it puts Transm
 turtle mode (its alt-speed limits). Five minutes after the last of them, the Pi gets
 the whole network back: at work or at night, it downloads at full speed.
 
-It only lifts the turtle mode it turned on itself: one turned on by hand stays.
-The home page's turtle card switches it by hand too (GET/POST /quiet on QUIET_PORT,
-through Caddy): turned on, it stays on until switched off; turned off while someone
-uses the network, it stays off until the network is calm, then quiet watches again.
+It only lifts the turtle mode it turned on itself: one turned on in Transmission stays.
+The home page's turtle card picks the mode (GET/POST /quiet on QUIET_PORT, through
+Caddy): "on" or "off" keeps the turtle mode so until "auto" is picked again, which
+hands it back to quiet at once.
 Standard library only; runs with the host's network, to reach the consoles' discovery
 by broadcast. Writes what it sees to /status/quiet.json for the home page."""
 
@@ -219,15 +219,17 @@ def step(state, now):
         apply(seen, state, now)
 
 
+MODES = ("auto", "on", "off")
+
+
 def apply(seen, state, now):
-    """Transmission set to what is wanted, unless a choice made by hand still holds:
-    it holds until quiet's own wish changes."""
+    """Transmission set to what is wanted, or kept as picked by hand ("on", "off")."""
     want = state["want"] = decide(busy(seen), state, now)
-    if "hand" in state and state["hand"] != want:
-        del state["hand"]
-    on = turtle()
-    if "hand" not in state:
+    on, mode = turtle(), state.get("mode", "auto")
+    if mode == "auto":
         on = follow(want, seen, state, on)
+    elif on != (mode == "on"):  # changed in Transmission meanwhile
+        on = force(mode == "on")
     state["seen"] = seen
     publish(state, on)
 
@@ -247,23 +249,33 @@ def follow(want, seen, state, on):
     return on
 
 
-def switch(state, on):
-    """The turtle mode turned on or off by hand (the home page's switch)."""
+def force(on):
+    set_turtle(on)
+    return on
+
+
+def switch(state, mode):
+    """The mode picked on the home page: "on" or "off" holds until "auto", which sets
+    the turtle mode to quiet's wish at once, even one turned on in Transmission."""
     with lock:
-        set_turtle(on)
-        state["ours"] = False
-        state["hand"] = state.get("want", False)
-        print("turtle", "on" if on else "off", "by hand", flush=True)
-        return publish(state, bool(on))
+        state["mode"] = mode
+        want = state.get("want", False) if mode == "auto" else mode == "on"
+        on = turtle()
+        if on != want:
+            on = force(want)
+        state["ours"] = mode == "auto" and on
+        print("turtle mode:", mode, flush=True)
+        return publish(state, on)
 
 
 def publish(state, on):
     """What the home page shows, written to the status file and kept for GET /quiet.
-    hand: the turtle mode is as someone set it, not as quiet would."""
+    hand: in "auto", a turtle mode turned on in Transmission, which quiet leaves on."""
     seen = state.get("seen") or {"consoles": [], "playing": [], "others_mbps": None}
-    hand = "hand" in state or (on and not state.get("ours"))
-    state["status"] = dict(seen, turtle=on, hand=hand, since=state.get("last_busy", 0),
-                           ours=bool(state.get("ours")), held=state.get("hand"))
+    mode = state.get("mode", "auto")
+    hand = mode == "auto" and on and not state.get("ours")
+    state["status"] = dict(seen, turtle=on, mode=mode, hand=hand, since=state.get("last_busy", 0),
+                           ours=bool(state.get("ours")))
     write_status(state["status"])
     return state["status"]
 
@@ -292,7 +304,7 @@ def write_status(status):
 
 
 class Switch(BaseHTTPRequestHandler):
-    """GET /quiet: the status; POST /quiet {"turtle": true|false}: switched by hand."""
+    """GET /quiet: the status; POST /quiet {"mode": "auto"|"on"|"off"}: the mode picked."""
     state = {}
 
     def reply(self, code, body):
@@ -307,7 +319,7 @@ class Switch(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path.split("?")[0].rstrip("/") != "/quiet":
             return self.reply(404, {"error": "not found"})
-        self.reply(200, self.state.get("status") or {"turtle": turtle(), "hand": False})
+        self.reply(200, self.state.get("status") or {"turtle": turtle(), "mode": "auto", "hand": False})
 
     def do_POST(self):
         if self.path.rstrip("/") != "/quiet":
@@ -315,12 +327,12 @@ class Switch(BaseHTTPRequestHandler):
         try:
             length = min(int(self.headers.get("Content-Length") or 0), 1024)
             body = json.loads(self.rfile.read(length) or b"{}")
-            if not isinstance(body, dict) or not isinstance(body.get("turtle"), bool):
-                raise ValueError('expected {"turtle": true|false}')
+            if not isinstance(body, dict) or body.get("mode") not in MODES:
+                raise ValueError('expected {"mode": "auto"|"on"|"off"}')
         except ValueError as e:
             return self.reply(400, {"error": str(e)})
         try:
-            self.reply(200, switch(self.state, body["turtle"]))
+            self.reply(200, switch(self.state, body["mode"]))
         except Exception as e:  # Transmission away
             self.reply(502, {"error": str(e)})
 
@@ -337,16 +349,16 @@ def serve(state, port=None):
 
 def restore(state):
     """What the last run knew, from its status file: whether the turtle mode is quiet's
-    own, and a choice made by hand that still holds. A file of before the switch has no
-    "ours": a turtle mode then on was quiet's."""
+    own, and the mode picked. A file of before the switch has no "ours": a turtle mode
+    then on was quiet's."""
     try:
         with open(STATUS) as f:
             last = json.load(f)
     except (OSError, ValueError):
         return state
     state["ours"] = bool(last.get("ours", last.get("turtle")))
-    if isinstance(last.get("held"), bool):
-        state["hand"] = last["held"]
+    if last.get("mode") in MODES:
+        state["mode"] = last["mode"]
     return state
 
 

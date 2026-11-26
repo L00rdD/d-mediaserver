@@ -1,8 +1,8 @@
 // Fills the turtle card: whether Transmission is slowed down (its turtle mode), why,
-// and a switch to set it by hand. The quiet service answers /quiet (through Caddy):
-// GET the state, POST {"turtle": true|false}. Switched on, it stays on until switched
-// off; switched off while someone uses the network, it stays off until the network is
-// calm, then quiet watches again. When the service does not answer, the card stays hidden.
+// and three buttons to pick the mode. The quiet service answers /quiet (through Caddy):
+// GET the state, POST {"mode": "auto"|"on"|"off"}. "On" or "off" holds until "auto"
+// is picked again, which hands it back to quiet at once. When the service does not
+// answer, the card stays hidden.
 (async () => {
   const card = document.getElementById("quiet");
   if (!card) return;
@@ -13,20 +13,23 @@
     return r.json();
   };
 
-  // why the turtle mode is on: the consoles, what Jellyfin plays, the others' use
+  // why the turtle mode is as it is: picked by hand, or the consoles, what Jellyfin
+  // plays, the others' use
   const why = (s) => {
-    if (s.hand) return s.turtle ? "Switched on by hand" : "Switched off by hand until the network is calm";
+    if (s.mode === "on") return "Kept on by hand until Auto";
+    if (s.mode === "off") return "Kept at full speed by hand until Auto";
+    if (s.hand) return "Turned on in Transmission";
     if (!s.turtle) return "Nobody uses the network";
     const names = (s.consoles || []).map((c) => c.name).concat(s.playing || []);
     if (s.others_mbps) names.push(`${s.others_mbps} Mb/s used by the others`);
     return names.join(", ") || "The network was used a moment ago";
   };
 
-  const sw = card.querySelector('[data-qt="switch"]');
+  const buttons = card.querySelectorAll("[data-qt-mode]");
   let status;
   const paint = () => {
-    sw.checked = Boolean(status.turtle);
-    sw.disabled = false;
+    const mode = status.mode || "auto";
+    for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.qtMode === mode));
     card.classList.toggle("on", Boolean(status.turtle));
     card.querySelector('[data-qt="state"]').textContent = status.turtle ? "Downloads slowed down" : "Full speed";
     card.querySelector('[data-qt="why"]').textContent = why(status);
@@ -37,17 +40,19 @@
   } catch {
     return;
   }
-  sw.addEventListener("change", async () => {
-    sw.disabled = true;
-    try {
-      status = await ask({
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turtle: sw.checked }),
-      });
-    } catch {}
-    paint();
-  });
+  for (const b of buttons) {
+    b.addEventListener("click", async (event) => {
+      event.preventDefault();
+      try {
+        status = await ask({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: b.dataset.qtMode }),
+        });
+      } catch {}
+      paint();
+    });
+  }
   // quiet looks every 20 s: so does the card
   setInterval(async () => {
     try {

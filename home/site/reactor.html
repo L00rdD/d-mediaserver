@@ -561,7 +561,6 @@
     /* Turtle card: hidden until the quiet service answers /quiet (see quiet.js) */
     .quiet { grid-area: qt; animation-delay: 0.5s; }
     .quiet-why { display: block; margin-top: 8px; color: var(--muted); font-size: 0.85rem; }
-    .quiet .quiet-switch { margin-top: 0; }
     .mandrake { grid-area: mand; animation-delay: 0.65s; }
     /* One Piece card: hidden until the kpiece service writes /kpiece.json (see kpiece.js) */
     .kpiece { grid-area: kp; animation-delay: 0.7s; }
@@ -797,7 +796,7 @@
     </div>
     <div class="panel bot quiet" id="quiet" role="group" hidden aria-label="Turtle mode: Transmission slows down while someone uses the network">
       <span class="tag"><i>12</i> // Turtle <span>downloads</span></span>
-      <div class="errol-row"><span data-qt="state">–</span><label class="errol-follow quiet-switch"><input type="checkbox" role="switch" data-qt="switch"> Turtle mode</label></div>
+      <div class="errol-row"><span data-qt="state">–</span><span class="errol-looks" role="group" aria-label="Turtle mode"><button type="button" data-qt-mode="auto">Auto</button><button type="button" data-qt-mode="on">On</button><button type="button" data-qt-mode="off">Off</button></span></div>
       <span class="quiet-why" data-qt="why"></span>
     </div>
 

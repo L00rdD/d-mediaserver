@@ -138,38 +138,48 @@ class Deciding(unittest.TestCase):
         st, _ = self.run_step({}, 10, others=1.0)  # a phone syncing: not enough
         st.assert_not_called()
 
-    def test_by_hand(self):
+    def pick(self, state, mode, turtle):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")), \
+                mock.patch.object(quiet, "turtle", return_value=turtle), mock.patch.object(quiet, "set_turtle") as st:
+            return st, quiet.switch(state, mode)
+
+    def test_off_holds_until_auto(self):
         state = {}
         ps5 = {"name": "PS5-399", "on": True, "ip": "x"}
         self.run_step(state, 1000, consoles=[ps5])  # quiet turns it on
-        with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")), \
-                mock.patch.object(quiet, "set_turtle") as st:
-            status = quiet.switch(state, False)  # switched off while the PS5 plays
+        st, status = self.pick(state, "off", True)  # off while the PS5 plays
         st.assert_called_once_with(False)
-        self.assertEqual((status["turtle"], status["hand"], status["consoles"]), (False, True, [ps5]))
-        st, status = self.run_step(state, 1020, consoles=[ps5])  # still playing: stays off
+        self.assertEqual((status["turtle"], status["mode"], status["consoles"]), (False, "off", [ps5]))
+        st, status = self.run_step(state, 1020, consoles=[ps5])
         st.assert_not_called()
-        self.assertEqual((status["turtle"], status["hand"]), (False, True))
-        st, status = self.run_step(state, 1020 + quiet.HOLD)  # calm: quiet watches again
+        st, status = self.run_step(state, 5000, consoles=[ps5])  # calm, then a new game: still off
         st.assert_not_called()
-        self.assertEqual((status["turtle"], status["hand"]), (False, False))
-        st, _ = self.run_step(state, 5000, consoles=[ps5])  # the next game: on again
+        self.assertEqual((status["turtle"], status["mode"]), (False, "off"))
+        st, status = self.run_step(state, 5020, turtle=True, consoles=[ps5])  # turned on in Transmission: off again
+        st.assert_called_once_with(False)
+        st, status = self.pick(state, "auto", False)  # auto: on at once, quiet's own
         st.assert_called_once_with(True)
+        self.assertEqual((status["turtle"], status["mode"], status["ours"], status["hand"]), (True, "auto", True, False))
 
-    def test_on_by_hand_stays(self):
+    def test_on_holds_until_auto(self):
         state = {}
         self.run_step(state, 1000)
-        with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")), \
-                mock.patch.object(quiet, "set_turtle"):
-            self.assertEqual(quiet.switch(state, True)["hand"], True)
-        st, status = self.run_step(state, 1020, turtle=True)
+        st, status = self.pick(state, "on", False)
+        st.assert_called_once_with(True)
+        self.assertEqual((status["mode"], status["ours"]), ("on", False))
+        st, status = self.run_step(state, 1000 + quiet.HOLD * 2, turtle=True)  # calm: still on
         st.assert_not_called()
-        self.assertEqual((status["turtle"], status["hand"]), (True, True))
-        ps5 = {"name": "PS5", "on": True, "ip": "x"}
-        self.run_step(state, 1040, turtle=True, consoles=[ps5])
-        st, status = self.run_step(state, 1040 + quiet.HOLD, turtle=True)  # calm again: still on
+        self.assertEqual((status["turtle"], status["mode"]), (True, "on"))
+        st, status = self.pick(state, "auto", True)  # auto while calm: full speed at once
+        st.assert_called_once_with(False)
+        self.assertEqual((status["turtle"], status["mode"], status["ours"]), (False, "auto", False))
+        st, status = self.pick(state, "auto", False)  # already as wished: nothing to change
         st.assert_not_called()
-        self.assertEqual((status["turtle"], status["hand"]), (True, True))
+
+    def test_on_in_transmission(self):
+        st, status = self.run_step({}, 1000, turtle=True)
+        st.assert_not_called()
+        self.assertEqual((status["mode"], status["hand"]), ("auto", True))
 
     def test_helpers(self):
         self.assertEqual(quiet.why({"consoles": [{"name": "PS5"}], "playing": ["Dune"]}), "PS5, Dune")
@@ -267,7 +277,7 @@ if __name__ == "__main__":
 
 class Switch(unittest.TestCase):
     def setUp(self):
-        self.state = {"status": {"turtle": True, "hand": False}}
+        self.state = {"status": {"turtle": True, "mode": "auto", "hand": False}}
         self.server = quiet.serve(self.state, port=0)
         self.url = f"http://127.0.0.1:{self.server.server_address[1]}"
 
@@ -285,21 +295,21 @@ class Switch(unittest.TestCase):
             return e.code, json.load(e)
 
     def test_get(self):
-        self.assertEqual(self.ask("/quiet"), (200, {"turtle": True, "hand": False}))
+        self.assertEqual(self.ask("/quiet"), (200, {"turtle": True, "mode": "auto", "hand": False}))
         self.assertEqual(self.ask("/other")[0], 404)
         self.state.pop("status")
         with mock.patch.object(quiet, "turtle", return_value=False):
-            self.assertEqual(self.ask("/quiet/"), (200, {"turtle": False, "hand": False}))
+            self.assertEqual(self.ask("/quiet/"), (200, {"turtle": False, "mode": "auto", "hand": False}))
 
     def test_post(self):
-        with mock.patch.object(quiet, "switch", return_value={"turtle": False, "hand": True}) as sw:
-            self.assertEqual(self.ask("/quiet", {"turtle": False}), (200, {"turtle": False, "hand": True}))
-        sw.assert_called_once_with(self.state, False)
-        self.assertEqual(self.ask("/quiet", {"turtle": "yes"})[0], 400)
+        with mock.patch.object(quiet, "switch", return_value={"turtle": False, "mode": "off"}) as sw:
+            self.assertEqual(self.ask("/quiet", {"mode": "off"}), (200, {"turtle": False, "mode": "off"}))
+        sw.assert_called_once_with(self.state, "off")
+        self.assertEqual(self.ask("/quiet", {"mode": "maybe"})[0], 400)
         self.assertEqual(self.ask("/quiet", b"not json")[0], 400)
-        self.assertEqual(self.ask("/other", {"turtle": True})[0], 404)
+        self.assertEqual(self.ask("/other", {"mode": "on"})[0], 404)
         with mock.patch.object(quiet, "switch", side_effect=RuntimeError("Transmission away")):
-            self.assertEqual(self.ask("/quiet", {"turtle": True}), (502, {"error": "Transmission away"}))
+            self.assertEqual(self.ask("/quiet", {"mode": "on"}), (502, {"error": "Transmission away"}))
 
 
 class Restore(unittest.TestCase):
@@ -314,11 +324,11 @@ class Restore(unittest.TestCase):
         self.assertEqual(self.restore(None), {})
         self.assertEqual(self.restore("junk"), {})
         self.assertEqual(self.restore('{"turtle": true, "hand": true}'), {"ours": True})  # before the switch
-        self.assertEqual(self.restore('{"turtle": true, "ours": false, "held": null}'), {"ours": False})
-        self.assertEqual(self.restore('{"turtle": false, "ours": false, "held": true}'), {"ours": False, "hand": True})
+        self.assertEqual(self.restore('{"turtle": true, "ours": false, "mode": "maybe"}'), {"ours": False})
+        self.assertEqual(self.restore('{"turtle": false, "ours": false, "mode": "off"}'), {"ours": False, "mode": "off"})
 
     def test_round_trip(self):
-        state = {"ours": False, "hand": True, "want": True}
+        state = {"ours": False, "mode": "on", "want": True}
         with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")):
             quiet.publish(state, False)
-            self.assertEqual(quiet.restore({}), {"ours": False, "hand": True})
+            self.assertEqual(quiet.restore({}), {"ours": False, "mode": "on"})
