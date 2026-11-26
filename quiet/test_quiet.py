@@ -138,6 +138,39 @@ class Deciding(unittest.TestCase):
         st, _ = self.run_step({}, 10, others=1.0)  # a phone syncing: not enough
         st.assert_not_called()
 
+    def test_by_hand(self):
+        state = {}
+        ps5 = {"name": "PS5-399", "on": True, "ip": "x"}
+        self.run_step(state, 1000, consoles=[ps5])  # quiet turns it on
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")), \
+                mock.patch.object(quiet, "set_turtle") as st:
+            status = quiet.switch(state, False)  # switched off while the PS5 plays
+        st.assert_called_once_with(False)
+        self.assertEqual((status["turtle"], status["hand"], status["consoles"]), (False, True, [ps5]))
+        st, status = self.run_step(state, 1020, consoles=[ps5])  # still playing: stays off
+        st.assert_not_called()
+        self.assertEqual((status["turtle"], status["hand"]), (False, True))
+        st, status = self.run_step(state, 1020 + quiet.HOLD)  # calm: quiet watches again
+        st.assert_not_called()
+        self.assertEqual((status["turtle"], status["hand"]), (False, False))
+        st, _ = self.run_step(state, 5000, consoles=[ps5])  # the next game: on again
+        st.assert_called_once_with(True)
+
+    def test_on_by_hand_stays(self):
+        state = {}
+        self.run_step(state, 1000)
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(quiet, "STATUS", os.path.join(d, "q.json")), \
+                mock.patch.object(quiet, "set_turtle"):
+            self.assertEqual(quiet.switch(state, True)["hand"], True)
+        st, status = self.run_step(state, 1020, turtle=True)
+        st.assert_not_called()
+        self.assertEqual((status["turtle"], status["hand"]), (True, True))
+        ps5 = {"name": "PS5", "on": True, "ip": "x"}
+        self.run_step(state, 1040, turtle=True, consoles=[ps5])
+        st, status = self.run_step(state, 1040 + quiet.HOLD, turtle=True)  # calm again: still on
+        st.assert_not_called()
+        self.assertEqual((status["turtle"], status["hand"]), (True, True))
+
     def test_helpers(self):
         self.assertEqual(quiet.why({"consoles": [{"name": "PS5"}], "playing": ["Dune"]}), "PS5, Dune")
         self.assertEqual(quiet.why({"consoles": [], "playing": []}), "?")
@@ -147,7 +180,7 @@ class Deciding(unittest.TestCase):
             quiet.write_status({})  # no volume: only logged
 
     def test_main_survives(self):
-        with mock.patch.object(quiet, "step", side_effect=RuntimeError("away")), mock.patch.object(quiet.time, "sleep", side_effect=StopIteration):
+        with mock.patch.object(quiet, "serve"), mock.patch.object(quiet, "step", side_effect=RuntimeError("away")), mock.patch.object(quiet.time, "sleep", side_effect=StopIteration):
             with self.assertRaises(StopIteration):
                 quiet.main()
 
@@ -230,3 +263,40 @@ class Box(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Switch(unittest.TestCase):
+    def setUp(self):
+        self.state = {"status": {"turtle": True, "hand": False}}
+        self.server = quiet.serve(self.state, port=0)
+        self.url = f"http://127.0.0.1:{self.server.server_address[1]}"
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+    def ask(self, path, body=None):
+        data = None if body is None else (body if isinstance(body, bytes) else json.dumps(body).encode())
+        req = quiet.urllib.request.Request(self.url + path, data=data, method="POST" if data is not None else "GET")
+        try:
+            with quiet.urllib.request.urlopen(req, timeout=5) as r:
+                return r.status, json.load(r)
+        except urllib.error.HTTPError as e:
+            return e.code, json.load(e)
+
+    def test_get(self):
+        self.assertEqual(self.ask("/quiet"), (200, {"turtle": True, "hand": False}))
+        self.assertEqual(self.ask("/other")[0], 404)
+        self.state.pop("status")
+        with mock.patch.object(quiet, "turtle", return_value=False):
+            self.assertEqual(self.ask("/quiet/"), (200, {"turtle": False, "hand": False}))
+
+    def test_post(self):
+        with mock.patch.object(quiet, "switch", return_value={"turtle": False, "hand": True}) as sw:
+            self.assertEqual(self.ask("/quiet", {"turtle": False}), (200, {"turtle": False, "hand": True}))
+        sw.assert_called_once_with(self.state, False)
+        self.assertEqual(self.ask("/quiet", {"turtle": "yes"})[0], 400)
+        self.assertEqual(self.ask("/quiet", b"not json")[0], 400)
+        self.assertEqual(self.ask("/other", {"turtle": True})[0], 404)
+        with mock.patch.object(quiet, "switch", side_effect=RuntimeError("Transmission away")):
+            self.assertEqual(self.ask("/quiet", {"turtle": True}), (502, {"error": "Transmission away"}))

@@ -22,6 +22,9 @@ services:
     environment:
       # where /cerebro/ fetches Cerebro's sprites (see home/Caddyfile)
       - CEREBRO_URL=${CEREBRO_URL:-}
+    # the quiet service's switch (/quiet) runs on the host's network
+    extra_hosts:
+      - host.docker.internal:host-gateway
     ports:
       - ${HOME_PORT:-80}:80
     restart: unless-stopped
@@ -73,8 +76,9 @@ services:
   # plays something or, with LIVEBOX_PASSWORD, the other devices use 3 Mb/s or more of
   # the Internet link (the box's counters minus the Pi's own), Transmission goes into
   # turtle mode (its alt-speed limits, set in Transmission); five minutes after, full
-  # speed again. It lifts only the turtle mode it turned on. Host network: the consoles
-  # are found by broadcast, and the Pi's own counters are the host's.
+  # speed again. It lifts only the turtle mode it turned on. The home page's turtle card
+  # shows it and switches it by hand (port 8588, /quiet through Caddy). Host network:
+  # the consoles are found by broadcast, and the Pi's own counters are the host's.
   quiet:
     image: python:3-alpine
     container_name: quiet

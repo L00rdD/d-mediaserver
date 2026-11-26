@@ -299,6 +299,9 @@
     .errol-looks button:hover, .errol-looks button:focus-visible { outline: none; color: var(--t-on-highlight); background: var(--magic-2); border-color: var(--magic-2); box-shadow: 0 0 14px rgba(95, 216, 236, 0.6); }
     .errol-follow { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); font-style: italic; cursor: pointer; }
     .errol-follow input { accent-color: var(--magic); }
+    /* Turtle card: hidden until the quiet service answers /quiet (see quiet.js) */
+    .quiet-why { display: block; margin-top: 8px; color: var(--muted); font-style: italic; }
+    .quiet .quiet-switch { margin-top: 0; }
     /* ---------- the field notes at the bottom: written as you watch ---------- */
     .quill-line {
       position: relative;
@@ -461,6 +464,13 @@
           <div class="st-row"><span data-st="used"></span><small><span data-st="free"></span> · <span data-st="pct"></span></small></div>
           <span class="st-bar t-bar"><i data-st="fill"></i></span>
           <span class="st-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></span>
+        </div>
+        <div class="note t-panel quiet" id="quiet" role="group" hidden aria-label="Turtle mode: Transmission slows down while someone uses the network">
+          <div class="nh">
+            <b>The niffler's pace</b><small>Transmission · turtle mode</small>
+          </div>
+          <div class="errol-row"><span data-qt="state">–</span><label class="errol-follow quiet-switch"><input type="checkbox" role="switch" data-qt="switch"> Turtle mode</label></div>
+          <span class="quiet-why" data-qt="why"></span>
         </div>
         <a class="note t-panel kpiece" id="kpiece" href="https://www.kpiece.fr/" target="_blank" rel="noopener" hidden aria-label="One Piece, read the latest scan on KPIECE">
           <div class="nh">
@@ -724,6 +734,7 @@
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
+  <script src="/quiet.js" defer></script>
   <script src="/cerebro.js" defer></script>
   <script src="/printer.js" defer></script>
   <!-- the 3D vivarium; after magic.js, whose runes it uses -->

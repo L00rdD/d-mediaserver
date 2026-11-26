@@ -254,6 +254,7 @@
         "p1 reactor p2"
         "p3 reactor p4"
         "sto sto sto"
+        "qt qt qt"
         "bot bot bot"
         "mand mand mand"
         "kp kp kp"
@@ -557,6 +558,10 @@
       color: var(--muted);
       background: repeating-linear-gradient(90deg, var(--cyan-soft) 0 1px, transparent 1px 10%) 0 0 / 100% 4px no-repeat;
     }
+    /* Turtle card: hidden until the quiet service answers /quiet (see quiet.js) */
+    .quiet { grid-area: qt; animation-delay: 0.5s; }
+    .quiet-why { display: block; margin-top: 8px; color: var(--muted); font-size: 0.85rem; }
+    .quiet .quiet-switch { margin-top: 0; }
     .mandrake { grid-area: mand; animation-delay: 0.65s; }
     /* One Piece card: hidden until the kpiece service writes /kpiece.json (see kpiece.js) */
     .kpiece { grid-area: kp; animation-delay: 0.7s; }
@@ -638,6 +643,7 @@
           "p1 p2"
           "p3 p4"
           "sto sto"
+          "qt qt"
           "bot bot"
           "mand mand"
           "kp kp"
@@ -660,7 +666,7 @@
       .search button { flex: 1; padding: 0 6px; letter-spacing: 0.1em; white-space: nowrap; }
       main {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "bot" "mand" "kp" "mg" "kb" "bf" "er" "cb" "pr";
+        grid-template-areas: "search" "reactor" "p1" "p2" "p3" "p4" "sto" "qt" "bot" "mand" "kp" "mg" "kb" "bf" "er" "cb" "pr";
       }
       h1 { font-size: 1.1rem; }
       .jarvis { align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; }
@@ -788,6 +794,11 @@
       <div class="st-row"><span data-st="used"></span><span><span data-st="free"></span> · <span data-st="pct"></span></span></div>
       <span class="st-bar"><i data-st="fill"></i></span>
       <span class="st-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></span>
+    </div>
+    <div class="panel bot quiet" id="quiet" role="group" hidden aria-label="Turtle mode: Transmission slows down while someone uses the network">
+      <span class="tag"><i>12</i> // Turtle <span>downloads</span></span>
+      <div class="errol-row"><span data-qt="state">–</span><label class="errol-follow quiet-switch"><input type="checkbox" role="switch" data-qt="switch"> Turtle mode</label></div>
+      <span class="quiet-why" data-qt="why"></span>
     </div>
 
 
@@ -934,6 +945,7 @@
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
+  <script src="/quiet.js" defer></script>
   <script src="/cerebro.js" defer></script>
   <script src="/printer.js" defer></script>
 </body>

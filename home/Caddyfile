@@ -63,6 +63,13 @@
 		}
 	}
 
+	# /quiet is the turtle card's switch (quiet.js): GET the turtle mode and why, POST
+	# {"turtle": true|false} to set it by hand. The quiet service runs on the host's
+	# network, on port 8588; while it is down, the card stays hidden
+	handle /quiet {
+		reverse_proxy host.docker.internal:8588
+	}
+
 	# /cerebro/ is the Mac's X-Mansion: Cerebro's rooms, characters and emotes, drawn by
 	# the Cerebro cards (cerebro.js) and by Errol. Only its pictures and their manifests:
 	# its API (the sessions, behind the key) is never passed on. Without CEREBRO_URL, or

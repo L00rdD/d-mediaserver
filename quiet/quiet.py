@@ -7,6 +7,9 @@ turtle mode (its alt-speed limits). Five minutes after the last of them, the Pi 
 the whole network back: at work or at night, it downloads at full speed.
 
 It only lifts the turtle mode it turned on itself: one turned on by hand stays.
+The home page's turtle card switches it by hand too (GET/POST /quiet on QUIET_PORT,
+through Caddy): turned on, it stays on until switched off; turned off while someone
+uses the network, it stays off until the network is calm, then quiet watches again.
 Standard library only; runs with the host's network, to reach the consoles' discovery
 by broadcast. Writes what it sees to /status/quiet.json for the home page."""
 
@@ -15,9 +18,11 @@ import http.cookiejar
 import json
 import os
 import socket
+import threading
 import time
 import urllib.error
 import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TRANSMISSION = os.environ.get("TRANSMISSION_URL", "http://localhost:9091/transmission/rpc")
 TRANSMISSION_AUTH = os.environ.get("TRANSMISSION_AUTH", "")  # "user:password", if Transmission asks
@@ -30,6 +35,7 @@ OTHERS_MBPS = float(os.environ.get("QUIET_OTHERS_MBPS", "3"))  # the others' use
 EVERY = int(os.environ.get("QUIET_EVERY", "20"))
 HOLD = int(os.environ.get("QUIET_HOLD", "300"))  # seconds of calm before full speed again
 STATUS = os.environ.get("QUIET_STATUS", "/status/quiet.json")
+PORT = int(os.environ.get("QUIET_PORT", "8588"))  # the home page's switch
 # PlayStation's discovery: a PS5 answers on 9302, a PS4 on 987; "200 Ok" when it is on,
 # "620 Server Standby" in rest mode
 DISCOVERY = b"SRCH * HTTP/1.1\ndevice-discovery-protocol-version:00030010\n"
@@ -37,6 +43,7 @@ DISCOVERY_PORTS = (9302, 987)
 BROADCASTS = ("255.255.255.255",)
 
 session = {"id": ""}
+lock = threading.Lock()  # one change of Transmission at a time: a look or the switch
 
 
 # ---------- who uses the network ----------
@@ -208,17 +215,56 @@ def busy(seen):
 def step(state, now):
     """One look: who uses the network, then Transmission set accordingly."""
     seen = {"consoles": [c for c in consoles() if c["on"]], "playing": safe(playing, []), "others_mbps": others(state, now)}
-    want = decide(busy(seen), state, now)
+    with lock:
+        apply(seen, state, now)
+
+
+def apply(seen, state, now):
+    """Transmission set to what is wanted, unless a choice made by hand still holds:
+    it holds until quiet's own wish changes."""
+    want = state["want"] = decide(busy(seen), state, now)
+    if "hand" in state and state["hand"] != want:
+        del state["hand"]
     on = turtle()
+    if "hand" not in state:
+        on = follow(want, seen, state, on)
+    state["seen"] = seen
+    publish(state, on)
+
+
+def follow(want, seen, state, on):
+    """Transmission's turtle mode set to the wish; returns it as it is now."""
     if want and not on:
         set_turtle(True)
-        state["ours"], on = True, True
+        state["ours"] = True
         print("turtle on:", why(seen), flush=True)
-    elif not want and on and state.get("ours"):
+        return True
+    if not want and on and state.get("ours"):
         set_turtle(False)
-        state["ours"], on = False, False
+        state["ours"] = False
         print("turtle off: the network is calm", flush=True)
-    write_status(dict(seen, turtle=on, since=state.get("last_busy", 0)))
+        return False
+    return on
+
+
+def switch(state, on):
+    """The turtle mode turned on or off by hand (the home page's switch)."""
+    with lock:
+        set_turtle(on)
+        state["ours"] = False
+        state["hand"] = state.get("want", False)
+        print("turtle", "on" if on else "off", "by hand", flush=True)
+        return publish(state, bool(on))
+
+
+def publish(state, on):
+    """What the home page shows, written to the status file and kept for GET /quiet.
+    hand: the turtle mode is as someone set it, not as quiet would."""
+    seen = state.get("seen") or {"consoles": [], "playing": [], "others_mbps": None}
+    hand = "hand" in state or (on and not state.get("ours"))
+    state["status"] = dict(seen, turtle=on, hand=hand, since=state.get("last_busy", 0))
+    write_status(state["status"])
+    return state["status"]
 
 
 def safe(fn, default):
@@ -244,9 +290,54 @@ def write_status(status):
         print("status:", e, flush=True)
 
 
+class Switch(BaseHTTPRequestHandler):
+    """GET /quiet: the status; POST /quiet {"turtle": true|false}: switched by hand."""
+    state = {}
+
+    def reply(self, code, body):
+        data = json.dumps(body).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self):
+        if self.path.split("?")[0].rstrip("/") != "/quiet":
+            return self.reply(404, {"error": "not found"})
+        self.reply(200, self.state.get("status") or {"turtle": turtle(), "hand": False})
+
+    def do_POST(self):
+        if self.path.rstrip("/") != "/quiet":
+            return self.reply(404, {"error": "not found"})
+        try:
+            length = min(int(self.headers.get("Content-Length") or 0), 1024)
+            body = json.loads(self.rfile.read(length) or b"{}")
+            if not isinstance(body, dict) or not isinstance(body.get("turtle"), bool):
+                raise ValueError('expected {"turtle": true|false}')
+        except ValueError as e:
+            return self.reply(400, {"error": str(e)})
+        try:
+            self.reply(200, switch(self.state, body["turtle"]))
+        except Exception as e:  # Transmission away
+            self.reply(502, {"error": str(e)})
+
+    def log_message(self, *args):
+        pass
+
+
+def serve(state, port=None):
+    Switch.state = state
+    server = ThreadingHTTPServer(("", PORT if port is None else port), Switch)
+    threading.Thread(target=server.serve_forever, name="switch", daemon=True).start()
+    return server
+
+
 def main():
     state = {}
-    print(f"quiet: every {EVERY}s, full speed {HOLD}s after the last use", flush=True)
+    print(f"quiet: every {EVERY}s, full speed {HOLD}s after the last use, switch on :{PORT}", flush=True)
+    serve(state)
     while True:
         try:
             step(state, time.time())

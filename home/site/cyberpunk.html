@@ -727,6 +727,9 @@
     .errol-looks button[aria-pressed="true"], .errol-looks button:hover, .errol-looks button:focus-visible { outline: none; color: #000; background: var(--yellow); }
     .errol-follow { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); cursor: pointer; }
     .errol-follow input { accent-color: var(--yellow); }
+    /* Turtle card: hidden until the quiet service answers /quiet (see quiet.js) */
+    .quiet-why { display: block; margin-top: 8px; color: var(--muted); }
+    .quiet .quiet-switch { margin-top: 0; }
   </style>
   <script>
     // The boot sequence only plays on the first visit of the tab session
@@ -836,6 +839,11 @@
       <div class="bot-head"><span>00</span><span class="name">Storage</span><span>Memory</span></div>
       <div class="st-row"><span data-st="used"></span><span><span data-st="free"></span> · <span data-st="pct"></span></span></div>
       <span class="st-bar"><i data-st="fill"></i></span>
+    </div>
+    <div class="bot quiet" id="quiet" role="group" hidden aria-label="Turtle mode: Transmission slows down while someone uses the network">
+      <div class="bot-head"><span>12</span><span class="name">Turtle</span><span>Netrunner throttle</span></div>
+      <div class="errol-row"><span data-qt="state">–</span><label class="errol-follow quiet-switch"><input type="checkbox" role="switch" data-qt="switch"> Turtle mode</label></div>
+      <span class="quiet-why" data-qt="why"></span>
     </div>
 
 
@@ -959,6 +967,7 @@
   <script src="/bifrost.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/errol.js" defer></script>
+  <script src="/quiet.js" defer></script>
   <script src="/cerebro.js" defer></script>
   <script src="/printer.js" defer></script>
 </body>
